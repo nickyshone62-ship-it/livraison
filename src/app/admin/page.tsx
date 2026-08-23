@@ -300,7 +300,6 @@ export default function AdminDashboard() {
           const data = await res.json();
           setSession(data.user);
           await fetchAdminData();
-          router.refresh();
         } else {
           setPinError('Erreur de validation du code administrateur');
         }
