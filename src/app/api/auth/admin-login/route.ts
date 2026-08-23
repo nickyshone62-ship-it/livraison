@@ -48,9 +48,11 @@ export async function POST(req: Request) {
         dbAdmin = await db.user.create({
           data: {
             phone: '+226 70 00 00 00',
+            email: 'admin@livraison-ouaga.bf',
             passwordHash: adminHash,
             role: 'ADMIN',
             isActive: true,
+            isEmailVerified: true,
             profile: {
               create: {
                 fullName: 'Super Administrateur Nick',
