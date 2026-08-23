@@ -36,6 +36,8 @@ export default function AdminDashboard() {
   const [adminPayments, setAdminPayments] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [driverFee, setDriverFee] = useState('5000');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'kyc' | 'users' | 'payments' | 'deliveries' | 'pricing' | 'zones' | 'disputes' | 'audit'>('users');
@@ -127,6 +129,12 @@ export default function AdminDashboard() {
       if (logsRes.ok) {
         const logsData = await logsRes.json();
         setAuditLogs(logsData.auditLogs || []);
+      }
+
+      const notifRes = await fetch('/api/admin/notifications');
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
+        setNotifications(notifData.notifications || []);
       }
     } catch (e) {
       console.error(e);
@@ -397,30 +405,99 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="px-4 py-2 rounded-2xl bg-white/90 border-2 border-white text-xs font-black text-[#004D40] shadow-md">
+          <button
+            type="button"
+            onClick={() => setShowNotificationsModal(true)}
+            className="px-4 py-2.5 rounded-2xl bg-white/95 border-2 border-white text-xs font-black text-[#004D40] shadow-md flex items-center gap-2 cursor-pointer hover:bg-white transition-all relative"
+          >
+            <Bell className="w-4 h-4 text-amber-600 animate-bounce" />
+            <span>Notifications Système ({notifications.length})</span>
+            {notifications.length > 0 && (
+              <span className="w-3 h-3 rounded-full bg-red-600 animate-ping absolute -top-1 -right-1" />
+            )}
+          </button>
+          <span className="px-4 py-2.5 rounded-2xl bg-white/90 border-2 border-white text-xs font-black text-[#004D40] shadow-md">
             🟢 Serveur : Actif (Ouagadougou DB)
           </span>
         </div>
       </div>
 
-      {/* PENDING USERS REGISTRATION ALERT BANNER */}
+      {/* PENDING USERS REGISTRATION ALERT BANNER WITH DIRECT ACTION CARDS */}
       {allUsers.filter(u => !u.isActive).length > 0 && (
-        <div className="p-5 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-slate-950 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-2 border-white animate-pulse">
-          <div className="flex items-center gap-3">
-            <Bell className="w-8 h-8 text-slate-950 shrink-0" />
-            <div>
-              <h3 className="font-black text-sm uppercase">📢 NOUVELLES INSCRIPTIONS EN ATTENTE D'APPROBATION !</h3>
-              <p className="text-xs font-bold text-slate-900 mt-0.5">
-                {allUsers.filter(u => !u.isActive).length} utilisateur(s) (Boutiques, Livreurs, Clients) attendent la validation administrative de leur compte.
-              </p>
+        <div className="p-6 bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500 text-slate-950 rounded-3xl shadow-2xl space-y-4 border-4 border-white animate-pulse">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-950 text-amber-400 flex items-center justify-center text-2xl font-black shadow-lg">
+                🛵
+              </div>
+              <div>
+                <span className="px-3 py-0.5 rounded-full bg-slate-950 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                  ACTION REQUISE ADMINISTRATEUR
+                </span>
+                <h3 className="font-black text-base sm:text-lg uppercase text-slate-950 mt-0.5">
+                  📢 {allUsers.filter(u => !u.isActive).length} NOUVELLE(S) INSCRIPTION(S) EN ATTENTE D'APPROBATION !
+                </h3>
+                <p className="text-xs font-bold text-slate-900">
+                  Des livreurs ou boutiques viennent de s'inscrire et attendent la vérification de leur dossier par l'administrateur.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={() => setActiveTab('users')}
+              className="px-5 py-3 bg-slate-950 hover:bg-slate-900 text-white font-black rounded-2xl text-xs shadow-xl shrink-0 cursor-pointer uppercase tracking-wider border border-amber-300 flex items-center gap-2"
+            >
+              <span>👥 Voir tous les comptes ({allUsers.filter(u => !u.isActive).length}) ↗</span>
+            </button>
           </div>
-          <button
-            onClick={() => setActiveTab('users')}
-            className="px-5 py-2.5 bg-slate-950 text-white font-black rounded-xl text-xs shadow-md shrink-0 cursor-pointer uppercase tracking-wider hover:bg-slate-800"
-          >
-            👥 Approuver les comptes ({allUsers.filter(u => !u.isActive).length}) ↗
-          </button>
+
+          {/* Quick Approval Cards for Pending Registrations */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {allUsers.filter(u => !u.isActive).slice(0, 4).map((pendingUser) => (
+              <div key={pendingUser.id} className="bg-white text-slate-900 p-5 rounded-2xl shadow-xl space-y-3 border-2 border-amber-300">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-black text-base text-[#004D40]">{pendingUser.profile?.fullName || pendingUser.phone}</h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 font-black text-[10px] uppercase">
+                        {pendingUser.role === 'LIVREUR' ? '🛵 Livreur' : pendingUser.role === 'COMMERCANT' ? '🏪 Boutique' : pendingUser.role}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-slate-600">
+                        📞 {pendingUser.phone}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 font-black text-[10px] rounded-full uppercase animate-pulse">
+                    ⏳ En Attente
+                  </span>
+                </div>
+
+                {pendingUser.driver && (
+                  <div className="bg-teal-50 p-3 rounded-xl border border-teal-200 text-xs space-y-1 font-bold text-[#004D40]">
+                    <div>🪪 CNIB / N° Pièce : <span className="font-mono text-slate-800">{pendingUser.driver.idCardNumber || 'Transmis'}</span></div>
+                    <div>🛵 Véhicule : <span className="text-slate-800">{pendingUser.driver.vehicles?.[0]?.vehicleType || 'MOTO'} ({pendingUser.driver.vehicles?.[0]?.brand || 'Moto'})</span></div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateUserApproval(pendingUser.id, 'APPROVE')}
+                    className="flex-1 py-3 px-4 bg-[#009688] hover:bg-[#00796B] text-white font-black text-xs uppercase rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-white"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>APPROUVER &amp; ACTIVER LE COMPTE</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateUserApproval(pendingUser.id, 'REJECT')}
+                    className="py-3 px-3 bg-red-100 hover:bg-red-200 text-red-800 font-black text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  >
+                    <span>❌ REJETER</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1447,6 +1524,52 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADMIN NOTIFICATIONS MODAL */}
+      {showNotificationsModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl border-4 border-teal-200">
+            <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-teal-100 text-[#009688] flex items-center justify-center text-xl font-bold">
+                  🔔
+                </div>
+                <div>
+                  <h3 className="font-black text-lg text-[#004D40]">Notifications &amp; Messages Système</h3>
+                  <p className="text-xs font-bold text-slate-500">Alertes en temps réel sur les inscriptions, livraisons et litiges</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowNotificationsModal(false)}
+                className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full font-black text-sm flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {notifications.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 font-bold text-xs space-y-2">
+                  <span className="text-3xl block">📭</span>
+                  <span>Aucune notification récente.</span>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div key={n.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-1 hover:border-teal-300 transition-all">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-black text-sm text-[#004D40]">{n.title}</span>
+                      <span className="text-[10px] font-bold text-slate-400 shrink-0">
+                        {new Date(n.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-700 leading-relaxed">{n.message}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
