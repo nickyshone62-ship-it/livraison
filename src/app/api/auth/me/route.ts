@@ -28,6 +28,26 @@ export async function GET() {
     });
 
     if (!user) {
+      if (session.role === 'ADMIN') {
+        return NextResponse.json({
+          user: {
+            id: session.userId || 'admin-root',
+            phone: session.phone || '+226 06 88 73 30',
+            email: 'admin@livraisonouaga.bf',
+            role: 'ADMIN',
+            isActive: true,
+            profile: {
+              fullName: session.fullName || 'Super Administrateur Nick',
+              city: 'Ouagadougou',
+            },
+            driver: null,
+            activeSubscription: null,
+            isSubscriptionActive: true,
+            daysRemaining: 9999,
+            pendingPayment: null,
+          },
+        });
+      }
       return NextResponse.json({ user: null }, { status: 404 });
     }
 

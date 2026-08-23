@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function POST(req: Request) {
@@ -18,20 +18,50 @@ export async function POST(req: Request) {
 
     try {
       let dbAdmin = await db.user.findFirst({
-        where: { role: 'ADMIN' },
+        where: {
+          OR: [
+            { role: 'ADMIN' },
+            { phone: '+226 06 88 73 30' },
+            { phone: { contains: '06887330' } },
+          ],
+        },
         include: { profile: true },
       });
 
       if (!dbAdmin) {
-        // Try creating or updating first user to ADMIN
-        const firstUser = await db.user.findFirst();
-        if (firstUser) {
-          dbAdmin = await db.user.update({
-            where: { id: firstUser.id },
-            data: { role: 'ADMIN', isActive: true },
+        const adminHash = await hashPassword('Nick2004');
+        try {
+          dbAdmin = await db.user.create({
+            data: {
+              phone: '+226 06 88 73 30',
+              passwordHash: adminHash,
+              role: 'ADMIN',
+              isActive: true,
+              profile: {
+                create: {
+                  fullName: 'Super Administrateur Nick',
+                  city: 'Ouagadougou',
+                },
+              },
+            },
             include: { profile: true },
           });
+        } catch (createErr) {
+          const firstUser = await db.user.findFirst({ include: { profile: true } });
+          if (firstUser) {
+            dbAdmin = await db.user.update({
+              where: { id: firstUser.id },
+              data: { role: 'ADMIN', isActive: true },
+              include: { profile: true },
+            });
+          }
         }
+      } else if (dbAdmin.role !== 'ADMIN') {
+        dbAdmin = await db.user.update({
+          where: { id: dbAdmin.id },
+          data: { role: 'ADMIN', isActive: true },
+          include: { profile: true },
+        });
       }
 
       if (dbAdmin) {
