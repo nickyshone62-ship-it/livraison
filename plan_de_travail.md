@@ -59,10 +59,11 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
 - [x] **Retrait du Guide d'Utilisation** : Masquage définitif du bloc de guide de démarrage dans l'espace client & boutique ([client/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/client/page.tsx)) à la demande de l'utilisateur.
 - [x] **Remise à Zéro Complète & Retrait du Bouton de Réinitialisation** : Purge intégrale de toutes les données de test réalisée avec succès. Retrait du bouton de réinitialisation du panneau d'administration pour éviter tout effacement accidentel pendant les opérations réelles ([admin/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/admin/page.tsx)).
 
-- [x] **Intégration Base de Données Persistante Supabase (PostgreSQL)** : Conversion du schéma Prisma pour PostgreSQL ([schema.prisma](file:///c:/Users/HP/Documents/Livraison/prisma/schema.prisma)), configuration des variables d'environnement `DATABASE_URL` (pooler serveur port 6543) et `DIRECT_URL` (port 5432), et création du modèle d'installation ([.env.example](file:///c:/Users/HP/Documents/Livraison/.env.example)).
-- [ ] Renseigner les clés Supabase dans Vercel et exécuter `npx prisma db push` / `seed.ts`.
-- [ ] Tester les parcours utilisateurs de bout en bout (Client, Livreur, Admin).
-- [ ] Préparer l'environnement de production.
+- [x] Intégration Base de Données Persistante Supabase (PostgreSQL) : Conversion du schéma Prisma pour PostgreSQL ([schema.prisma](file:///c:/Users/HP/Documents/Livraison/prisma/schema.prisma)), configuration des variables d'environnement `DATABASE_URL` (pooler serveur port 6543) et `DIRECT_URL` (port 5432).
+- [x] Synchronisation du schéma Prisma sur la base de données distante Supabase via `npx prisma db push`.
+- [x] Vérification intégrale du build de production (`next build` : 28 pages statiques & dynamiques générées sans erreur).
+- [ ] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et lancer le déploiement.
+- [ ] Tester les parcours utilisateurs de bout en bout en ligne.
 
 ---
 
