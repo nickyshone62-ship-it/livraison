@@ -289,25 +289,27 @@ export default function AdminDashboard() {
   const handleVerifyAdminPin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanCode = adminPinCode.trim();
-    if (cleanCode.toLowerCase() === 'nick2004') {
-      try {
-        const res = await fetch('/api/auth/admin-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: 'Nick2004' }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSession(data.user);
-          await fetchAdminData();
-        } else {
-          setPinError('Erreur de validation du code administrateur');
-        }
-      } catch (err) {
-        setPinError('Erreur réseau');
+    if (!cleanCode) {
+      setPinError('Veuillez saisir votre code secret administrateur');
+      return;
+    }
+    setPinError('');
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cleanCode }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSession(data.user);
+        await fetchAdminData();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setPinError(data.error || '⚠️ Code Administrateur Incorrect ! Veuillez vérifier votre code secret.');
       }
-    } else {
-      setPinError('⚠️ Code Administrateur Incorrect ! Veuillez vérifier votre code secret.');
+    } catch (err) {
+      setPinError('Erreur réseau lors de la vérification');
     }
   };
 
