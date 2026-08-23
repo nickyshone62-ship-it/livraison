@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   Users,
@@ -38,6 +38,29 @@ export default function AdminDashboard() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [newRegistrationAlert, setNewRegistrationAlert] = useState<any>(null);
+  const prevNotificationsCountRef = useRef<number | null>(null);
+
+  const playNotificationSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {
+      // Audio autoplay policy
+    }
+  };
   const [driverFee, setDriverFee] = useState('5000');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'kyc' | 'users' | 'payments' | 'deliveries' | 'pricing' | 'zones' | 'disputes' | 'audit'>('users');
@@ -134,7 +157,17 @@ export default function AdminDashboard() {
       const notifRes = await fetch('/api/admin/notifications');
       if (notifRes.ok) {
         const notifData = await notifRes.json();
-        setNotifications(notifData.notifications || []);
+        const newNotifs = notifData.notifications || [];
+        
+        if (prevNotificationsCountRef.current !== null && newNotifs.length > prevNotificationsCountRef.current) {
+          const latestNotif = newNotifs[0];
+          if (latestNotif) {
+            setNewRegistrationAlert(latestNotif);
+            playNotificationSound();
+          }
+        }
+        prevNotificationsCountRef.current = newNotifs.length;
+        setNotifications(newNotifs);
       }
     } catch (e) {
       console.error(e);
@@ -145,7 +178,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
-    const interval = setInterval(fetchAdminData, 4000);
+    const interval = setInterval(fetchAdminData, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -389,7 +422,46 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 relative">
+
+      {/* LIVE FLOATING NEW REGISTRATION TOAST ALERT */}
+      {newRegistrationAlert && (
+        <div className="fixed top-6 right-6 z-50 max-w-md w-full bg-slate-950 text-white p-5 rounded-3xl shadow-2xl border-4 border-amber-400 animate-bounce">
+          <div className="flex justify-between items-start gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center text-xl font-black shrink-0 shadow-lg">
+                🔔
+              </div>
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider">
+                  NOUVELLE INSCRIPTION EN DIRECT !
+                </span>
+                <h4 className="font-black text-sm text-white mt-1">{newRegistrationAlert.title}</h4>
+                <p className="text-xs text-slate-200 font-bold mt-0.5 leading-relaxed">
+                  {newRegistrationAlert.message}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setNewRegistrationAlert(null)}
+              className="text-slate-400 hover:text-white font-black text-sm p-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => {
+                setActiveTab('users');
+                setNewRegistrationAlert(null);
+              }}
+              className="w-full py-2.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-md"
+            >
+              🚀 VOIR &amp; APPROUVER L'INSCRIPTION
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#00E5D9] via-[#00B4D8] to-[#009688] border-4 border-white text-[#004D40] shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
