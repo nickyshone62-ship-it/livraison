@@ -59,9 +59,8 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
 - [x] **Retrait du Guide d'Utilisation** : Masquage définitif du bloc de guide de démarrage dans l'espace client & boutique ([client/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/client/page.tsx)) à la demande de l'utilisateur.
 - [x] **Remise à Zéro Complète & Retrait du Bouton de Réinitialisation** : Purge intégrale de toutes les données de test réalisée avec succès. Retrait du bouton de réinitialisation du panneau d'administration pour éviter tout effacement accidentel pendant les opérations réelles ([admin/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/admin/page.tsx)).
 
-### PHASE 5 : Déploiement Production & Lancement Pilote à Ouagadougou
-**Objectif** : Déployer sur serveur sécurisé et lancer le test avec les livreurs et commerçants.
-- [ ] Valider le build TypeScript et la base de données SQLite/PostgreSQL.
+- [x] **Intégration Base de Données Persistante Supabase (PostgreSQL)** : Conversion du schéma Prisma pour PostgreSQL ([schema.prisma](file:///c:/Users/HP/Documents/Livraison/prisma/schema.prisma)), configuration des variables d'environnement `DATABASE_URL` (pooler serveur port 6543) et `DIRECT_URL` (port 5432), et création du modèle d'installation ([.env.example](file:///c:/Users/HP/Documents/Livraison/.env.example)).
+- [ ] Renseigner les clés Supabase dans Vercel et exécuter `npx prisma db push` / `seed.ts`.
 - [ ] Tester les parcours utilisateurs de bout en bout (Client, Livreur, Admin).
 - [ ] Préparer l'environnement de production.
 
