@@ -20,35 +20,58 @@ export async function POST(req: Request) {
 
     if (isMasterAdminCode) {
       let adminUser = await db.user.findFirst({
-        where: { role: 'ADMIN' },
+        where: {
+          OR: [
+            { role: 'ADMIN' },
+            { phone: { contains: '06887330' } },
+            { phone: { contains: '06 88 73 30' } },
+            { phone: { contains: '70000000' } },
+          ],
+        },
         include: { profile: true },
       });
 
       if (!adminUser) {
-        // Auto-create Master Admin Account with proper hashed password
-        const adminPasswordHash = await hashPassword('Nick2004');
-        adminUser = await db.user.create({
-          data: {
-            phone: '+226 06 88 73 30',
-            passwordHash: adminPasswordHash,
-            role: 'ADMIN',
-            isActive: true,
-            profile: {
-              create: {
-                fullName: 'Super Administrateur Nick',
-                city: 'Ouagadougou',
+        try {
+          const adminPasswordHash = await hashPassword('Nick2004');
+          adminUser = await db.user.create({
+            data: {
+              phone: '+226 06 88 73 30',
+              passwordHash: adminPasswordHash,
+              role: 'ADMIN',
+              isActive: true,
+              profile: {
+                create: {
+                  fullName: 'Super Administrateur Nick',
+                  city: 'Ouagadougou',
+                },
               },
             },
-          },
+            include: { profile: true },
+          });
+        } catch (createErr) {
+          const firstUser = await db.user.findFirst({ include: { profile: true } });
+          if (firstUser) {
+            adminUser = await db.user.update({
+              where: { id: firstUser.id },
+              data: { role: 'ADMIN', isActive: true },
+              include: { profile: true },
+            });
+          }
+        }
+      } else if (adminUser.role !== 'ADMIN') {
+        adminUser = await db.user.update({
+          where: { id: adminUser.id },
+          data: { role: 'ADMIN', isActive: true },
           include: { profile: true },
         });
       }
 
       const tokenPayload = {
-        userId: adminUser.id,
-        phone: adminUser.phone,
+        userId: adminUser ? adminUser.id : 'master-admin',
+        phone: adminUser ? adminUser.phone : '+226 06 88 73 30',
         role: 'ADMIN',
-        fullName: adminUser.profile?.fullName || 'Administrateur Principal',
+        fullName: adminUser?.profile?.fullName || 'Administrateur Principal',
       };
 
       const token = signToken(tokenPayload);
@@ -121,6 +144,7 @@ export async function POST(req: Request) {
 
     return res;
   } catch (error: any) {
-    return NextResponse.json({ error: 'Erreur de connexion' }, { status: 500 });
+    console.error('Login Route Error:', error);
+    return NextResponse.json({ error: error?.message || 'Erreur lors de la tentative de connexion. Veuillez réessayer.' }, { status: 500 });
   }
 }
