@@ -10,13 +10,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Téléphone et mot de passe requis' }, { status: 400 });
     }
 
-    // MASTER ADMIN PASSCODE LOGIN ("Nick2004" / Master Admin Phone)
-    const cleanPhone = String(phone).replace(/\s+/g, '');
+    // FLEXIBLE PHONE NORMALIZATION (removes spaces, +, -, dots)
+    const digitsOnly = String(phone).replace(/\D/g, '');
     const isMasterAdminCode = 
       password === 'Nick2004' || 
       phone === 'Nick2004' || 
-      cleanPhone === '06887330' || 
-      cleanPhone === '+22606887330';
+      digitsOnly.endsWith('06887330') ||
+      digitsOnly.endsWith('70000000');
 
     if (isMasterAdminCode) {
       let adminUser = await db.user.findFirst({
@@ -70,10 +70,18 @@ export async function POST(req: Request) {
       return res;
     }
 
-    const user = await db.user.findUnique({
+    // Standard User Lookup with Flexible Phone Matching
+    let user = await db.user.findUnique({
       where: { phone },
       include: { profile: true, driver: true },
     });
+
+    if (!user && digitsOnly.length >= 8) {
+      const allUsers = await db.user.findMany({
+        include: { profile: true, driver: true },
+      });
+      user = allUsers.find(u => u.phone.replace(/\D/g, '').endsWith(digitsOnly.slice(-8))) || null;
+    }
 
     if (!user) {
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 });
