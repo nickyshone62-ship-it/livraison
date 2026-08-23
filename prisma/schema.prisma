@@ -14,14 +14,16 @@ generator client {
 // -------------------------------------------------------------
 
 model User {
-  id            String      @id @default(uuid())
-  phone         String      @unique
-  email         String?     @unique
-  passwordHash  String
-  role          String      @default("PARTICULIER") // PARTICULIER, COMMERCANT, ENTREPRISE, LIVREUR, ADMIN
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id               String      @id @default(uuid())
+  phone            String      @unique
+  email            String      @unique
+  passwordHash     String
+  role             String      @default("PARTICULIER") // PARTICULIER, COMMERCANT, ENTREPRISE, LIVREUR, ADMIN
+  isActive         Boolean     @default(true)
+  isEmailVerified  Boolean     @default(false)
+  emailVerifyToken String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   profile                 Profile?
   driver                  Driver?

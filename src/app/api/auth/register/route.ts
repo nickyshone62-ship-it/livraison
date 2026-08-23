@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { sendAccountVerificationEmail } from '@/lib/email';
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
       phone,
+      email,
       password,
       role,
       fullName,
@@ -29,16 +32,24 @@ export async function POST(req: Request) {
 
     const computedFullName = (firstName && lastName) ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur');
 
-    if (!phone || !password || !computedFullName || !role) {
-      return NextResponse.json({ error: 'Veuillez remplir tous les champs obligatoires' }, { status: 400 });
+    if (!email || !email.trim() || !phone || !password || !computedFullName || !role) {
+      return NextResponse.json({ error: 'L\'adresse e-mail, le téléphone, le nom et le mot de passe sont obligatoires.' }, { status: 400 });
     }
 
-    const existingUser = await db.user.findUnique({ where: { phone } });
-    if (existingUser) {
+    const cleanEmail = email.toLowerCase().trim();
+
+    const existingPhone = await db.user.findUnique({ where: { phone } });
+    if (existingPhone) {
       return NextResponse.json({ error: 'Ce numéro de téléphone est déjà enregistré' }, { status: 400 });
     }
 
+    const existingEmail = await db.user.findUnique({ where: { email: cleanEmail } });
+    if (existingEmail) {
+      return NextResponse.json({ error: 'Cette adresse e-mail est déjà associée à un compte' }, { status: 400 });
+    }
+
     const passwordHash = await hashPassword(password);
+    const emailVerifyToken = crypto.randomUUID();
 
     // Format preferred zones string
     const formattedZones = Array.isArray(preferredZones) ? preferredZones.join(', ') : (preferredZones || 'Ouaga-Centre, Ouaga 2000');
@@ -46,9 +57,12 @@ export async function POST(req: Request) {
     const user = await db.user.create({
       data: {
         phone,
+        email: cleanEmail,
         passwordHash,
         role,
-        isActive: role === 'ADMIN', // Require admin validation for non-admin accounts
+        isActive: role === 'ADMIN',
+        isEmailVerified: false,
+        emailVerifyToken,
         profile: {
           create: {
             fullName: computedFullName,
@@ -156,16 +170,29 @@ export async function POST(req: Request) {
       });
     }
 
+    // Send email verification link
+    await sendAccountVerificationEmail({
+      email: user.email,
+      fullName: computedFullName,
+      verifyToken: emailVerifyToken,
+    });
+
     const tokenPayload = {
       userId: user.id,
       phone: user.phone,
+      email: user.email,
       role: user.role,
       fullName: user.profile?.fullName || fullName,
     };
 
     const token = signToken(tokenPayload);
 
-    const res = NextResponse.json({ success: true, user: tokenPayload });
+    const res = NextResponse.json({
+      success: true,
+      user: tokenPayload,
+      emailVerificationSent: true,
+      message: `Inscription réussie. Un email de confirmation a été envoyé à ${user.email}.`,
+    });
     res.cookies.set(TOKEN_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

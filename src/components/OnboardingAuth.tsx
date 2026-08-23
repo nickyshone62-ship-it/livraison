@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Mail,
 } from 'lucide-react';
 
 interface OnboardingAuthProps {
@@ -291,6 +292,10 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
     setError('');
 
     try {
+      if (!email || !email.trim()) {
+        throw new Error('L\'adresse e-mail est obligatoire pour valider votre compte.');
+      }
+
       if (!idCardNumber.trim()) {
         throw new Error('Le numéro de la CNIB ou du Passeport est obligatoire pour tous les utilisateurs.');
       }
@@ -327,7 +332,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone,
-          email: email || null,
+          email: email.trim(),
           password,
           role,
           fullName: role === 'LIVREUR' ? `${firstName} ${lastName}`.trim() : fullName,
@@ -357,6 +362,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
       // Keep user on the registration page in waiting mode for admin verification
       setPendingAccountData({
         phone: data.user.phone,
+        email: data.user.email,
         role: role,
         fullName: role === 'LIVREUR' ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur'),
       });
@@ -811,6 +817,29 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   <div>
                     <span>🔒 Accès Sécurisé :</span> Saisissez votre numéro de téléphone et votre mot de passe / code secret pour vous connecter.
                   </div>
+                </div>
+              )}
+
+              {/* EMAIL OBLIGATOIRE POUR TOUTE INSCRIPTION */}
+              {mode === 'register' && (
+                <div className="md:col-span-2 space-y-1">
+                  <label className="block text-xs sm:text-sm font-black uppercase text-[#004D40] mb-1 ml-1">
+                    Adresse E-mail (Validation de compte obligatoire) * :
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-6 h-6 absolute left-4.5 top-4.5 text-[#009688]" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ex: votre.nom@gmail.com"
+                      className="w-full bg-[#F0FDFB] text-[#004D40] placeholder-[#00796B]/70 rounded-full pl-14 pr-6 py-4.5 text-xs sm:text-base font-black outline-none shadow-sm border-2 border-teal-200 focus:border-[#009688] transition-all"
+                    />
+                  </div>
+                  <p className="text-[11px] font-bold text-teal-800 ml-3">
+                    ✉️ Un lien de confirmation sera envoyé à cette adresse pour valider votre compte.
+                  </p>
                 </div>
               )}
 
