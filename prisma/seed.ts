@@ -187,15 +187,16 @@ async function main() {
   const defaultPassword = await bcrypt.hash('password123', 10);
 
   // Admin User
+  const adminPassword = await bcrypt.hash('Nick2004', 10);
   const adminUser = await prisma.user.create({
     data: {
-      phone: '+226 70 00 00 00',
+      phone: '+226 06 88 73 30',
       email: 'admin@livraison-ouaga.bf',
-      passwordHash: defaultPassword,
+      passwordHash: adminPassword,
       role: 'ADMIN',
       profile: {
         create: {
-          fullName: 'Administrateur Principal',
+          fullName: 'Super Administrateur Nick',
           city: 'Ouagadougou',
           address: 'Avenue Kwame N\'Krumah, Ouagadougou',
         },
