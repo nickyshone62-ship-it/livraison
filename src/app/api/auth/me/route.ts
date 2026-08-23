@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server';
+import { getAuthSession } from '@/lib/auth';
+import { db } from '@/lib/db';
+
+export async function GET() {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ user: null }, { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: String(session.userId) },
+      include: {
+        profile: true,
+        driver: {
+          include: {
+            vehicles: true,
+            documents: true,
+          },
+        },
+        subscriptions: {
+          include: { plan: true },
+          where: { status: 'ACTIVE' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ user: null }, { status: 404 });
+    }
+
+    const latestSub = user.subscriptions[0] || null;
+    const now = new Date();
+    const isSubActive = latestSub ? new Date(latestSub.endsAt) > now : false;
+    const daysRemaining = latestSub ? Math.max(0, Math.ceil((new Date(latestSub.endsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+    const pendingPayment = await db.payment.findFirst({
+      where: {
+        userId: user.id,
+        type: 'SUBSCRIPTION',
+        status: 'PENDING',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        profile: user.profile,
+        driver: user.driver,
+        activeSubscription: latestSub,
+        isSubscriptionActive: isSubActive,
+        daysRemaining: daysRemaining,
+        pendingPayment: pendingPayment || null,
+      },
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: 'Erreur lors de la récupération du profil' }, { status: 500 });
+  }
+}

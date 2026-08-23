@@ -1,0 +1,335 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// MODELS (21 Tables)
+// SQLite stores enum values as Strings with application-level validation
+// -------------------------------------------------------------
+
+model User {
+  id            String      @id @default(uuid())
+  phone         String      @unique
+  email         String?     @unique
+  passwordHash  String
+  role          String      @default("PARTICULIER") // PARTICULIER, COMMERCANT, ENTREPRISE, LIVREUR, ADMIN
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  profile                 Profile?
+  driver                  Driver?
+  subscriptions           Subscription[]
+  deliveryRequests        DeliveryRequest[]    @relation("CustomerRequests")
+  deliveryProposals       DeliveryProposal[]   @relation("DriverProposals")
+  customerDeliveries      Delivery[]           @relation("CustomerDeliveries")
+  driverDeliveries        Delivery[]           @relation("DriverDeliveries")
+  givenReviews            Review[]             @relation("GivenReviews")
+  receivedReviews         Review[]             @relation("ReceivedReviews")
+  openedDisputes          Dispute[]            @relation("UserDisputes")
+  assignedDisputes        Dispute[]            @relation("AdminDisputes")
+  reportsGiven            Report[]             @relation("Reporter")
+  reportsReceived         Report[]             @relation("ReportedUser")
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+  payments                Payment[]
+  statusHistoryChanges    DeliveryStatusHistory[]
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName     String
+  avatarUrl    String?
+  city         String   @default("Ouagadougou")
+  address      String?
+  companyName  String?
+  taxId        String?
+  legalInfo    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Driver {
+  id                  String               @id @default(uuid())
+  userId              String               @unique
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verificationStatus  String               @default("EN_ATTENTE") // EN_ATTENTE, EN_VERIFICATION, VERIFIE, REJETE, SUSPENDU
+  rejectionReason     String?
+  idCardNumber        String?
+  totalDeliveries     Int                  @default(0)
+  successfulDeliveries Int                 @default(0)
+  successRate         Float                @default(100.0)
+  ratingAvg           Float                @default(5.0)
+  ratingCount         Int                  @default(0)
+  isAvailable         Boolean              @default(true)
+  preferredZones      String?              // Comma separated zones
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  vehicles            Vehicle[]
+  documents           VerificationDocument[]
+}
+
+model Vehicle {
+  id           String      @id @default(uuid())
+  driverId     String
+  driver       Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleType  String      @default("MOTO") // MOTO, TRICYCLE, VOITURE, CAMIONNETTE
+  brand        String?
+  model        String?
+  licensePlate String?
+  color        String?
+  photoUrl     String?
+  isDefault    Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+}
+
+model VerificationDocument {
+  id          String       @id @default(uuid())
+  driverId    String
+  driver      Driver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  docType     String       // ID_CARD, DRIVING_LICENSE, VEHICLE_REGISTRATION, CRIMINAL_RECORD
+  fileUrl     String
+  status      String       @default("EN_ATTENTE") // EN_ATTENTE, EN_VERIFICATION, VERIFIE, REJETE
+  reviewNotes String?
+  createdAt   DateTime     @default(now())
+}
+
+model SubscriptionPlan {
+  id                String   @id @default(uuid())
+  code              String   @unique // PARTICULIER, COMMERCANT, PRO, ENTREPRISE
+  name              String
+  description       String?
+  priceFcfa         Int
+  durationDays      Int      @default(30)
+  maxActiveRequests Int      @default(10)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id         String           @id @default(uuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId     String
+  plan       SubscriptionPlan @relation(fields: [planId], references: [id])
+  status     String           @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  startsAt   DateTime         @default(now())
+  endsAt     DateTime
+  paymentId  String?
+  createdAt  DateTime         @default(now())
+}
+
+model Zone {
+  id                 String   @id @default(uuid())
+  name               String   @unique // ex: Ouaga 2000, Tampouy, Kamboinse
+  city               String   @default("Ouagadougou")
+  indicativePriceFcfa Int     @default(1500)
+  associatedQuartiers String? // Comma-separated list
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+
+  tariffs            Tariff[]
+}
+
+model Tariff {
+  id            String      @id @default(uuid())
+  zoneId        String
+  zone          Zone        @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  vehicleType   String      @default("MOTO") // MOTO, TRICYCLE, VOITURE, CAMIONNETTE
+  basePriceFcfa Int
+  perKmFcfa     Int         @default(200)
+  createdAt     DateTime    @default(now())
+}
+
+model DeliveryRequest {
+  id                String         @id @default(uuid())
+  trackingNumber    String         @unique // LIV-2026-000001
+  customerId        String
+  customer          User           @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
+  pickupAddress     String
+  pickupCity        String         @default("Ouagadougou")
+  dropoffAddress    String
+  dropoffCity       String         @default("Ouagadougou")
+  packageType       String         // Document, Electroménager, Repas, Colis Lourd, etc.
+  description       String
+  quantity          Int            @default(1)
+  dimensions        String?
+  urgencyLevel      String         @default("NORMAL") // URGENT, NORMAL, PROGRAMME
+  scheduledDate     String
+  scheduledTime     String
+  additionalNotes   String?
+  imageUrl          String?
+  status            String         @default("DEMANDE_PUBLIEE") // DEMANDE_PUBLIEE, PROPOSITIONS_RECUES, LIVREUR_SELECTIONNE, EN_ATTENTE_RECUPERATION, COLIS_RECUPERE, EN_COURS_LIVRAISON, LIVRE, ANNULEE, LITIGE
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  proposals         DeliveryProposal[]
+  delivery          Delivery?
+}
+
+model DeliveryProposal {
+  id                      String          @id @default(uuid())
+  deliveryRequestId       String
+  deliveryRequest         DeliveryRequest @relation(fields: [deliveryRequestId], references: [id], onDelete: Cascade)
+  driverId                String
+  driver                  User            @relation("DriverProposals", fields: [driverId], references: [id], onDelete: Cascade)
+  proposedPriceFcfa       Int
+  estimatedDurationMinutes Int
+  comment                 String?
+  status                  String          @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  delivery                Delivery?
+}
+
+model Delivery {
+  id                 String            @id @default(uuid())
+  trackingNumber     String            @unique
+  deliveryRequestId  String            @unique
+  deliveryRequest    DeliveryRequest   @relation(fields: [deliveryRequestId], references: [id], onDelete: Cascade)
+  customerId         String
+  customer           User              @relation("CustomerDeliveries", fields: [customerId], references: [id], onDelete: Cascade)
+  driverId           String
+  driver             User              @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: Cascade)
+  selectedProposalId String            @unique
+  selectedProposal   DeliveryProposal  @relation(fields: [selectedProposalId], references: [id])
+  agreedPriceFcfa    Int
+  status             String            @default("LIVREUR_SELECTIONNE")
+  selectedAt         DateTime          @default(now())
+  pickedUpAt         DateTime?
+  deliveredAt        DateTime?
+  proofPhotoUrl      String?
+  signatureUrl       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  codes              DeliveryCode?
+  statusHistory      DeliveryStatusHistory[]
+  reviews            Review[]
+  disputes           Dispute[]
+}
+
+model DeliveryStatusHistory {
+  id             String         @id @default(uuid())
+  deliveryId     String
+  delivery       Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  previousStatus String
+  newStatus      String
+  changedByUserId String
+  changedByUser  User           @relation(fields: [changedByUserId], references: [id])
+  note           String?
+  createdAt      DateTime       @default(now())
+}
+
+model DeliveryCode {
+  id                 String    @id @default(uuid())
+  deliveryId         String    @unique
+  delivery           Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  pickupCode         String    // e.g., 4821
+  deliveryCode       String    // e.g., 9134
+  pickupVerifiedAt   DateTime?
+  deliveryVerifiedAt DateTime?
+  createdAt          DateTime  @default(now())
+}
+
+model Payment {
+  id                   String        @id @default(uuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                 String        // SUBSCRIPTION, DRIVER_VERIFICATION_FEE, DELIVERY_COMMISSION
+  amountFcfa           Int
+  paymentMethod        String        @default("ORANGE_MONEY") // ORANGE_MONEY, MOOV_MONEY, WAVE, CASH
+  transactionReference String        @unique
+  status               String        @default("COMPLETED") // PENDING, COMPLETED, FAILED, REFUNDED
+  createdAt            DateTime      @default(now())
+}
+
+model Review {
+  id                    String   @id @default(uuid())
+  deliveryId            String
+  delivery              Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  reviewerId            String
+  reviewer              User     @relation("GivenReviews", fields: [reviewerId], references: [id])
+  revieweeId            String
+  reviewee              User     @relation("ReceivedReviews", fields: [revieweeId], references: [id])
+  rating                Int      // 1 to 5
+  punctualityRating     Int?
+  communicationRating   Int?
+  packageConditionRating Int?
+  comment               String?
+  createdAt             DateTime @default(now())
+}
+
+model Dispute {
+  id              String        @id @default(uuid())
+  disputeNumber   String        @unique // LIT-2026-0001
+  deliveryId      String
+  delivery        Delivery      @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  openedByUserId  String
+  openedByUser    User          @relation("UserDisputes", fields: [openedByUserId], references: [id])
+  category        String        // COLIS_NON_LIVRE, COLIS_ENDOMMAGE, RETARD, COMPORTEMENT_INAPPROPRIE, FRAUDE, AUTRE
+  description     String
+  evidenceUrls    String?       // JSON or comma separated URLs
+  status          String        @default("OUVERT") // OUVERT, EN_ANALYSE, RESOLU, REJETE
+  resolutionNotes String?
+  assignedAdminId String?
+  assignedAdmin   User?         @relation("AdminDisputes", fields: [assignedAdminId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Report {
+  id             String   @id @default(uuid())
+  reporterId     String
+  reporter       User     @relation("Reporter", fields: [reporterId], references: [id])
+  reportedUserId String
+  reportedUser   User     @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  reason         String
+  details        String?
+  status         String   @default("PENDING")
+  createdAt      DateTime @default(now())
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  message      String
+  type         String   // DELIVERY, SYSTEM, PAYMENT, DISPUTE
+  isRead       Boolean  @default(false)
+  metadataJson String?
+  createdAt    DateTime @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action       String
+  targetEntity String
+  targetId     String?
+  detailsJson  String?
+  ipAddress    String?  @default("127.0.0.1")
+  createdAt    DateTime @default(now())
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
