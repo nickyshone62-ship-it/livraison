@@ -183,6 +183,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [pendingAccountData, setPendingAccountData] = useState<{
     phone: string;
+    email?: string;
     role: string;
     fullName: string;
   } | null>(null);
