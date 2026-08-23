@@ -144,6 +144,38 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Secret Admin Code Modal state (triggered by clicking Logo)
+  const [showAdminSecretModal, setShowAdminSecretModal] = useState(false);
+  const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [adminSecretError, setAdminSecretError] = useState('');
+  const [adminSecretLoading, setAdminSecretLoading] = useState(false);
+
+  const handleAdminSecretSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminSecretError('');
+    setAdminSecretLoading(true);
+    try {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: adminCodeInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowAdminSecretModal(false);
+        if (onSuccess) onSuccess();
+        router.push('/admin');
+        router.refresh();
+      } else {
+        setAdminSecretError(data.error || 'Code secret administrateur invalide.');
+      }
+    } catch (err) {
+      setAdminSecretError('Erreur de connexion réseau');
+    } finally {
+      setAdminSecretLoading(false);
+    }
+  };
+
   // Pending Approval State
   const [isWaitingApproval, setIsWaitingApproval] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
@@ -503,9 +535,13 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
 
       {/* Top Header Bar (FULL WIDTH SPACING) */}
       <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center text-center relative z-10 pt-4 pb-2">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 bg-white/20 backdrop-blur-md p-4 sm:p-6 rounded-[2.5rem] border-2 border-white/40 shadow-2xl w-full">
+        <div 
+          onClick={() => setShowAdminSecretModal(true)} 
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 bg-white/20 backdrop-blur-md p-4 sm:p-6 rounded-[2.5rem] border-2 border-white/40 shadow-2xl w-full cursor-pointer hover:bg-white/30 transition-all group"
+          title="👑 Cliquer pour la Connexion Administrateur Secret"
+        >
           {/* Highlighted Big Logo Icon */}
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white text-[#009688] shadow-2xl p-1 flex items-center justify-center font-bold border-4 border-white transform hover:scale-105 transition-all shrink-0">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white text-[#009688] shadow-2xl p-1 flex items-center justify-center font-bold border-4 border-white transform group-hover:scale-105 transition-all shrink-0">
             <Truck className="w-11 h-11 sm:w-14 sm:h-14 text-[#009688]" />
           </div>
           {/* Highlighted Title + Badge */}
@@ -513,7 +549,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
             <span className="font-black text-3xl sm:text-6xl tracking-tight text-white block drop-shadow-md">
               Livraison<span className="text-teal-100">Ouaga</span>
             </span>
-            <span className="mt-1 text-xs sm:text-base uppercase font-black tracking-widest text-[#004D40] bg-white px-5 py-1.5 rounded-full shadow-md inline-block border border-teal-100">
+            <span className="mt-1 text-xs sm:text-base uppercase font-black tracking-widest text-[#004D40] bg-white px-5 py-1.5 rounded-full shadow-md inline-block border border-teal-100 flex items-center gap-1.5">
               Burkina Faso 🇧🇫
             </span>
           </div>
@@ -1332,9 +1368,72 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
 
         </div>
 
-      </div>
+      {/* SECRET ADMIN CODE MODAL */}
+      {showAdminSecretModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-4 border-amber-400 space-y-6 text-center animate-fadeIn relative">
+            <button
+              onClick={() => setShowAdminSecretModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl cursor-pointer"
+            >
+              ✕
+            </button>
 
+            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl border-4 border-white">
+              <ShieldCheck className="w-10 h-10 text-slate-950" />
+            </div>
 
+            <div className="space-y-2">
+              <span className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-300">
+                👑 Accès Secret Super-Administrateur
+              </span>
+              <h3 className="text-xl font-black text-slate-900">
+                Connexion Administrateur
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Saisissez votre code secret confidentiel pour accéder directement au panneau d'administration.
+              </p>
+            </div>
+
+            {adminSecretError && (
+              <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
+                {adminSecretError}
+              </div>
+            )}
+
+            <form onSubmit={handleAdminSecretSubmit} className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  required
+                  autoFocus
+                  value={adminCodeInput}
+                  onChange={(e) => setAdminCodeInput(e.target.value)}
+                  placeholder="Code Secret (ex: Nick2004)"
+                  className="w-full px-4 py-3 text-center text-lg font-bold font-mono border-2 border-slate-300 rounded-2xl outline-none focus:border-amber-500 transition-all bg-slate-50 text-slate-900"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminSecretModal(false)}
+                  className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={adminSecretLoading}
+                  className="w-2/3 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl cursor-pointer uppercase tracking-wider border border-amber-300"
+                >
+                  {adminSecretLoading ? 'Connexion...' : '🚀 Valider & Accéder'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
