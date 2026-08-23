@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { comparePassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { comparePassword, hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
@@ -10,8 +10,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Téléphone et mot de passe requis' }, { status: 400 });
     }
 
-    // MASTER ADMIN PASSCODE LOGIN ("Nick2004")
-    const isMasterAdminCode = password === 'Nick2004' || phone === 'Nick2004';
+    // MASTER ADMIN PASSCODE LOGIN ("Nick2004" / Master Admin Phone)
+    const cleanPhone = String(phone).replace(/\s+/g, '');
+    const isMasterAdminCode = 
+      password === 'Nick2004' || 
+      phone === 'Nick2004' || 
+      cleanPhone === '06887330' || 
+      cleanPhone === '+22606887330';
 
     if (isMasterAdminCode) {
       let adminUser = await db.user.findFirst({
@@ -20,17 +25,17 @@ export async function POST(req: Request) {
       });
 
       if (!adminUser) {
-        // Auto-create Master Admin Account
-        const hash = await comparePassword('Nick2004', 'Nick2004') ? 'Nick2004' : '$2b$10$wN9a8b1c...';
+        // Auto-create Master Admin Account with proper hashed password
+        const adminPasswordHash = await hashPassword('Nick2004');
         adminUser = await db.user.create({
           data: {
             phone: '+226 06 88 73 30',
-            passwordHash: '$2b$10$eF8uX9XkY4mX6gP7kM9uEe8h1j2k3l4m5n6o7p8q9r0s1t2u3v4w5', // master hashed
+            passwordHash: adminPasswordHash,
             role: 'ADMIN',
             isActive: true,
             profile: {
               create: {
-                fullName: 'Administrateur (Code Nick2004)',
+                fullName: 'Super Administrateur Nick',
                 city: 'Ouagadougou',
               },
             },
