@@ -1410,7 +1410,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   autoFocus
                   value={adminCodeInput}
                   onChange={(e) => setAdminCodeInput(e.target.value)}
-                  placeholder="Code Secret (ex: Nick2004)"
+                  placeholder="Code Secret..."
                   className="w-full px-4 py-3 text-center text-lg font-bold font-mono border-2 border-slate-300 rounded-2xl outline-none focus:border-amber-500 transition-all bg-slate-50 text-slate-900"
                 />
               </div>
