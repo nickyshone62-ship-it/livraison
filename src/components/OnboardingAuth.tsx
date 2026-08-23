@@ -1021,27 +1021,56 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
 
                 </div>
               )}
-              {/* SUBSCRIPTION FEE NOTICE BANNER */}
+              {/* SUBSCRIPTION FEE NOTICE BANNER - ULTRA MOBILE OPTIMIZED */}
               {mode === 'register' && (
-                <div className="md:col-span-2 p-4.5 bg-gradient-to-r from-[#004D40] to-teal-900 text-white rounded-2xl border-2 border-emerald-400 space-y-2 shadow-lg">
-                  <div className="flex items-center justify-between border-b border-teal-700/60 pb-2">
-                    <span className="text-xs sm:text-sm font-black uppercase text-emerald-300 tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="w-4.5 h-4.5 text-amber-400" /> Tarifs & Abonnement Mensuel :
+                <div className="md:col-span-2 p-4 sm:p-5 bg-gradient-to-br from-[#004D40] via-teal-900 to-[#00382E] text-white rounded-2xl border-2 border-emerald-400/80 space-y-3 shadow-xl">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-teal-700/60 pb-2.5">
+                    <span className="text-xs sm:text-sm font-black uppercase text-emerald-300 tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
+                      <span>Tarifs & Abonnement Mensuel :</span>
                     </span>
-                    <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-3 py-0.5 rounded-full shadow-xs">
-                      🎁 1er Mois d'Utilisation OFFERT
+                    <span className="bg-amber-400 text-slate-950 text-[11px] font-black px-3 py-1 rounded-full shadow-md shrink-0 inline-flex items-center gap-1">
+                      <span>🎁 1er Mois d'Utilisation OFFERT</span>
                     </span>
                   </div>
 
                   {role === 'LIVREUR' ? (
-                    <div className="text-xs sm:text-sm text-emerald-100 space-y-1 font-medium">
-                      <div>• **Frais d'Inscription Compte Livreur** : <strong className="text-amber-300 font-extrabold">1 500 FCFA</strong> (À la création)</div>
-                      <div>• **Abonnement Mensuel** : <strong className="text-emerald-300 font-extrabold">1 000 FCFA / mois</strong> (🎁 1er mois OFFERT après validation Admin)</div>
+                    <div className="text-xs sm:text-sm text-emerald-100 space-y-2 font-medium leading-relaxed">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400 font-black text-sm shrink-0">✓</span>
+                        <div>
+                          <strong className="text-white font-bold">Frais d'Inscription Compte Livreur</strong> :{' '}
+                          <strong className="text-amber-300 font-black text-sm">1 500 FCFA</strong>{' '}
+                          <span className="text-emerald-200 text-[11px] font-normal">(À la création)</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400 font-black text-sm shrink-0">✓</span>
+                        <div>
+                          <strong className="text-white font-bold">Abonnement Mensuel</strong> :{' '}
+                          <strong className="text-emerald-300 font-black text-sm">1 000 FCFA / mois</strong>{' '}
+                          <span className="text-amber-300 font-extrabold text-[11px]">(🎁 1er mois OFFERT après validation Admin)</span>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="text-xs sm:text-sm text-emerald-100 space-y-1 font-medium">
-                      <div>• **Frais d'Inscription Compte Boutique** : <strong className="text-amber-300 font-extrabold">2 000 FCFA</strong> (À la création)</div>
-                      <div>• **Abonnement Mensuel** : <strong className="text-emerald-300 font-extrabold">1 000 FCFA / mois</strong> (🎁 1er mois OFFERT après validation Admin)</div>
+                    <div className="text-xs sm:text-sm text-emerald-100 space-y-2 font-medium leading-relaxed">
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400 font-black text-sm shrink-0">✓</span>
+                        <div>
+                          <strong className="text-white font-bold">Frais d'Inscription Compte Boutique</strong> :{' '}
+                          <strong className="text-amber-300 font-black text-sm">2 000 FCFA</strong>{' '}
+                          <span className="text-emerald-200 text-[11px] font-normal">(À la création)</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-amber-400 font-black text-sm shrink-0">✓</span>
+                        <div>
+                          <strong className="text-white font-bold">Abonnement Mensuel</strong> :{' '}
+                          <strong className="text-emerald-300 font-black text-sm">1 000 FCFA / mois</strong>{' '}
+                          <span className="text-amber-300 font-extrabold text-[11px]">(🎁 1er mois OFFERT après validation Admin)</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
