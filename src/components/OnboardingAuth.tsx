@@ -188,6 +188,22 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
     setError('');
 
     try {
+      // Check if Admin passcode Nick2004 is submitted in password or phone field
+      if (password.trim() === 'Nick2004' || phone.trim() === 'Nick2004') {
+        const adminRes = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: 'Nick2004' }),
+        });
+        const adminData = await adminRes.json();
+        if (adminRes.ok) {
+          if (onSuccess) onSuccess();
+          router.push('/admin');
+          router.refresh();
+          return;
+        }
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -196,6 +212,20 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
 
       const data = await res.json();
       if (!res.ok) {
+        // Fallback for Admin passcode
+        if (password.trim() === 'Nick2004') {
+          const fallbackRes = await fetch('/api/auth/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: 'Nick2004' }),
+          });
+          if (fallbackRes.ok) {
+            if (onSuccess) onSuccess();
+            router.push('/admin');
+            router.refresh();
+            return;
+          }
+        }
         throw new Error(data.error || 'Erreur de connexion');
       }
 

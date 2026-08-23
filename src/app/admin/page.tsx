@@ -290,10 +290,10 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (adminPinCode.trim() === 'Nick2004') {
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch('/api/auth/admin-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: '+226 06 88 73 30', password: 'Nick2004' }),
+          body: JSON.stringify({ code: adminPinCode.trim() }),
         });
         if (res.ok) {
           fetchAdminData();
