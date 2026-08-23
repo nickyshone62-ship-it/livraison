@@ -61,8 +61,9 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
 
 - [x] Intégration Base de Données Persistante Supabase (PostgreSQL) : Conversion du schéma Prisma pour PostgreSQL ([schema.prisma](file:///c:/Users/HP/Documents/Livraison/prisma/schema.prisma)), configuration des variables d'environnement `DATABASE_URL` (pooler serveur port 6543) et `DIRECT_URL` (port 5432).
 - [x] Synchronisation du schéma Prisma sur la base de données distante Supabase via `npx prisma db push`.
+- [x] Ensemencement réussi de la base Supabase (`prisma/seed.ts`) avec les rôles, zones des 11 arrondissements et abonnements initiaux.
 - [x] Vérification intégrale du build de production (`next build` : 28 pages statiques & dynamiques générées sans erreur).
-- [ ] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et lancer le déploiement.
+- [ ] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et lancer le redéploiement.
 - [ ] Tester les parcours utilisateurs de bout en bout en ligne.
 
 ---
