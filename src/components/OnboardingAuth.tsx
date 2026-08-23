@@ -411,7 +411,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
               <div>
                 <span className="px-4 py-1.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-black text-xs uppercase tracking-wider animate-pulse inline-flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
-                  EN VERIFICATION PAR L'ADMINISTRATEUR
+                  EN VERIFICATION PAR L&apos;ADMINISTRATEUR
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-black text-[#004D40] mt-3 uppercase tracking-tight">
                   Demande Transmise !
@@ -419,7 +419,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                 <p className="text-xs sm:text-sm font-bold text-slate-600 mt-2 leading-relaxed">
                   Vos informations et votre paiement ({getRegistrationAmount(role)} FCFA via {paymentMethod.replace('_', ' ')}) ont été enregistrés avec succès.
                   <br />
-                  <strong className="text-[#00796B]">Veuillez patienter sur cette page</strong> pendant que l'administrateur vérifie votre dossier et approuve votre compte.
+                  <strong className="text-[#00796B]">Veuillez patienter sur cette page</strong> pendant que l&apos;administrateur vérifie votre dossier et approuve votre compte.
                 </p>
               </div>
 
@@ -443,7 +443,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   <span className="text-slate-500 uppercase font-black text-[10px]">Statut du Dossier :</span>
                   <span className="text-amber-700 font-black flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                    En cours de vérification par l'admin...
+                    En cours de vérification par l&apos;admin...
                   </span>
                 </div>
               </div>
@@ -462,13 +462,13 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
               </div>
               <div>
                 <span className="px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 font-black text-xs uppercase tracking-wider">
-                  ✓ COMPTE VÉRIFIÉ ET APPROUVÉ PAR L'ADMIN !
+                  ✓ COMPTE VÉRIFIÉ ET APPROUVÉ PAR L&apos;ADMIN !
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-black text-emerald-950 mt-3 uppercase">
                   Félicitations !
                 </h2>
                 <p className="text-xs sm:text-sm font-bold text-slate-600 mt-2">
-                  L'administrateur vient de valider votre dossier. Votre compte est actif et prêt à l'emploi.
+                  L&apos;administrateur vient de valider votre dossier. Votre compte est actif et prêt à l&apos;emploi.
                 </p>
               </div>
 
@@ -497,11 +497,11 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   DOSSIER NON CONFORME
                 </span>
                 <h2 className="text-2xl font-black text-red-950 mt-3">
-                  Votre demande n'a pas été validée
+                  Votre demande n&apos;a pas été validée
                 </h2>
                 {rejectionReason && (
                   <p className="text-xs font-bold text-red-800 bg-red-50 p-4 rounded-2xl border border-red-200 mt-3">
-                    Motif indiqué par l'admin : <br />
+                    Motif indiqué par l&apos;admin : <br />
                     <span className="font-extrabold text-sm">{rejectionReason}</span>
                   </p>
                 )}
@@ -512,7 +512,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                 onClick={() => setIsWaitingApproval(false)}
                 className="w-full py-4 px-6 bg-slate-800 hover:bg-slate-900 text-white font-black text-xs uppercase rounded-full shadow-lg transition-all cursor-pointer"
               >
-                ← Modifier mes Informations & Renvoyer
+                ← Modifier mes Informations &amp; Renvoyer
               </button>
             </div>
           )}
@@ -1367,6 +1367,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
           </div>
 
         </div>
+      </div>
 
       {/* SECRET ADMIN CODE MODAL */}
       {showAdminSecretModal && (
@@ -1391,7 +1392,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                 Connexion Administrateur
               </h3>
               <p className="text-xs text-slate-500 font-medium">
-                Saisissez votre code secret confidentiel pour accéder directement au panneau d'administration.
+                Saisissez votre code secret confidentiel pour accéder directement au panneau d&apos;administration.
               </p>
             </div>
 
