@@ -152,7 +152,7 @@ export default function DriverDashboard() {
     fetchData();
     const interval = setInterval(() => {
       fetchData();
-    }, 10000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 

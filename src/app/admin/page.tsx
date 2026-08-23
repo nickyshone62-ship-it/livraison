@@ -137,7 +137,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
-    const interval = setInterval(fetchAdminData, 10000);
+    const interval = setInterval(fetchAdminData, 4000);
     return () => clearInterval(interval);
   }, []);
 
