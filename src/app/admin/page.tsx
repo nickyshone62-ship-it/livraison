@@ -288,15 +288,19 @@ export default function AdminDashboard() {
 
   const handleVerifyAdminPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPinCode.trim() === 'Nick2004') {
+    const cleanCode = adminPinCode.trim();
+    if (cleanCode.toLowerCase() === 'nick2004') {
       try {
         const res = await fetch('/api/auth/admin-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: adminPinCode.trim() }),
+          body: JSON.stringify({ code: 'Nick2004' }),
         });
         if (res.ok) {
-          fetchAdminData();
+          const data = await res.json();
+          setSession(data.user);
+          await fetchAdminData();
+          router.refresh();
         } else {
           setPinError('Erreur de validation du code administrateur');
         }
