@@ -15,18 +15,18 @@ export async function POST(req: Request) {
     };
 
     await deleteSafe(prisma.deliveryStatusHistory);
-    await deleteSafe(prisma.deliveryItem);
+    await deleteSafe(prisma.deliveryCode);
     await deleteSafe(prisma.deliveryProposal);
     await deleteSafe(prisma.delivery);
     await deleteSafe(prisma.deliveryRequest);
     await deleteSafe(prisma.dispute);
     await deleteSafe(prisma.review);
-    await deleteSafe(prisma.report);
     await deleteSafe(prisma.notification);
     await deleteSafe(prisma.auditLog);
     await deleteSafe(prisma.payment);
     await deleteSafe(prisma.subscription);
-    await deleteSafe(prisma.driverZonePreference);
+    await deleteSafe(prisma.verificationDocument);
+    await deleteSafe(prisma.vehicle);
     await deleteSafe(prisma.driver);
 
     // 2. Delete non-admin test users and profiles
