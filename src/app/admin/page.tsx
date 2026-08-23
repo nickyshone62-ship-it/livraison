@@ -18,7 +18,9 @@ import {
   Settings,
   Sparkles,
   Bell,
+  Navigation,
 } from 'lucide-react';
+import { DeliveryMap } from '@/components/DeliveryMap';
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
@@ -1201,7 +1203,10 @@ export default function AdminDashboard() {
                       <DeliveryMap
                         pickupAddress={req.pickupAddress}
                         dropoffAddress={req.dropoffAddress}
-                        driverLocation={selectedDriver ? { lat: 12.3714, lng: -1.5197, address: 'Ouagadougou' } : undefined}
+                        driverName={selectedDriver?.profile?.fullName || selectedDriver?.phone}
+                        status={req.status}
+                        pickedUpAt={req.delivery?.pickedUpAt}
+                        deliveredAt={req.delivery?.deliveredAt}
                       />
                     </div>
 
