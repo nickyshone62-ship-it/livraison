@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       preferredZones,
       drivingLicenseUrl,
       vehicleDocUrl,
+      paymentMethod,
     } = body;
 
     const computedFullName = (firstName && lastName) ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur');
