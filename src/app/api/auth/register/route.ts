@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         email: email ? email.toLowerCase().trim() : null,
         passwordHash,
         role,
-        isActive: role === 'ADMIN',
+        isActive: true,
         profile: {
           create: {
             fullName: computedFullName,

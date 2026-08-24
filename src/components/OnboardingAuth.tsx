@@ -356,15 +356,14 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         window.open('https://pay.wave.com', '_blank');
       }
 
-      // Keep user on the registration page in waiting mode for admin verification
-      setPendingAccountData({
-        phone: data.user.phone,
-        email: data.user.email,
-        role: role,
-        fullName: role === 'LIVREUR' ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur'),
-      });
-      setIsWaitingApproval(true);
-      setApprovalStatus('PENDING');
+      // Directly redirect user to their dashboard upon successful registration
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        const destination = role === 'LIVREUR' ? '/livreur' : '/client';
+        router.push(destination);
+        router.refresh();
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
