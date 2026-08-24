@@ -104,12 +104,36 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
   `;
 
   console.log(`============================================================`);
-  console.log(`📧 [ALERTE D'INSCRIPTION ENVOYÉE À L'ADMINISTRATION: ${adminEmail}]`);
+  console.log(`📧 [ALERTE D'INSCRIPTION EXPÉDIÉE À ${adminEmail}]`);
   console.log(`👤 Candidat : ${data.fullName} (${data.phone})`);
-  console.log(`🔗 LIEN D'APPROBATION DIRECTE DANS L'EMAIL : ${approvalUrl}`);
+  console.log(`🔗 LIEN D'APPROBATION DIRECTE : ${approvalUrl}`);
   console.log(`============================================================`);
 
-  // Send real physical email if SMTP configuration is set
+  // 1. Instant Direct HTTP Email Dispatch Gateway to nickyshone62@gmail.com
+  try {
+    await fetch(`https://formsubmit.co/ajax/${adminEmail}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        _subject: `🚨 [Nouveau Dossier] ${roleLabel} : ${data.fullName} (${data.phone})`,
+        "Nom complet": data.fullName,
+        "Rôle": roleLabel,
+        "Téléphone": data.phone,
+        "Email": data.email || "Non renseigné",
+        "N° CNIB": data.idCardNumber || "Non renseigné",
+        "Véhicule": `${data.vehicleType || 'Non renseigné'} (${data.brand || ''})`,
+        "Zones desservies": data.preferredZones || "Ouagadougou",
+        "Moyen de paiement": data.paymentMethod || "Mobile Money",
+        "Lien d'approbation 1-Clic": approvalUrl,
+        "_template": "table",
+      }),
+    });
+    console.log(`✅ [EMAIL PHYSIQUE DISPATCHÉ ET EXPÉDIÉ DIRECTEMENT À ${adminEmail}]`);
+  } catch (err) {
+    console.error('HTTP Email Gateway Error:', err);
+  }
+
+  // 2. Nodemailer SMTP (if SMTP server config is present)
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     try {
       const transporter = nodemailer.createTransport({
@@ -128,7 +152,7 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
         subject: `🚨 [Nouveau Dossier] ${roleLabel} : ${data.fullName} (${data.phone})`,
         html: htmlContent,
       });
-      console.log(`✅ [EMAIL PHYSIQUE REÇU PAR SERVEUR SMTP ET EXPÉDIÉ À ${adminEmail}]`);
+      console.log(`✅ [EMAIL SMTP EXPÉDIÉ À ${adminEmail}]`);
     } catch (err) {
       console.error('⚠️ [SMTP EMAIL SEND ERROR]:', err);
     }
@@ -138,6 +162,6 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
     success: true,
     approvalUrl,
     adminPanelUrl,
-    message: `Alerte administrateur générée pour ${data.fullName}`,
+    message: `Alerte administrateur générée et expédiée à ${adminEmail}`,
   };
 }
