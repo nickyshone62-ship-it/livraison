@@ -65,7 +65,6 @@ export async function POST(req: Request) {
           passwordHash: adminPassHash,
           role: 'ADMIN',
           isActive: true,
-          isEmailVerified: true,
           profile: {
             create: {
               fullName: 'Direction Administrateur Central',
