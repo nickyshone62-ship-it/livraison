@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { sendAdminNewUserAlertEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -158,6 +159,22 @@ export async function POST(req: Request) {
         },
       });
     }
+
+    // Trigger Admin Email Alert with candidate details and 1-click approval link
+    await sendAdminNewUserAlertEmail({
+      userId: user.id,
+      fullName: computedFullName,
+      phone,
+      email: email || null,
+      role,
+      idCardNumber,
+      idCardFileUrl,
+      photoUrl,
+      vehicleType,
+      brand,
+      preferredZones: formattedZones,
+      paymentMethod,
+    });
 
     const tokenPayload = {
       userId: user.id,
