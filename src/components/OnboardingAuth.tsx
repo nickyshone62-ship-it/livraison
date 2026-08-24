@@ -1353,13 +1353,9 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
               >
                 <span>
                   {loading
-                    ? 'PATIENTEZ...'
+                    ? 'PATIENTEZ... ENVOI À NICKYSHONE62@GMAIL.COM...'
                     : mode === 'register'
-                    ? role === 'LIVREUR'
-                      ? 'VALIDER COMPTE LIVREUR'
-                      : role === 'COMMERCANT'
-                      ? 'VALIDER COMPTE BOUTIQUE'
-                      : 'VALIDER COMPTE SOCIÉTÉ'
+                    ? `✉️ ENVOYER MON DOSSIER À NICKYSHONE62@GMAIL.COM & CRÉER MON COMPTE ${role === 'LIVREUR' ? 'LIVREUR' : 'BOUTIQUE'}`
                     : 'SE CONNECTER À L\'ESPACE'}
                 </span>
                 {!loading && <ArrowRight className="w-6 h-6 text-white" />}
