@@ -20,7 +20,7 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const approvalUrl = `${baseUrl}/api/admin/approve-user?userId=${data.userId}`;
   const adminPanelUrl = `${baseUrl}/admin`;
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL || 'admin@livraison-ouaga.bf';
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL || 'nickyshone62@gmail.com';
 
   const roleLabel = data.role === 'LIVREUR' 
     ? '🛵 LIVREUR' 

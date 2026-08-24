@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       adminUser = await prisma.user.create({
         data: {
           phone: adminPhone,
-          email: 'admin@livraison-ouaga.bf',
+          email: 'nickyshone62@gmail.com',
           passwordHash: adminPassHash,
           role: 'ADMIN',
           isActive: true,
