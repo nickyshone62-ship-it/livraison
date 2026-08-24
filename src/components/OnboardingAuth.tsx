@@ -816,6 +816,34 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                 </div>
               )}
 
+              {/* NOTIFICATION D'EXPÉDITION D'EMAIL À L'ADMINISTRATION & CHAMP EMAIL */}
+              {mode === 'register' && (
+                <div className="md:col-span-2 space-y-4">
+                  <div className="p-4 bg-teal-50 border-2 border-teal-200 text-[#004D40] rounded-2xl text-xs font-bold flex items-center gap-3 shadow-xs">
+                    <Mail className="w-6 h-6 text-[#009688] shrink-0" />
+                    <div>
+                      <span className="font-black">✉️ Notification Automatique à la Direction :</span> Dès validation, l&apos;ensemble de vos informations d&apos;inscription sera immédiatement transmis par e-mail à l&apos;administration (<strong className="text-[#00796B]">nickyshone62@gmail.com</strong>) avec un lien d&apos;approbation en 1 clic.
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs sm:text-sm font-black uppercase text-[#004D40] mb-2 ml-1">
+                      Adresse E-mail (Optionnelle) :
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-6 h-6 absolute left-4.5 top-4.5 text-[#009688]" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ex: votre.nom@gmail.com"
+                        className="w-full bg-[#F0FDFB] text-[#004D40] placeholder-[#00796B]/70 rounded-full pl-14 pr-6 py-4.5 text-xs sm:text-base font-black outline-none shadow-sm border-2 border-teal-200 focus:border-[#009688] transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className={mode === 'login' ? 'md:col-span-1' : ''}>
                 <label className="block text-xs sm:text-sm font-black uppercase text-[#004D40] mb-2 ml-1">
                   Numéro Téléphone Burkina Faso * :
