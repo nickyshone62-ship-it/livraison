@@ -111,7 +111,6 @@ export async function POST(req: Request) {
           passwordHash: adminHash,
           role: 'ADMIN',
           isActive: true,
-          isEmailVerified: true,
           profile: { create: { fullName: 'Super Administrateur Nick', city: 'Ouagadougou' } },
         },
       });
