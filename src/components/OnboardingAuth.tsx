@@ -260,6 +260,12 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         throw new Error(data.error || 'Erreur de connexion');
       }
 
+      if (data.user) {
+        try {
+          localStorage.setItem('user_session', JSON.stringify(data.user));
+        } catch (e) {}
+      }
+
       if (onSuccess) onSuccess();
 
       const target = redirectUrl || (data.user.role === 'ADMIN' ? '/admin' : data.user.role === 'LIVREUR' ? '/livreur' : '/client');

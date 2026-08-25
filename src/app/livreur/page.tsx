@@ -147,6 +147,17 @@ export default function DriverDashboard() {
 
   const initDriverDashboard = async () => {
     try {
+      const cached = localStorage.getItem('user_session');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.approvalStatus === 'APPROVED' && parsed.isActive) {
+          setCurrentUser(parsed);
+          setLoading(false);
+        }
+      }
+    } catch (e) {}
+
+    try {
       const [meRes, openRes, delivRes, propRes] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/deliveries'),
@@ -164,6 +175,9 @@ export default function DriverDashboard() {
         }
 
         setCurrentUser(user);
+        try {
+          localStorage.setItem('user_session', JSON.stringify(user));
+        } catch (e) {}
 
         if (user.role === 'CLIENT') {
           router.push('/client');

@@ -208,10 +208,24 @@ export default function AdminDashboard() {
   useEffect(() => {
     const init = async () => {
       try {
+        const cached = localStorage.getItem('user_session');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.role === 'ADMIN') {
+            setSession(parsed);
+            setLoading(false);
+          }
+        }
+      } catch (e) {}
+
+      try {
         const meRes = await fetch('/api/auth/me');
         if (meRes.ok) {
           const meData = await meRes.json();
           setSession(meData.user);
+          try {
+            localStorage.setItem('user_session', JSON.stringify(meData.user));
+          } catch (e) {}
         } else {
           setSession(null);
         }

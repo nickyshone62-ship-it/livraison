@@ -202,6 +202,17 @@ export default function ClientDashboard() {
 
   const initClientDashboard = async () => {
     try {
+      const cached = localStorage.getItem('user_session');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.approvalStatus === 'APPROVED' && parsed.isActive) {
+          setCurrentUser(parsed);
+          setLoading(false);
+        }
+      }
+    } catch (e) {}
+
+    try {
       const [meRes, reqRes] = await Promise.all([
         fetch('/api/auth/me'),
         fetch('/api/deliveries'),
@@ -217,6 +228,9 @@ export default function ClientDashboard() {
         }
 
         setCurrentUser(user);
+        try {
+          localStorage.setItem('user_session', JSON.stringify(user));
+        } catch (e) {}
 
         if (user.role === 'LIVREUR') {
           router.push('/livreur');
