@@ -19,7 +19,8 @@ model User {
   email         String?     @unique
   passwordHash  String
   role          String      @default("PARTICULIER") // PARTICULIER, COMMERCANT, ENTREPRISE, LIVREUR, ADMIN
-  isActive      Boolean     @default(true)
+  isActive      Boolean     @default(false)
+  approvalStatus String     @default("PENDING") // PENDING, APPROVED, REJECTED
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -40,6 +41,10 @@ model User {
   auditLogs               AuditLog[]
   payments                Payment[]
   statusHistoryChanges    DeliveryStatusHistory[]
+
+  @@index([role])
+  @@index([approvalStatus, isActive])
+  @@index([createdAt])
 }
 
 model Profile {
@@ -76,6 +81,9 @@ model Driver {
 
   vehicles            Vehicle[]
   documents           VerificationDocument[]
+
+  @@index([userId])
+  @@index([verificationStatus])
 }
 
 model Vehicle {
@@ -129,6 +137,9 @@ model Subscription {
   endsAt     DateTime
   paymentId  String?
   createdAt  DateTime         @default(now())
+
+  @@index([userId, status])
+  @@index([endsAt])
 }
 
 model Zone {
@@ -177,6 +188,10 @@ model DeliveryRequest {
 
   proposals         DeliveryProposal[]
   delivery          Delivery?
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model DeliveryProposal {
@@ -193,6 +208,10 @@ model DeliveryProposal {
   updatedAt               DateTime        @updatedAt
 
   delivery                Delivery?
+
+  @@index([driverId])
+  @@index([deliveryRequestId])
+  @@index([status])
 }
 
 model Delivery {
@@ -220,6 +239,11 @@ model Delivery {
   statusHistory      DeliveryStatusHistory[]
   reviews            Review[]
   disputes           Dispute[]
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model DeliveryStatusHistory {
@@ -255,6 +279,8 @@ model Payment {
   transactionReference String        @unique
   status               String        @default("COMPLETED") // PENDING, COMPLETED, FAILED, REFUNDED
   createdAt            DateTime      @default(now())
+
+  @@index([userId, status])
 }
 
 model Review {
@@ -289,6 +315,10 @@ model Dispute {
   assignedAdmin   User?         @relation("AdminDisputes", fields: [assignedAdminId], references: [id])
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  @@index([deliveryId])
+  @@index([openedByUserId])
+  @@index([status])
 }
 
 model Report {
@@ -313,6 +343,8 @@ model Notification {
   isRead       Boolean  @default(false)
   metadataJson String?
   createdAt    DateTime @default(now())
+
+  @@index([userId, isRead])
 }
 
 model AuditLog {
@@ -325,6 +357,9 @@ model AuditLog {
   detailsJson  String?
   ipAddress    String?  @default("127.0.0.1")
   createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model SystemSetting {

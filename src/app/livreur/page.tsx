@@ -18,8 +18,20 @@ import {
   Navigation,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { DeliveryMap } from '@/components/DeliveryMap';
+import dynamic from 'next/dynamic';
 import { SubscriptionTrackerModal } from '@/components/SubscriptionTrackerModal';
+
+const DeliveryMap = dynamic(
+  () => import('@/components/DeliveryMap').then((mod) => mod.DeliveryMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 bg-teal-50/50 rounded-2xl animate-pulse flex items-center justify-center text-xs font-bold text-[#004D40]">
+        🗺️ Chargement de la carte GPS...
+      </div>
+    ),
+  }
+);
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -106,37 +118,72 @@ export default function DriverDashboard() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchDeliveriesOnly = async () => {
     try {
-      const meRes = await fetch('/api/auth/me');
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        const user = meData.user;
-        setCurrentUser(user);
+      const [openRes, delivRes, propRes] = await Promise.all([
+        fetch('/api/deliveries'),
+        fetch('/api/deliveries?filter=my_deliveries'),
+        fetch('/api/deliveries?filter=my_proposals'),
+      ]);
 
-        // Strict Access Control Rule: Client / Boutique cannot access Espace Livreur (/livreur)
-        if (user && user.role === 'CLIENT') {
-          router.push('/client');
-          return;
-        }
-      }
-
-      // Fetch open requests
-      const openRes = await fetch('/api/deliveries');
       if (openRes.ok) {
         const openData = await openRes.json();
         setOpenRequests(openData.requests || []);
       }
 
-      // Fetch my active deliveries
-      const delivRes = await fetch('/api/deliveries?filter=my_deliveries');
       if (delivRes.ok) {
         const delivData = await delivRes.json();
         setMyDeliveries(delivData.deliveries || []);
       }
 
-      // Fetch my proposals
-      const propRes = await fetch('/api/deliveries?filter=my_proposals');
+      if (propRes.ok) {
+        const propData = await propRes.json();
+        setMyProposals(propData.proposals || []);
+      }
+    } catch (e) {
+      console.error('Error fetching driver deliveries:', e);
+    }
+  };
+
+  const initDriverDashboard = async () => {
+    try {
+      const [meRes, openRes, delivRes, propRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/deliveries'),
+        fetch('/api/deliveries?filter=my_deliveries'),
+        fetch('/api/deliveries?filter=my_proposals'),
+      ]);
+
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        const user = meData.user;
+
+        if (!user || user.approvalStatus !== 'APPROVED' || !user.isActive) {
+          router.push('/');
+          return;
+        }
+
+        setCurrentUser(user);
+
+        if (user.role === 'CLIENT') {
+          router.push('/client');
+          return;
+        }
+      } else {
+        router.push('/');
+        return;
+      }
+
+      if (openRes.ok) {
+        const openData = await openRes.json();
+        setOpenRequests(openData.requests || []);
+      }
+
+      if (delivRes.ok) {
+        const delivData = await delivRes.json();
+        setMyDeliveries(delivData.deliveries || []);
+      }
+
       if (propRes.ok) {
         const propData = await propRes.json();
         setMyProposals(propData.proposals || []);
@@ -148,11 +195,15 @@ export default function DriverDashboard() {
     }
   };
 
+  const fetchData = async () => {
+    await fetchDeliveriesOnly();
+  };
+
   useEffect(() => {
-    fetchData();
+    initDriverDashboard();
     const interval = setInterval(() => {
-      fetchData();
-    }, 4000);
+      fetchDeliveriesOnly();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 

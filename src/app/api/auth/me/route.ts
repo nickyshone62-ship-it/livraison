@@ -51,6 +51,17 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 404 });
     }
 
+    if (user.role !== 'ADMIN' && (user.approvalStatus !== 'APPROVED' || !user.isActive)) {
+      return NextResponse.json({
+        user: null,
+        error: user.approvalStatus === 'REJECTED'
+          ? "Votre inscription a été refusée."
+          : "Votre compte est en attente d'approbation par l'administrateur.",
+        approvalStatus: user.approvalStatus,
+        isActive: user.isActive,
+      }, { status: 403 });
+    }
+
     const latestSub = user.subscriptions[0] || null;
     const now = new Date();
     const isSubActive = latestSub ? new Date(latestSub.endsAt) > now : false;
@@ -65,13 +76,14 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       user: {
         id: user.id,
         phone: user.phone,
         email: user.email,
         role: user.role,
         isActive: user.isActive,
+        approvalStatus: user.approvalStatus,
         profile: user.profile,
         driver: user.driver,
         activeSubscription: latestSub,
@@ -80,6 +92,8 @@ export async function GET() {
         pendingPayment: pendingPayment || null,
       },
     });
+    res.headers.set('Cache-Control', 'private, max-age=3, stale-while-revalidate=5');
+    return res;
   } catch (error: any) {
     return NextResponse.json({ error: 'Erreur lors de la récupération du profil' }, { status: 500 });
   }

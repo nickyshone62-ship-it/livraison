@@ -194,19 +194,16 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
     const interval = setInterval(async () => {
       try {
         const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          if (data.user) {
-            const driverStatus = data.user.driver?.verificationStatus;
-            if (driverStatus === 'VERIFIE') {
-              setApprovalStatus('APPROVED');
-              clearInterval(interval);
-            } else if (driverStatus === 'REJETE') {
-              setApprovalStatus('REJECTED');
-              setRejectionReason(data.user.driver?.rejectionReason || 'Dossier non conforme');
-              clearInterval(interval);
-            }
-          }
+        const data = await res.json();
+        const status = data.user?.approvalStatus || data.approvalStatus;
+
+        if (status === 'APPROVED') {
+          setApprovalStatus('APPROVED');
+          clearInterval(interval);
+        } else if (status === 'REJECTED') {
+          setApprovalStatus('REJECTED');
+          setRejectionReason(data.error || 'Votre inscription a été refusée.');
+          clearInterval(interval);
         }
       } catch (err) {
         console.error('Polling status error:', err);
@@ -356,14 +353,14 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         window.open('https://pay.wave.com', '_blank');
       }
 
-      // Directly redirect user to their dashboard upon successful registration
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        const destination = role === 'LIVREUR' ? '/livreur' : '/client';
-        router.push(destination);
-        router.refresh();
-      }
+      setPendingAccountData({
+        phone,
+        email: email || undefined,
+        role: role === 'LIVREUR' ? 'Livreur' : role === 'COMMERCANT' ? 'Boutique' : 'Particulier',
+        fullName: role === 'LIVREUR' ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur'),
+      });
+      setApprovalStatus('PENDING');
+      setIsWaitingApproval(true);
     } catch (err: any) {
       setError(err.message);
     } finally {

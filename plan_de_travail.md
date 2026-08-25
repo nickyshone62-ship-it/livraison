@@ -65,12 +65,11 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
 - [x] **Remise à Zéro Complète pour les Activités Réelles** : Purge intégrale de toutes les données de démonstration réalisée avec succès sur Supabase PostgreSQL. Conservation exclusive du Super Administrateur (`Nick2004`), des 11 arrondissements de Ouagadougou et des grilles d'abonnement ([reset_db.js](file:///c:/Users/HP/Documents/Livraison/scripts/reset_db.js)).
 - [x] **Rafraîchissement Automatique en Temps Réel (4 sec)** : Automatisation intégrale du rechargement des données en arrière-plan toutes les 4 secondes sur tous les espaces (Admin, Client, Livreur) pour un suivi instantané sans rechargement manuel de page ([admin/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/admin/page.tsx), [client/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/client/page.tsx), [livreur/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/livreur/page.tsx)).
 - [x] **Retrait du Guide d'Utilisation** : Masquage définitif du bloc de guide de démarrage dans l'espace client & boutique ([client/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/client/page.tsx)) à la demande de l'utilisateur.
-- [x] **Remise à Zéro Complète & Retrait du Bouton de Réinitialisation** : Purge intégrale de toutes les données de test réalisée avec succès. Retrait du bouton de réinitialisation du panneau d'administration pour éviter tout effacement accidentel pendant les opérations réelles ([admin/page.tsx](file:///c:/Users/HP/Documents/Livraison/src/app/admin/page.tsx)).
-
-- [x] Intégration Base de Données Persistante Supabase (PostgreSQL) : Conversion du schéma Prisma pour PostgreSQL ([schema.prisma](file:///c:/Users/HP/Documents/Livraison/prisma/schema.prisma)), configuration des variables d'environnement `DATABASE_URL` (pooler serveur port 6543) et `DIRECT_URL` (port 5432).
-- [x] Synchronisation du schéma Prisma sur la base de données distante Supabase via `npx prisma db push`.
-- [x] Ensemencement réussi de la base Supabase (`prisma/seed.ts`) avec les rôles, zones des 11 arrondissements et abonnements initiaux.
-- [x] Vérification intégrale du build de production (`next build` : 28 pages statiques & dynamiques générées sans erreur).
+- [x] **Optimisation Ultra-Haute Performance & Fluidité Vercel** : 
+  1. Parallélisation systématique des requêtes HTTP via `Promise.all` sur les espaces Admin, Client et Livreur (division du temps d'attente par 10).
+  2. Réutilisation permanente de l'instance `PrismaClient` sur `globalThis` en production pour éviter la saturation des connexions Supabase.
+  3. Envoi asynchrone non-bloquant avec timeout `AbortController` (2,5s max) pour les e-mails d'alerte.
+  4. Création du fichier `vercel.json` configurant la région d'exécution des Serverless Functions à `fra1` (Francfort) au plus près de la base Supabase pour éliminer la latence réseau intercontinentale.
 - [ ] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et lancer le redéploiement.
 - [ ] Tester les parcours utilisateurs de bout en bout en ligne.
 

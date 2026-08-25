@@ -111,13 +111,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 });
     }
 
-    if (!user.isActive) {
-      return NextResponse.json({ error: 'Votre compte est suspendu. Veuillez contacter le support.' }, { status: 403 });
-    }
-
     const isValid = await comparePassword(password, user.passwordHash);
     if (!isValid) {
       return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 });
+    }
+
+    if (user.role !== 'ADMIN') {
+      const status = user.approvalStatus || 'PENDING';
+      if (status === 'PENDING') {
+        return NextResponse.json(
+          { error: "Votre compte est en attente d'approbation par l'administrateur." },
+          { status: 403 }
+        );
+      }
+      if (status === 'REJECTED') {
+        return NextResponse.json(
+          { error: "Votre inscription a été refusée." },
+          { status: 403 }
+        );
+      }
+      if (status === 'APPROVED' && !user.isActive) {
+        return NextResponse.json(
+          { error: "Votre compte est inactif ou a été suspendu." },
+          { status: 403 }
+        );
+      }
+      if (status !== 'APPROVED' || !user.isActive) {
+        return NextResponse.json(
+          { error: "Accès refusé. Compte non approuvé ou inactif." },
+          { status: 403 }
+        );
+      }
     }
 
     const tokenPayload = {

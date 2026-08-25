@@ -24,8 +24,20 @@ import {
   Trash2,
   RefreshCw,
 } from 'lucide-react';
-import { DeliveryMap } from '@/components/DeliveryMap';
+import dynamic from 'next/dynamic';
 import { SubscriptionTrackerModal } from '@/components/SubscriptionTrackerModal';
+
+const DeliveryMap = dynamic(
+  () => import('@/components/DeliveryMap').then((mod) => mod.DeliveryMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 bg-teal-50/50 rounded-2xl animate-pulse flex items-center justify-center text-xs font-bold text-[#004D40]">
+        🗺️ Chargement de la carte GPS...
+      </div>
+    ),
+  }
+);
 
 import { useRouter } from 'next/navigation';
 
@@ -176,22 +188,45 @@ export default function ClientDashboard() {
     }
   };
 
-  const fetchData = async () => {
+  const fetchDeliveriesOnly = async () => {
     try {
-      const meRes = await fetch('/api/auth/me');
+      const reqRes = await fetch('/api/deliveries');
+      if (reqRes.ok) {
+        const reqData = await reqRes.json();
+        setRequests(reqData.requests || []);
+      }
+    } catch (e) {
+      console.error('Error fetching client deliveries:', e);
+    }
+  };
+
+  const initClientDashboard = async () => {
+    try {
+      const [meRes, reqRes] = await Promise.all([
+        fetch('/api/auth/me'),
+        fetch('/api/deliveries'),
+      ]);
+
       if (meRes.ok) {
         const meData = await meRes.json();
         const user = meData.user;
+
+        if (!user || user.approvalStatus !== 'APPROVED' || !user.isActive) {
+          router.push('/');
+          return;
+        }
+
         setCurrentUser(user);
 
-        // Strict Access Control Rule: Livreur cannot access Espace Client (/client)
-        if (user && user.role === 'LIVREUR') {
+        if (user.role === 'LIVREUR') {
           router.push('/livreur');
           return;
         }
+      } else {
+        router.push('/');
+        return;
       }
 
-      const reqRes = await fetch('/api/deliveries');
       if (reqRes.ok) {
         const reqData = await reqRes.json();
         setRequests(reqData.requests || []);
@@ -203,11 +238,15 @@ export default function ClientDashboard() {
     }
   };
 
+  const fetchData = async () => {
+    await fetchDeliveriesOnly();
+  };
+
   useEffect(() => {
-    fetchData();
+    initClientDashboard();
     const interval = setInterval(() => {
-      fetchData();
-    }, 4000);
+      fetchDeliveriesOnly();
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 

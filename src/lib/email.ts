@@ -111,9 +111,12 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
 
   // 1. Instant Direct HTTP Email Dispatch Gateway to nickyshone62@gmail.com
   try {
-    await fetch(`https://formsubmit.co/ajax/${adminEmail}`, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    fetch(`https://formsubmit.co/ajax/${adminEmail}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      signal: controller.signal,
       body: JSON.stringify({
         _subject: `🚨 [Nouveau Dossier] ${roleLabel} : ${data.fullName} (${data.phone})`,
         "Nom complet": data.fullName,
@@ -127,10 +130,15 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
         "Lien d'approbation 1-Clic": approvalUrl,
         "_template": "table",
       }),
+    }).then(() => {
+      clearTimeout(timeoutId);
+      console.log(`✅ [EMAIL PHYSIQUE DISPATCHÉ ET EXPÉDIÉ DIRECTEMENT À ${adminEmail}]`);
+    }).catch(err => {
+      clearTimeout(timeoutId);
+      console.error('HTTP Email Gateway Error:', err);
     });
-    console.log(`✅ [EMAIL PHYSIQUE DISPATCHÉ ET EXPÉDIÉ DIRECTEMENT À ${adminEmail}]`);
   } catch (err) {
-    console.error('HTTP Email Gateway Error:', err);
+    console.error('HTTP Email Gateway Trigger Error:', err);
   }
 
   // 2. Nodemailer SMTP (if SMTP server config is present)

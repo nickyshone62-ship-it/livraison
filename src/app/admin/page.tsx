@@ -20,7 +20,19 @@ import {
   Bell,
   Navigation,
 } from 'lucide-react';
-import { DeliveryMap } from '@/components/DeliveryMap';
+import dynamic from 'next/dynamic';
+
+const DeliveryMap = dynamic(
+  () => import('@/components/DeliveryMap').then((mod) => mod.DeliveryMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 bg-teal-50/50 rounded-2xl animate-pulse flex items-center justify-center text-xs font-bold text-[#004D40]">
+        🗺️ Chargement de la carte GPS...
+      </div>
+    ),
+  }
+);
 
 export default function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
@@ -40,6 +52,9 @@ export default function AdminDashboard() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [newRegistrationAlert, setNewRegistrationAlert] = useState<any>(null);
   const prevNotificationsCountRef = useRef<number | null>(null);
+  const [userFilter, setUserFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [selectedCandidateForModal, setSelectedCandidateForModal] = useState<any>(null);
+  const [tabLoading, setTabLoading] = useState<boolean>(false);
 
   const playNotificationSound = () => {
     try {
@@ -89,76 +104,27 @@ export default function AdminDashboard() {
     return `${diffMins} min ${diffSecs} s`;
   };
 
-  const fetchAdminData = async () => {
+  const fetchGlobalStats = async () => {
     try {
-      const meRes = await fetch('/api/auth/me');
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        setSession(meData.user);
-      } else {
-        setSession(null);
-      }
+      const [statsRes, notifRes, usersRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/notifications'),
+        fetch('/api/admin/users'),
+      ]);
 
-      const statsRes = await fetch('/api/admin/stats');
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats(statsData.stats);
       }
 
-      const usersRes = await fetch('/api/admin/users');
       if (usersRes.ok) {
         const usersData = await usersRes.json();
         setAllUsers(usersData.users || []);
       }
 
-      const driversRes = await fetch('/api/admin/drivers');
-      if (driversRes.ok) {
-        const driversData = await driversRes.json();
-        setDrivers(driversData.drivers || []);
-      }
-
-      const payRes = await fetch('/api/admin/payments');
-      if (payRes.ok) {
-        const payData = await payRes.json();
-        setAdminPayments(payData.payments || []);
-      }
-
-      const delivRes = await fetch('/api/deliveries');
-      if (delivRes.ok) {
-        const delivData = await delivRes.json();
-        setAdminDeliveries(delivData.deliveries || []);
-      }
-
-      const subRes = await fetch('/api/admin/subscriptions');
-      if (subRes.ok) {
-        const subData = await subRes.json();
-        setPlans(subData.plans || []);
-        setDriverFee(subData.driverFeeFcfa || '5000');
-      }
-
-      const zonesRes = await fetch('/api/admin/zones');
-      if (zonesRes.ok) {
-        const zonesData = await zonesRes.json();
-        setZones(zonesData.zones || []);
-      }
-
-      const dispRes = await fetch('/api/admin/disputes');
-      if (dispRes.ok) {
-        const dispData = await dispRes.json();
-        setDisputes(dispData.disputes || []);
-      }
-
-      const logsRes = await fetch('/api/admin/audit-logs');
-      if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        setAuditLogs(logsData.auditLogs || []);
-      }
-
-      const notifRes = await fetch('/api/admin/notifications');
       if (notifRes.ok) {
         const notifData = await notifRes.json();
         const newNotifs = notifData.notifications || [];
-        
         if (prevNotificationsCountRef.current !== null && newNotifs.length > prevNotificationsCountRef.current) {
           const latestNotif = newNotifs[0];
           if (latestNotif) {
@@ -170,17 +136,107 @@ export default function AdminDashboard() {
         setNotifications(newNotifs);
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching global stats:', e);
     }
   };
 
+  const fetchTabData = async (tab: string) => {
+    setTabLoading(true);
+    try {
+      if (tab === 'users') {
+        const res = await fetch('/api/admin/users');
+        if (res.ok) {
+          const data = await res.json();
+          setAllUsers(data.users || []);
+        }
+      } else if (tab === 'kyc') {
+        const res = await fetch('/api/admin/drivers');
+        if (res.ok) {
+          const data = await res.json();
+          setDrivers(data.drivers || []);
+        }
+      } else if (tab === 'payments') {
+        const res = await fetch('/api/admin/payments');
+        if (res.ok) {
+          const data = await res.json();
+          setAdminPayments(data.payments || []);
+        }
+      } else if (tab === 'deliveries') {
+        const res = await fetch('/api/deliveries');
+        if (res.ok) {
+          const data = await res.json();
+          setAdminDeliveries(data.deliveries || []);
+        }
+      } else if (tab === 'pricing') {
+        const res = await fetch('/api/admin/subscriptions');
+        if (res.ok) {
+          const data = await res.json();
+          setPlans(data.plans || []);
+          setDriverFee(data.driverFeeFcfa || '5000');
+        }
+      } else if (tab === 'zones') {
+        const res = await fetch('/api/admin/zones');
+        if (res.ok) {
+          const data = await res.json();
+          setZones(data.zones || []);
+        }
+      } else if (tab === 'disputes') {
+        const res = await fetch('/api/admin/disputes');
+        if (res.ok) {
+          const data = await res.json();
+          setDisputes(data.disputes || []);
+        }
+      } else if (tab === 'audit') {
+        const res = await fetch('/api/admin/audit-logs');
+        if (res.ok) {
+          const data = await res.json();
+          setAuditLogs(data.auditLogs || []);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching tab data:', e);
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const fetchAdminData = async () => {
+    await fetchGlobalStats();
+    await fetchTabData(activeTab);
+  };
+
   useEffect(() => {
-    fetchAdminData();
-    const interval = setInterval(fetchAdminData, 3000);
+    const init = async () => {
+      try {
+        const meRes = await fetch('/api/auth/me');
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          setSession(meData.user);
+        } else {
+          setSession(null);
+        }
+      } catch (e) {
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+    fetchGlobalStats();
+    fetchTabData(activeTab);
+
+    const interval = setInterval(() => {
+      fetchGlobalStats();
+      fetchTabData(activeTab);
+    }, 15000);
+
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    fetchTabData(activeTab);
+  }, [activeTab]);
 
   const [selectedDriverForModal, setSelectedDriverForModal] = useState<any>(null);
 
@@ -315,11 +371,14 @@ export default function AdminDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, action }),
       });
+      const data = await res.json();
       if (res.ok) {
-        alert(action === 'APPROVE' ? '✅ Compte utilisateur approuvé et validé avec succès !' : '⚠️ Statut de l\'utilisateur mis à jour');
-        fetchAdminData();
+        alert(action === 'APPROVE' ? 'Utilisateur approuvé avec succès.' : 'Utilisateur refusé.');
+        if (selectedCandidateForModal?.id === userId) {
+          setSelectedCandidateForModal(null);
+        }
+        await fetchAdminData();
       } else {
-        const data = await res.json();
         alert(data.error || 'Erreur lors de la mise à jour');
       }
     } catch (e) {
@@ -632,7 +691,7 @@ export default function AdminDashboard() {
             activeTab === 'users' ? 'bg-[#009688] text-white shadow-md' : 'bg-white text-[#004D40] border border-teal-200 hover:bg-teal-50'
           }`}
         >
-          <User className="w-4 h-4" /> Validation Inscriptions ({allUsers.filter(u => !u.isActive).length})
+          <User className="w-4 h-4" /> Demandes d'inscription ({allUsers.filter(u => u.approvalStatus === 'PENDING' || (!u.isActive && u.approvalStatus !== 'REJECTED')).length})
         </button>
 
         <button
@@ -699,70 +758,146 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* TAB 0: USER REGISTRATION APPROVALS */}
+      {/* TAB: DEMANDES D'INSCRIPTION */}
       {activeTab === 'users' && (
         <div className="bg-white rounded-3xl border-2 border-teal-100 p-6 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-teal-100 pb-4">
             <div>
               <h2 className="text-xl font-black text-[#004D40] flex items-center gap-2">
-                👥 Validation des Inscriptions Utilisateurs ({allUsers.length})
+                📋 Demandes d'inscription ({allUsers.length})
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                Approuvez les demandes d'inscription pour autoriser l'accès des comptes à la plateforme LivraisonOuaga.
+                Gérez les demandes d'inscription. Seuls les utilisateurs approuvés et actifs peuvent se connecter à leur espace.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-xs font-black">
-                {allUsers.filter(u => !u.isActive).length} En Attente d'Approbation
-              </span>
-              <span className="px-3 py-1 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-full text-xs font-black">
-                {allUsers.filter(u => u.isActive).length} Approuvés
-              </span>
+            
+            {/* Filter Sub-Tabs */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setUserFilter('ALL')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  userFilter === 'ALL' ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Toutes ({allUsers.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserFilter('PENDING')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  userFilter === 'PENDING' ? 'bg-amber-500 text-slate-950 shadow-md' : 'bg-amber-100 text-amber-900 border border-amber-300'
+                }`}
+              >
+                ⏳ En Attente PENDING ({allUsers.filter(u => u.approvalStatus === 'PENDING' || (!u.approvalStatus && !u.isActive)).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserFilter('APPROVED')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  userFilter === 'APPROVED' ? 'bg-emerald-600 text-white shadow-md' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                }`}
+              >
+                ✅ Approuvés APPROVED ({allUsers.filter(u => u.approvalStatus === 'APPROVED' || (u.isActive && u.approvalStatus !== 'REJECTED')).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setUserFilter('REJECTED')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  userFilter === 'REJECTED' ? 'bg-red-600 text-white shadow-md' : 'bg-red-100 text-red-900 border border-red-300'
+                }`}
+              >
+                ❌ Refusés REJECTED ({allUsers.filter(u => u.approvalStatus === 'REJECTED').length})
+              </button>
             </div>
           </div>
 
           <div className="space-y-3">
-            {allUsers.length === 0 ? (
-              <p className="text-xs text-slate-500 italic p-4 text-center">Aucune inscription enregistrée.</p>
+            {tabLoading && allUsers.length === 0 ? (
+              <div className="space-y-3 animate-pulse p-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-20 bg-slate-100 rounded-2xl border border-slate-200" />
+                ))}
+              </div>
+            ) : allUsers.filter(u => {
+              const status = u.approvalStatus || (u.isActive ? 'APPROVED' : 'PENDING');
+              if (userFilter === 'PENDING') return status === 'PENDING';
+              if (userFilter === 'APPROVED') return status === 'APPROVED';
+              if (userFilter === 'REJECTED') return status === 'REJECTED';
+              return true;
+            }).length === 0 ? (
+              <p className="text-xs text-slate-500 italic p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                Aucune demande d'inscription dans cette catégorie.
+              </p>
             ) : (
-              allUsers.map((u) => (
-                <div key={u.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-teal-300 transition-all">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-black text-sm text-[#004D40]">{u.profile?.fullName || u.phone}</span>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-800 border border-teal-200">
-                        {u.role}
-                      </span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        u.isActive ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
-                      }`}>
-                        {u.isActive ? '✅ COMPTE VALIDÉ' : '⏳ EN ATTENTE DE VALIDATION ADMIN'}
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500 font-medium">
-                      📱 Téléphone : <span className="font-bold text-slate-800">{u.phone}</span> • Inscrit le : <span className="font-bold text-slate-800">{new Date(u.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
+              allUsers.filter(u => {
+                const status = u.approvalStatus || (u.isActive ? 'APPROVED' : 'PENDING');
+                if (userFilter === 'PENDING') return status === 'PENDING';
+                if (userFilter === 'APPROVED') return status === 'APPROVED';
+                if (userFilter === 'REJECTED') return status === 'REJECTED';
+                return true;
+              }).map((u) => {
+                const currentStatus = u.approvalStatus || (u.isActive ? 'APPROVED' : 'PENDING');
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {!u.isActive ? (
+                return (
+                  <div key={u.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-teal-300 transition-all shadow-xs">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-base text-[#004D40]">{u.profile?.fullName || u.phone}</span>
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-teal-100 text-teal-800 border border-teal-200">
+                          {u.role === 'LIVREUR' ? '🛵 Livreur' : u.role === 'COMMERCANT' ? '🏪 Boutique' : u.role}
+                        </span>
+                        
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          currentStatus === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          currentStatus === 'REJECTED' ? 'bg-red-100 text-red-800 border border-red-300' :
+                          'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                        }`}>
+                          {currentStatus === 'APPROVED' ? '✅ APPROVED (Actif)' :
+                           currentStatus === 'REJECTED' ? '❌ REJECTED (Refusé)' :
+                           '⏳ PENDING (En Attente Admin)'}
+                        </span>
+                      </div>
+
+                      <div className="text-xs text-slate-500 font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>📱 Téléphone : <strong className="text-slate-800 font-mono">{u.phone}</strong></span>
+                        {u.email && <span>✉️ Email : <strong className="text-slate-800">{u.email}</strong></span>}
+                        <span>📅 Inscrit le : <strong className="text-slate-800">{new Date(u.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <button
-                        onClick={() => handleUpdateUserApproval(u.id, 'APPROVE')}
-                        className="px-4 py-2 bg-[#009688] hover:bg-[#00796B] text-white font-black rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5 border border-teal-300"
+                        type="button"
+                        onClick={() => setSelectedCandidateForModal(u)}
+                        className="px-3.5 py-2 bg-sky-100 hover:bg-sky-200 text-sky-900 font-bold rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1 border border-sky-300"
                       >
-                        <CheckCircle2 className="w-4 h-4" /> Approuver l'Inscription
+                        🔍 Voir Candidat
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => handleUpdateUserApproval(u.id, 'REJECT')}
-                        className="px-3.5 py-2 bg-slate-200 hover:bg-red-100 text-slate-700 hover:text-red-700 font-bold rounded-xl text-xs transition-all cursor-pointer"
-                      >
-                        🚫 Désactiver le Compte
-                      </button>
-                    )}
+
+                      {currentStatus !== 'APPROVED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateUserApproval(u.id, 'APPROVE')}
+                          className="px-4 py-2 bg-[#009688] hover:bg-[#00796B] text-white font-black rounded-xl text-xs shadow-md transition-all cursor-pointer uppercase tracking-wider flex items-center gap-1.5 border border-teal-300"
+                        >
+                          <CheckCircle2 className="w-4 h-4" /> Approuver
+                        </button>
+                      )}
+
+                      {currentStatus !== 'REJECTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateUserApproval(u.id, 'REJECT')}
+                          className="px-3.5 py-2 bg-red-100 hover:bg-red-200 text-red-800 font-black rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1 border border-red-300"
+                        >
+                          <span>❌ Refuser</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -1071,6 +1206,104 @@ export default function AdminDashboard() {
                   className="py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-xs"
                 >
                   ⏳ Remettre EN_ATTENTE
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CANDIDATE INSPECTION MODAL */}
+      {selectedCandidateForModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto border-4 border-white">
+            
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                {selectedCandidateForModal.profile?.avatarUrl ? (
+                  <img src={selectedCandidateForModal.profile.avatarUrl} alt="" className="w-14 h-14 rounded-full object-cover border-2 border-teal-500 shadow-md" />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-teal-100 text-[#009688] font-black text-xl flex items-center justify-center border-2 border-teal-300">
+                    👤
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{selectedCandidateForModal.profile?.fullName || selectedCandidateForModal.phone}</h3>
+                  <p className="text-xs text-slate-500 font-bold">Rôle : {selectedCandidateForModal.role} • Tél : {selectedCandidateForModal.phone}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCandidateForModal(null)} className="text-slate-400 hover:text-slate-600 font-black text-2xl cursor-pointer">✕</button>
+            </div>
+
+            {/* Current Status Badge */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-600">Statut d'approbation actuel :</span>
+              <span className={`px-4 py-1 rounded-full text-xs font-black uppercase border ${
+                (selectedCandidateForModal.approvalStatus || (selectedCandidateForModal.isActive ? 'APPROVED' : 'PENDING')) === 'APPROVED'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  : (selectedCandidateForModal.approvalStatus === 'REJECTED')
+                  ? 'bg-red-100 text-red-900 border-red-300'
+                  : 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse'
+              }`}>
+                {selectedCandidateForModal.approvalStatus || (selectedCandidateForModal.isActive ? 'APPROVED' : 'PENDING')}
+              </span>
+            </div>
+
+            {/* Candidate Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100 font-bold text-slate-700">
+                <div className="font-black text-slate-900 uppercase text-[11px] pb-1 border-b border-slate-200">👤 Identité du Candidat</div>
+                <div><strong>Nom Complet :</strong> {selectedCandidateForModal.profile?.fullName || 'Non renseigné'}</div>
+                <div><strong>Téléphone :</strong> <span className="font-mono text-slate-900">{selectedCandidateForModal.phone}</span></div>
+                <div><strong>Email :</strong> {selectedCandidateForModal.email || 'Non renseigné'}</div>
+                <div><strong>N° CNIB / Passeport :</strong> <span className="font-mono">{selectedCandidateForModal.profile?.taxId || selectedCandidateForModal.driver?.idCardNumber || 'Non renseigné'}</span></div>
+                <div><strong>Inscrit le :</strong> {new Date(selectedCandidateForModal.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+              </div>
+
+              {selectedCandidateForModal.driver ? (
+                <div className="p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100 font-bold text-slate-700">
+                  <div className="font-black text-slate-900 uppercase text-[11px] pb-1 border-b border-slate-200">🏍️ Informations Livreur</div>
+                  <div><strong>Véhicule :</strong> {selectedCandidateForModal.driver.vehicles?.[0]?.vehicleType || 'MOTO'} ({selectedCandidateForModal.driver.vehicles?.[0]?.brand || 'Moto'})</div>
+                  <div><strong>Plaque :</strong> {selectedCandidateForModal.driver.vehicles?.[0]?.licensePlate || 'Non renseignée'}</div>
+                  <div><strong>Zones desservies :</strong> {selectedCandidateForModal.driver.preferredZones || 'Ouagadougou'}</div>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-100 font-bold text-slate-700">
+                  <div className="font-black text-slate-900 uppercase text-[11px] pb-1 border-b border-slate-200">🏪 Informations Entreprise / Boutique</div>
+                  <div><strong>Boutique / Raison Sociale :</strong> {selectedCandidateForModal.profile?.companyName || selectedCandidateForModal.profile?.fullName || 'Non renseigné'}</div>
+                  <div><strong>Ville :</strong> {selectedCandidateForModal.profile?.city || 'Ouagadougou'}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Candidate Documents / Photos */}
+            {selectedCandidateForModal.profile?.avatarUrl && (
+              <div className="space-y-2">
+                <h4 className="font-black text-xs text-slate-700 uppercase">Document / Fichier d'Identité Transmis :</h4>
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                  <img src={selectedCandidateForModal.profile.avatarUrl} alt="Document Pièce" className="max-h-60 rounded-xl object-contain mx-auto border border-slate-300 shadow-md" />
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <h4 className="font-black text-xs text-slate-700 uppercase">Décision Administrateur</h4>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateUserApproval(selectedCandidateForModal.id, 'APPROVE')}
+                  className="flex-1 py-3.5 px-4 bg-[#009688] hover:bg-[#00796B] text-white font-black text-xs uppercase rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 border border-white"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Approuver l'Inscription</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateUserApproval(selectedCandidateForModal.id, 'REJECT')}
+                  className="flex-1 py-3.5 px-4 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase rounded-2xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2 border border-white"
+                >
+                  <span>❌ Refuser la Demande</span>
                 </button>
               </div>
             </div>

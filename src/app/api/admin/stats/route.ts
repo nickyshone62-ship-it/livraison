@@ -9,22 +9,32 @@ export async function GET() {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const totalUsers = await db.user.count();
-    const totalDrivers = await db.driver.count();
-    const verifiedDrivers = await db.driver.count({ where: { verificationStatus: 'VERIFIE' } });
-    const pendingDrivers = await db.driver.count({ where: { verificationStatus: 'EN_VERIFICATION' } });
-    
-    const totalDeliveries = await db.deliveryRequest.count();
-    const completedDeliveries = await db.deliveryRequest.count({ where: { status: 'LIVRE' } });
-    const activeDeliveries = await db.deliveryRequest.count({ where: { status: { in: ['EN_COURS_LIVRAISON', 'COLIS_RECUPERE', 'LIVREUR_SELECTIONNE'] } } });
-    const openDisputes = await db.dispute.count({ where: { status: 'OUVERT' } });
-
-    const totalAgreedPrice = await db.delivery.aggregate({
-      _sum: { agreedPriceFcfa: true },
-      where: { status: 'LIVRE' },
-    });
-
-    const activeSubscriptionsCount = await db.subscription.count({ where: { status: 'ACTIVE' } });
+    const [
+      totalUsers,
+      totalDrivers,
+      verifiedDrivers,
+      pendingDrivers,
+      totalDeliveries,
+      completedDeliveries,
+      activeDeliveries,
+      openDisputes,
+      totalAgreedPrice,
+      activeSubscriptionsCount,
+    ] = await Promise.all([
+      db.user.count(),
+      db.driver.count(),
+      db.driver.count({ where: { verificationStatus: 'VERIFIE' } }),
+      db.driver.count({ where: { verificationStatus: 'EN_VERIFICATION' } }),
+      db.deliveryRequest.count(),
+      db.deliveryRequest.count({ where: { status: 'LIVRE' } }),
+      db.deliveryRequest.count({ where: { status: { in: ['EN_COURS_LIVRAISON', 'COLIS_RECUPERE', 'LIVREUR_SELECTIONNE'] } } }),
+      db.dispute.count({ where: { status: 'OUVERT' } }),
+      db.delivery.aggregate({
+        _sum: { agreedPriceFcfa: true },
+        where: { status: 'LIVRE' },
+      }),
+      db.subscription.count({ where: { status: 'ACTIVE' } }),
+    ]);
 
     return NextResponse.json({
       stats: {

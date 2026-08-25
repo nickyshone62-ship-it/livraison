@@ -51,8 +51,8 @@ export async function POST(req: Request) {
         phone,
         email: email ? email.toLowerCase().trim() : null,
         passwordHash,
-        role,
-        isActive: true,
+        approvalStatus: 'PENDING',
+        isActive: false,
         profile: {
           create: {
             fullName: computedFullName,
@@ -177,25 +177,20 @@ export async function POST(req: Request) {
       paymentMethod,
     });
 
-    const tokenPayload = {
-      userId: user.id,
-      phone: user.phone,
-      role: user.role,
-      fullName: user.profile?.fullName || fullName,
-    };
-
-    const token = signToken(tokenPayload);
-
-    const res = NextResponse.json({ success: true, user: tokenPayload });
-    res.cookies.set(TOKEN_COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+    return NextResponse.json({
+      success: true,
+      pendingApproval: true,
+      approvalStatus: 'PENDING',
+      message: "Votre compte est en attente d'approbation par l'administrateur.",
+      user: {
+        id: user.id,
+        phone: user.phone,
+        role: user.role,
+        fullName: user.profile?.fullName || computedFullName,
+        approvalStatus: 'PENDING',
+        isActive: false,
+      },
     });
-
-    return res;
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json({ error: error.message || 'Erreur lors de l\'inscription' }, { status: 500 });

@@ -58,15 +58,34 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
 
-    const newIsActive = action === 'APPROVE' ? true : action === 'REJECT' ? false : !user.isActive;
+    let newApprovalStatus = user.approvalStatus;
+    let newIsActive = user.isActive;
+    let responseMessage = '';
+
+    if (action === 'APPROVE') {
+      newApprovalStatus = 'APPROVED';
+      newIsActive = true;
+      responseMessage = 'Utilisateur approuvé avec succès.';
+    } else if (action === 'REJECT') {
+      newApprovalStatus = 'REJECTED';
+      newIsActive = false;
+      responseMessage = 'Utilisateur refusé.';
+    } else {
+      newIsActive = !user.isActive;
+      newApprovalStatus = newIsActive ? 'APPROVED' : user.approvalStatus;
+      responseMessage = newIsActive ? 'Utilisateur activé avec succès.' : 'Utilisateur désactivé.';
+    }
 
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data: { isActive: newIsActive },
+      data: {
+        approvalStatus: newApprovalStatus,
+        isActive: newIsActive,
+      },
       include: { profile: true },
     });
 
-    // If user is a driver and action is APPROVE, update driver verification status to VERIFIE
+    // If user is a driver, update driver verification status
     if (user.driver) {
       await db.driver.update({
         where: { userId },
@@ -81,7 +100,7 @@ export async function PATCH(req: Request) {
         title: newIsActive ? '🎉 Compte Validé par l\'Administrateur !' : '⚠️ Statut de votre compte mis à jour',
         message: newIsActive
           ? 'Votre inscription a été vérifiée et approuvée par l\'administrateur. Vous avez désormais un accès complet à la plateforme LivraisonOuaga !'
-          : `Votre compte a été suspendu ou désactivé par l'administrateur. Motif : ${reason || 'Vérification de sécurité'}`,
+          : `Votre compte a été refusé ou désactivé par l'administrateur. Motif : ${reason || 'Vérification de dossier'}`,
         type: 'SYSTEM',
       },
     });
@@ -90,14 +109,14 @@ export async function PATCH(req: Request) {
     await db.auditLog.create({
       data: {
         userId: String(session.userId),
-        action: `USER_REGISTRATION_${newIsActive ? 'APPROVED' : 'REJECTED'}`,
+        action: `USER_REGISTRATION_${newApprovalStatus}`,
         targetEntity: 'User',
         targetId: userId,
-        detailsJson: JSON.stringify({ newIsActive, phone: user.phone, role: user.role }),
+        detailsJson: JSON.stringify({ approvalStatus: newApprovalStatus, newIsActive, phone: user.phone, role: user.role }),
       },
     });
 
-    return NextResponse.json({ success: true, user: updatedUser });
+    return NextResponse.json({ success: true, message: responseMessage, user: updatedUser });
   } catch (error: any) {
     console.error('Error updating user registration approval:', error);
     return NextResponse.json({ error: 'Erreur lors de la mise à jour de l\'utilisateur' }, { status: 500 });
