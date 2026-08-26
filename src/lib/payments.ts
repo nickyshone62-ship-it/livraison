@@ -40,14 +40,17 @@ export function generateTransactionRef(prefix: string = 'PAY'): string {
 export async function initiateUserPayment(params: PaymentInitiateParams) {
   const ref = params.transactionReference || generateTransactionRef();
 
+  const pType = (params.paymentType.includes('registration') ? 'registration' : 'subscription') as any;
+  const pMethod = (['orange_money', 'moov_money', 'wave'].includes(params.paymentMethod) ? params.paymentMethod : 'orange_money') as any;
+
   // Mandatory: Payment ALWAYS created with status 'pending' until Admin verifies
   const payment = await db.payment.create({
     data: {
       userId: params.userId,
-      paymentType: params.paymentType,
+      paymentType: pType,
       amount: params.amount,
       currency: 'XOF',
-      paymentMethod: params.paymentMethod,
+      paymentMethod: pMethod,
       recipientPhone: params.recipientPhone || null,
       transactionReference: ref,
       status: 'pending',

@@ -52,7 +52,7 @@ export async function PATCH(req: Request) {
     if (newStatus === 'approved') {
       await db.profile.update({
         where: { id: driver.userId },
-        data: { accountStatus: 'approved' },
+        data: { accountStatus: 'active' },
       });
     }
 

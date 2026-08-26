@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     // Approve and activate user account
     await db.profile.update({
       where: { id: userId },
-      data: { accountStatus: 'approved' },
+      data: { accountStatus: 'active' },
     });
 
     // If driver, update driver KYC verification status to approved

@@ -106,7 +106,7 @@ export async function POST(req: Request) {
           isAvailable: false,
           vehicles: {
             create: {
-              vehicleType: vehicleType || 'moto',
+              vehicleType: (vehicleType === 'moto' || !vehicleType) ? 'motorcycle' : (vehicleType as any),
               brand: brand || null,
               model: model || null,
               registrationNumber: registrationNumber || null,
@@ -117,10 +117,10 @@ export async function POST(req: Request) {
           },
           documents: {
             create: [
-              ...(idCardFileUrl ? [{ documentType: 'identity_card', fileUrl: idCardFileUrl, status: 'pending' }] : []),
-              ...(driverLicenseUrl ? [{ documentType: 'driver_license', fileUrl: driverLicenseUrl, status: 'pending' }] : []),
-              ...(vehicleDocUrl ? [{ documentType: 'vehicle_document', fileUrl: vehicleDocUrl, status: 'pending' }] : []),
-              ...(photoUrl ? [{ documentType: 'photo', fileUrl: photoUrl, status: 'pending' }] : []),
+              ...(idCardFileUrl ? [{ documentType: 'identity_card', fileUrl: idCardFileUrl, status: 'pending' as const }] : []),
+              ...(driverLicenseUrl ? [{ documentType: 'driver_license', fileUrl: driverLicenseUrl, status: 'pending' as const }] : []),
+              ...(vehicleDocUrl ? [{ documentType: 'vehicle_document', fileUrl: vehicleDocUrl, status: 'pending' as const }] : []),
+              ...(photoUrl ? [{ documentType: 'photo', fileUrl: photoUrl, status: 'pending' as const }] : []),
             ],
           },
         },

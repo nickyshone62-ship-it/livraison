@@ -20,7 +20,7 @@ export async function GET() {
           orderBy: { createdAt: 'desc' },
         },
         payments: {
-          where: { paymentType: 'monthly_subscription' },
+          where: { paymentType: 'subscription' },
           orderBy: { createdAt: 'desc' },
         },
       },

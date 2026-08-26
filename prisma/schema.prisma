@@ -9,21 +9,142 @@ generator client {
 }
 
 // ==============================================================================
+// ENUMS CONFORMES À LA BASE SUPABASE EXISTANTE
+// ==============================================================================
+
+enum UserRole {
+  client
+  driver
+  admin
+
+  @@map("user_role")
+}
+
+enum AccountStatus {
+  pending
+  active
+  suspended
+  rejected
+
+  @@map("account_status")
+}
+
+enum DriverVerificationStatus {
+  pending
+  under_review
+  approved
+  rejected
+  suspended
+
+  @@map("driver_verification_status")
+}
+
+enum VehicleType {
+  motorcycle
+  car
+  van
+  truck
+  bicycle
+  other
+
+  @@map("vehicle_type")
+}
+
+enum DocumentStatus {
+  pending
+  approved
+  rejected
+  expired
+
+  @@map("document_status")
+}
+
+enum PaymentType {
+  registration
+  subscription
+
+  @@map("payment_type")
+}
+
+enum PaymentMethod {
+  orange_money
+  moov_money
+  wave
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  rejected
+  expired
+  cancelled
+
+  @@map("payment_status")
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  expired
+  rejected
+  cancelled
+
+  @@map("subscription_status")
+}
+
+enum DeliveryStatus {
+  pending
+  searching_driver
+  driver_selected
+  driver_accepted
+  driver_arriving
+  package_picked_up
+  in_transit
+  delivered
+  completed
+  cancelled
+  failed
+
+  @@map("delivery_status")
+}
+
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+  expired
+
+  @@map("offer_status")
+}
+
+enum ReportStatus {
+  pending
+  investigating
+  resolved
+  rejected
+
+  @@map("report_status")
+}
+
+// ==============================================================================
 // MODÈLES DE LA BASE SUPABASE EXISTANTE (18 TABLES 100% CONFORMES RELATIONS)
 // ==============================================================================
 
 model Profile {
-  id            String   @id @db.Uuid
-  role          String   @default("client") // client, driver, admin
-  fullName      String?  @map("full_name")
+  id            String        @id @db.Uuid
+  role          UserRole      @default(client)
+  fullName      String?       @map("full_name")
   phone         String?
   email         String?
-  avatarUrl     String?  @map("avatar_url")
+  avatarUrl     String?       @map("avatar_url")
   city          String?
   address       String?
-  accountStatus String   @default("pending") @map("account_status") // pending, active, suspended, rejected
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @map("updated_at")
+  accountStatus AccountStatus @default(pending) @map("account_status")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @default(now()) @map("updated_at")
 
   driverProfile        DriverProfile?
   payments             Payment[]
@@ -41,27 +162,27 @@ model Profile {
 }
 
 model DriverProfile {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String    @unique @map("user_id") @db.Uuid
-  profile            Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verificationStatus String    @default("pending") @map("verification_status") // pending, under_review, approved, rejected, suspended
-  isAvailable        Boolean   @default(false) @map("is_available")
-  averageRating      Decimal   @default(0) @map("average_rating") @db.Decimal(3, 2)
-  totalRatings       Int       @default(0) @map("total_ratings")
-  totalDeliveries    Int       @default(0) @map("total_deliveries")
-  approvedAt         DateTime? @map("approved_at")
-  approvedBy         String?   @map("approved_by") @db.Uuid
-  rejectionReason    String?   @map("rejection_reason")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @default(now()) @map("updated_at")
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String                   @unique @map("user_id") @db.Uuid
+  profile            Profile                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verificationStatus DriverVerificationStatus @default(pending) @map("verification_status")
+  isAvailable        Boolean                  @default(false) @map("is_available")
+  averageRating      Decimal                  @default(0) @map("average_rating") @db.Decimal(3, 2)
+  totalRatings       Int                      @default(0) @map("total_ratings")
+  totalDeliveries    Int                      @default(0) @map("total_deliveries")
+  approvedAt         DateTime?                @map("approved_at")
+  approvedBy         String?                  @map("approved_by") @db.Uuid
+  rejectionReason    String?                  @map("rejection_reason")
+  createdAt          DateTime                 @default(now()) @map("created_at")
+  updatedAt          DateTime                 @default(now()) @map("updated_at")
 
   vehicles           Vehicle[]
   documents          DriverDocument[]
-  offers             DeliveryOffer[]         @relation("DriverOffers")
-  assignments        DeliveryAssignment[]    @relation("DriverAssignments")
-  trackingLogs       DeliveryTracking[]      @relation("DriverTracking")
-  reviews            Review[]                @relation("ReviewedDriverProfile")
-  conversations      Conversation[]          @relation("DriverConversations")
+  offers             DeliveryOffer[]          @relation("DriverOffers")
+  assignments        DeliveryAssignment[]     @relation("DriverAssignments")
+  trackingLogs       DeliveryTracking[]       @relation("DriverTracking")
+  reviews            Review[]                 @relation("ReviewedDriverProfile")
+  conversations      Conversation[]           @relation("DriverConversations")
 
   @@map("driver_profiles")
 }
@@ -70,7 +191,7 @@ model Vehicle {
   id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   driverId           String        @map("driver_id") @db.Uuid
   driver             DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicleType        String        @map("vehicle_type") // motorcycle, car, van, truck, bicycle, other
+  vehicleType        VehicleType   @map("vehicle_type")
   brand              String?
   model              String?
   registrationNumber String?       @map("registration_number")
@@ -84,40 +205,40 @@ model Vehicle {
 }
 
 model DriverDocument {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  driverId        String        @map("driver_id") @db.Uuid
-  driver          DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  documentType    String        @map("document_type") // identity_card, driver_license, vehicle_document, other
-  documentNumber  String?       @map("document_number")
-  fileUrl         String        @map("file_url")
-  status          String        @default("pending") // pending, approved, rejected, expired
-  rejectionReason String?       @map("rejection_reason")
-  expiresAt       DateTime?     @map("expires_at") @db.Date
-  reviewedBy      String?       @map("reviewed_by") @db.Uuid
-  reviewedAt      DateTime?     @map("reviewed_at")
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @default(now()) @map("updated_at")
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId        String         @map("driver_id") @db.Uuid
+  driver          DriverProfile  @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  documentType    String         @map("document_type")
+  documentNumber  String?        @map("document_number")
+  fileUrl         String         @map("file_url")
+  status          DocumentStatus @default(pending)
+  rejectionReason String?        @map("rejection_reason")
+  expiresAt       DateTime?      @map("expires_at") @db.Date
+  reviewedBy      String?        @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?      @map("reviewed_at")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @default(now()) @map("updated_at")
 
   @@map("driver_documents")
 }
 
 model Payment {
-  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId               String   @map("user_id") @db.Uuid
-  user                 Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentType          String   @map("payment_type") // registration, subscription
-  amount               Decimal  @db.Decimal(10, 2)
-  currency             String   @default("XOF")
-  paymentMethod        String   @map("payment_method") // orange_money, moov_money, wave
-  recipientPhone       String?  @map("recipient_phone")
-  transactionReference String?  @map("transaction_reference")
-  status               String   @default("pending") // pending, approved, rejected, expired, cancelled
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  user                 Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentType          PaymentType   @map("payment_type")
+  amount               Decimal       @db.Decimal(10, 2)
+  currency             String        @default("XOF")
+  paymentMethod        PaymentMethod @map("payment_method")
+  recipientPhone       String?       @map("recipient_phone")
+  transactionReference String?       @map("transaction_reference")
+  status               PaymentStatus @default(pending)
   notes                String?
-  reviewedBy           String?  @map("reviewed_by") @db.Uuid
-  reviewedAt           DateTime? @map("reviewed_at")
-  rejectionReason      String?  @map("rejection_reason")
-  createdAt            DateTime @default(now()) @map("created_at")
-  updatedAt            DateTime @default(now()) @map("updated_at")
+  reviewedBy           String?       @map("reviewed_by") @db.Uuid
+  reviewedAt           DateTime?     @map("reviewed_at")
+  rejectionReason      String?       @map("rejection_reason")
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @default(now()) @map("updated_at")
 
   subscriptions        Subscription[]
 
@@ -125,52 +246,52 @@ model Payment {
 }
 
 model Subscription {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId          String    @map("user_id") @db.Uuid
-  user            Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentId       String?   @map("payment_id") @db.Uuid
-  payment         Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  amount          Decimal   @default(1000) @db.Decimal(10, 2)
-  currency        String    @default("XOF")
-  status          String    @default("pending") // pending, active, expired, rejected, cancelled
-  startsAt        DateTime? @map("starts_at")
-  expiresAt       DateTime? @map("expires_at")
-  approvedBy      String?   @map("approved_by") @db.Uuid
-  approvedAt      DateTime? @map("approved_at")
-  rejectionReason String?   @map("rejection_reason")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @default(now()) @map("updated_at")
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String             @map("user_id") @db.Uuid
+  user            Profile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId       String?            @map("payment_id") @db.Uuid
+  payment         Payment?           @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  amount          Decimal            @default(1000) @db.Decimal(10, 2)
+  currency        String             @default("XOF")
+  status          SubscriptionStatus @default(pending)
+  startsAt        DateTime?          @map("starts_at")
+  expiresAt       DateTime?          @map("expires_at")
+  approvedBy      String?            @map("approved_by") @db.Uuid
+  approvedAt      DateTime?          @map("approved_at")
+  rejectionReason String?            @map("rejection_reason")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @default(now()) @map("updated_at")
 
   @@map("subscriptions")
 }
 
 model DeliveryRequest {
-  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clientId                String   @map("client_id") @db.Uuid
-  client                  Profile  @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
-  pickupAddress           String   @map("pickup_address")
-  pickupCity              String?  @map("pickup_city")
-  pickupLatitude          Float?   @map("pickup_latitude")
-  pickupLongitude         Float?   @map("pickup_longitude")
-  pickupInstructions       String?  @map("pickup_instructions")
-  destinationAddress      String   @map("destination_address")
-  destinationCity         String?  @map("destination_city")
-  destinationLatitude     Float?   @map("destination_latitude")
-  destinationLongitude    Float?   @map("destination_longitude")
-  destinationInstructions String?  @map("destination_instructions")
-  recipientName           String   @map("recipient_name")
-  recipientPhone          String   @map("recipient_phone")
-  packageDescription      String   @map("package_description")
-  packageCategory         String?  @map("package_category")
-  packageWeight           Decimal? @map("package_weight") @db.Decimal(8, 2)
-  packageQuantity         Int      @default(1) @map("package_quantity")
-  packageSize             String?  @map("package_size")
-  requestedDate           DateTime? @map("requested_date") @db.Date
-  requestedTime           String?  @map("requested_time")
-  additionalInstructions  String?  @map("additional_instructions")
-  status                  String   @default("pending") // pending, searching_driver, driver_selected, driver_accepted, driver_arriving, package_picked_up, in_transit, delivered, completed, cancelled, failed
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @default(now()) @map("updated_at")
+  id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId                String          @map("client_id") @db.Uuid
+  client                  Profile         @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  pickupAddress           String          @map("pickup_address")
+  pickupCity              String?         @map("pickup_city")
+  pickupLatitude          Float?          @map("pickup_latitude")
+  pickupLongitude         Float?          @map("pickup_longitude")
+  pickupInstructions       String?         @map("pickup_instructions")
+  destinationAddress      String          @map("destination_address")
+  destinationCity         String?         @map("destination_city")
+  destinationLatitude     Float?          @map("destination_latitude")
+  destinationLongitude    Float?          @map("destination_longitude")
+  destinationInstructions String?         @map("destination_instructions")
+  recipientName           String          @map("recipient_name")
+  recipientPhone          String          @map("recipient_phone")
+  packageDescription      String          @map("package_description")
+  packageCategory         String?         @map("package_category")
+  packageWeight           Decimal?        @map("package_weight") @db.Decimal(8, 2)
+  packageQuantity         Int             @default(1) @map("package_quantity")
+  packageSize             String?         @map("package_size")
+  requestedDate           DateTime?       @map("requested_date") @db.Date
+  requestedTime           String?         @map("requested_time")
+  additionalInstructions  String?         @map("additional_instructions")
+  status                  DeliveryStatus  @default(pending)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @default(now()) @map("updated_at")
 
   offers                  DeliveryOffer[]
   assignments             DeliveryAssignment[]
@@ -192,7 +313,7 @@ model DeliveryOffer {
   proposedPrice     Decimal         @map("proposed_price") @db.Decimal(10, 2)
   estimatedDuration Int?            @map("estimated_duration")
   message           String?
-  status            String          @default("pending") // pending, accepted, rejected, withdrawn, expired
+  status            OfferStatus     @default(pending)
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @default(now()) @map("updated_at")
 
@@ -227,7 +348,6 @@ model DeliveryAssignment {
   @@map("delivery_assignments")
 }
 
-
 model DeliveryTracking {
   id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   deliveryId String          @map("delivery_id") @db.Uuid
@@ -246,7 +366,7 @@ model DeliveryStatusHistory {
   id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   deliveryId String          @map("delivery_id") @db.Uuid
   delivery   DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  status     String
+  status     DeliveryStatus
   changedBy  String?         @map("changed_by") @db.Uuid
   note       String?
   createdAt  DateTime        @default(now()) @map("created_at")
@@ -321,7 +441,7 @@ model Report {
   delivery       DeliveryRequest? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
   reason         String
   description    String?
-  status         String           @default("pending") // pending, investigating, resolved, rejected
+  status         ReportStatus     @default(pending)
   reviewedBy     String?          @map("reviewed_by") @db.Uuid
   reviewedAt     DateTime?        @map("reviewed_at")
   resolutionNote String?          @map("resolution_note")

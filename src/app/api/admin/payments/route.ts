@@ -63,10 +63,10 @@ export async function PATCH(req: Request) {
 
     // 2. If approved registration payment -> activate user account
     if (action === 'approve') {
-      if (payment.paymentType === 'client_registration' || payment.paymentType === 'driver_registration') {
+      if (payment.paymentType === 'registration') {
         await db.profile.update({
           where: { id: payment.userId },
-          data: { accountStatus: 'approved' },
+          data: { accountStatus: 'active' },
         });
 
         if (payment.user.driverProfile) {
@@ -82,7 +82,7 @@ export async function PATCH(req: Request) {
       }
 
       // 3. If approved monthly subscription payment -> create or renew subscription active for 30 days
-      if (payment.paymentType === 'monthly_subscription') {
+      if (payment.paymentType === 'subscription') {
         const startsAt = new Date();
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
