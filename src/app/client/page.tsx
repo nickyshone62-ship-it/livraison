@@ -91,7 +91,7 @@ export default function ClientDashboard() {
             className="px-6 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold rounded-xl shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 text-sm shrink-0 transition-all cursor-pointer"
           >
             <Plus className="w-5 h-5" />
-            <span>+ Nouvelle livraison</span>
+            <span>Nouvelle livraison</span>
           </Link>
         </div>
 
