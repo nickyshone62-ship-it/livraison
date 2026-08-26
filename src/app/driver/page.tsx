@@ -99,10 +99,6 @@ export default function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 sm:pb-12">
-      
-      <Navbar />
-      <AdminModeBanner />
-
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         
         {/* VERROUILLAGE SI LIVRAISON EN COURS */}

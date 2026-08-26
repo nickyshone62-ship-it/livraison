@@ -67,11 +67,6 @@ export default function ClientDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 sm:pb-12">
-      
-      {/* NAVBAR & ADMIN MODE BANNER */}
-      <Navbar />
-      <AdminModeBanner />
-
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         

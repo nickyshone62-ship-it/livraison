@@ -80,10 +80,6 @@ export default function DemandesDisponiblesDriverPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-16">
-      
-      <Navbar />
-      <AdminModeBanner />
-
       {/* En-tête */}
       <header className="bg-white border-b border-slate-200 py-4 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
