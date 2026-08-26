@@ -29,7 +29,7 @@ interface OnboardingAuthProps {
 export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) {
   const router = useRouter();
   const [mode, setMode] = useState<'register' | 'login'>('register');
-  const [role, setRole] = useState<'COMMERCANT' | 'LIVREUR'>('LIVREUR');
+  const [role, setRole] = useState<'CLIENT' | 'LIVREUR'>('CLIENT');
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -134,7 +134,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
 
   const getRegistrationAmount = (currentRole: string) => {
     if (currentRole === 'LIVREUR') return 1500;
-    if (currentRole === 'COMMERCANT') return 2000;
+    if (currentRole === 'CLIENT') return 2000;
     return 0;
   };
 
@@ -300,7 +300,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         throw new Error('Le numéro de la CNIB ou du Passeport est obligatoire pour tous les utilisateurs.');
       }
 
-      if (role === 'COMMERCANT') {
+      if (role === 'CLIENT') {
         if (!idCardFileUrl) {
           throw new Error('La photo de la pièce d\'identité (CNIB / Passeport) du gérant est obligatoire.');
         }
@@ -362,7 +362,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
       setPendingAccountData({
         phone,
         email: email || undefined,
-        role: role === 'LIVREUR' ? 'Livreur' : role === 'COMMERCANT' ? 'Boutique' : 'Particulier',
+        role: role === 'LIVREUR' ? 'Livreur' : 'Client',
         fullName: role === 'LIVREUR' ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur'),
       });
       setApprovalStatus('PENDING');
@@ -593,7 +593,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   SELECTIONNEZ VOTRE PROFIL :
                 </label>
                 <span className="text-xs sm:text-sm font-black text-teal-800 bg-teal-100 px-4 py-1 rounded-full border border-teal-300 shadow-sm">
-                  💳 Inscription : Livreur 1 500f • Boutique 2 000f | Abonnement : 1 000f/mois
+                  💳 Inscription : Livreur 1 500f • Client 2 000f | Abonnement : 1 000f/mois
                 </span>
               </div>
 
@@ -619,22 +619,22 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   </span>
                 </button>
 
-                {/* BOUTIQUE - 2000 FCFA */}
+                {/* CLIENT - 2000 FCFA */}
                 <button
                   type="button"
-                  onClick={() => setRole('COMMERCANT')}
+                  onClick={() => setRole('CLIENT')}
                   className={`py-4 px-3 rounded-2xl text-xs sm:text-base font-black transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
-                    role === 'COMMERCANT'
+                    role === 'CLIENT'
                       ? 'bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-xl ring-2 ring-blue-400 scale-105'
                       : 'text-[#00695C] bg-white hover:bg-teal-100/60 border border-teal-100'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
-                    <Store className="w-5 h-5 shrink-0" />
-                    <span className="font-black">Boutique</span>
+                    <User className="w-5 h-5 shrink-0" />
+                    <span className="font-black">Client</span>
                   </div>
                   <span className={`text-xs px-2.5 py-0.5 rounded-full font-black ${
-                    role === 'COMMERCANT' ? 'bg-white/25 text-white' : 'bg-sky-100 text-sky-900'
+                    role === 'CLIENT' ? 'bg-white/25 text-white' : 'bg-sky-100 text-sky-900'
                   }`}>
                     2 000 FCFA (Inscription)
                   </span>
@@ -676,8 +676,8 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                     </div>
                   </div>
 
-                  {/* NUMÉRO & PHOTO D'IDENTITE DU GERANT / BOUTIQUE */}
-                  {role === 'COMMERCANT' && (
+                  {/* NUMÉRO & PHOTO D'IDENTITE DU CLIENT */}
+                  {role === 'CLIENT' && (
                     <div className="space-y-4 bg-[#E6FFFA] p-5 rounded-3xl border-2 border-teal-200">
                       <h4 className="font-black text-sm text-[#004D40] uppercase flex items-center gap-2">
                         <ShieldCheck className="w-5 h-5 text-[#009688]" /> Pièce d'Identité du Gérant (CNIB / Passeport)
@@ -1157,7 +1157,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                       <div className="flex items-start gap-2">
                         <span className="text-amber-400 font-black text-sm shrink-0">✓</span>
                         <div>
-                          <strong className="text-white font-bold">Frais d'Inscription Compte Boutique</strong> :{' '}
+                          <strong className="text-white font-bold">Frais d'Inscription Compte Client</strong> :{' '}
                           <strong className="text-amber-300 font-black text-sm">2 000 FCFA</strong>{' '}
                           <span className="text-emerald-200 text-[11px] font-normal">(À la création)</span>
                         </div>
@@ -1358,7 +1358,7 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                   {loading
                     ? 'PATIENTEZ... ENVOI À NICKYSHONE62@GMAIL.COM...'
                     : mode === 'register'
-                    ? `✉️ ENVOYER MON DOSSIER À NICKYSHONE62@GMAIL.COM & CRÉER MON COMPTE ${role === 'LIVREUR' ? 'LIVREUR' : 'BOUTIQUE'}`
+                    ? `✉️ ENVOYER MON DOSSIER À NICKYSHONE62@GMAIL.COM & CRÉER MON COMPTE ${role === 'LIVREUR' ? 'LIVREUR' : 'CLIENT'}`
                     : 'SE CONNECTER À L\'ESPACE'}
                 </span>
                 {!loading && <ArrowRight className="w-6 h-6 text-white" />}

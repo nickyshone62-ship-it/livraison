@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthSession, generateTrackingNumber, validateActiveSubscription } from '@/lib/auth';
+import { getAuthSession } from '@/lib/auth';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
   try {
@@ -10,56 +12,61 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const filter = searchParams.get('filter'); // 'open', 'my_requests', 'my_deliveries'
+    const filter = searchParams.get('filter'); // 'open', 'my_requests', 'my_offers', 'my_deliveries'
+    const role = (session.role || 'client').toLowerCase();
+    const userId = session.userId;
 
-    if (session.role === 'ADMIN') {
-      const deliveries = await db.deliveryRequest.findMany({
+    if (role === 'admin') {
+      const requests = await db.deliveryRequest.findMany({
         include: {
-          customer: { include: { profile: true } },
-          proposals: { include: { driver: { include: { profile: true, driver: true } } } },
-          delivery: { include: { driver: { include: { profile: true, driver: true } }, codes: true } },
+          client: true,
+          offers: { include: { driver: { include: { profile: true, vehicles: true } } } },
+          assignments: { include: { driver: { include: { profile: true } } } },
+          reviews: true,
         },
         orderBy: { createdAt: 'desc' },
       });
-      return NextResponse.json({ deliveries });
+      return NextResponse.json({ requests });
     }
 
-    if (session.role === 'LIVREUR') {
-      if (filter === 'my_proposals') {
-        const proposals = await db.deliveryProposal.findMany({
-          where: { driverId: String(session.userId) },
+    if (role === 'driver') {
+      const driverProfile = await db.driverProfile.findUnique({
+        where: { userId },
+      });
+
+      const driverProfileId = driverProfile ? driverProfile.id : userId;
+
+      if (filter === 'my_offers') {
+        const offers = await db.deliveryOffer.findMany({
+          where: { driverId: driverProfileId },
           include: {
-            deliveryRequest: { include: { customer: { include: { profile: true } } } },
-            delivery: { include: { codes: true } },
+            deliveryRequest: { include: { client: true } },
           },
           orderBy: { createdAt: 'desc' },
         });
-        return NextResponse.json({ proposals });
+        return NextResponse.json({ offers });
       }
 
       if (filter === 'my_deliveries') {
-        const activeDeliveries = await db.delivery.findMany({
-          where: { driverId: String(session.userId) },
+        const assignments = await db.deliveryAssignment.findMany({
+          where: { driverId: driverProfileId },
           include: {
-            deliveryRequest: true,
-            customer: { include: { profile: true } },
-            codes: true,
-            reviews: true,
+            delivery: { include: { client: true, offers: true, reviews: true } },
           },
-          orderBy: { updatedAt: 'desc' },
+          orderBy: { createdAt: 'desc' },
         });
-        return NextResponse.json({ deliveries: activeDeliveries });
+        return NextResponse.json({ assignments });
       }
 
-      // Default for driver: available open requests in Ouagadougou
+      // Default for driver: available open requests with status 'searching_driver' or 'pending'
       const openRequests = await db.deliveryRequest.findMany({
         where: {
-          status: { in: ['DEMANDE_PUBLIEE', 'PROPOSITIONS_RECUES'] },
+          status: { in: ['searching_driver', 'pending'] },
         },
         include: {
-          customer: { include: { profile: true } },
-          proposals: {
-            where: { driverId: String(session.userId) },
+          client: true,
+          offers: {
+            where: { driverId: driverProfileId },
           },
         },
         orderBy: { createdAt: 'desc' },
@@ -68,33 +75,33 @@ export async function GET(req: Request) {
       return NextResponse.json({ requests: openRequests });
     }
 
-    // Customer roles: PARTICULIER, COMMERCANT, ENTREPRISE
+    // Client space: my requests
     const customerRequests = await db.deliveryRequest.findMany({
-      where: { customerId: String(session.userId) },
+      where: { clientId: userId },
       include: {
-        proposals: {
+        offers: {
           include: {
             driver: {
               include: {
                 profile: true,
-                driver: { include: { vehicles: true } },
+                vehicles: true,
+                documents: true,
               },
             },
           },
         },
-        delivery: {
+        assignments: {
           include: {
             driver: {
               include: {
                 profile: true,
-                driver: { include: { vehicles: true } },
+                vehicles: true,
               },
             },
-            codes: true,
-            reviews: true,
-            disputes: true,
           },
         },
+        reviews: true,
+        reports: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -109,131 +116,77 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role === 'LIVREUR') {
-      return NextResponse.json({ error: 'Non autorisé ou seuls les clients peuvent créer une livraison' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    // Strict subscription active check
-    const subCheck = await validateActiveSubscription(String(session.userId), session.role);
-    if (!subCheck.active) {
-      return NextResponse.json({
-        error: subCheck.message,
-        subscriptionExpired: true,
-      }, { status: 403 });
+    const role = (session.role || 'client').toLowerCase();
+    if (role === 'driver') {
+      return NextResponse.json({ error: 'Seuls les clients peuvent émettre des demandes de livraison.' }, { status: 403 });
     }
 
     const body = await req.json();
     const {
       pickupAddress,
-      parcels, // Optional array for multiple parcels in single request
-      dropoffAddress,
-      packageType,
-      description,
-      quantity,
-      urgencyLevel,
-      scheduledDate,
-      scheduledTime,
-      additionalNotes,
+      pickupCity,
+      pickupInstructions,
+      pickupLatitude,
+      pickupLongitude,
+      destinationAddress,
+      destinationCity,
+      destinationInstructions,
+      destinationLatitude,
+      destinationLongitude,
       recipientName,
       recipientPhone,
+      packageDescription,
+      packageCategory,
+      packageWeight,
+      packageQuantity,
+      packageSize,
+      requestedDate,
+      requestedTime,
+      additionalInstructions,
     } = body;
 
-    if (!pickupAddress) {
-      return NextResponse.json({ error: 'Veuillez renseigner l\'adresse / lieu de ramassage (Point A)' }, { status: 400 });
+    if (!pickupAddress || !destinationAddress || !recipientName || !recipientPhone || !packageDescription) {
+      return NextResponse.json({ error: 'Veuillez remplir les informations obligatoires (Départ, Destination, Destinataire, Description colis).' }, { status: 400 });
     }
-
-    const userId = String(session.userId);
-    const createdRequests = [];
-
-    // If multi-parcel request array passed
-    if (Array.isArray(parcels) && parcels.length > 0) {
-      for (const p of parcels) {
-        if (!p.dropoffAddress || !p.description) continue;
-
-        const trackingNumber = generateTrackingNumber();
-        const combinedNotes = [
-          p.recipientName ? `Destinataire : ${p.recipientName}` : null,
-          p.recipientPhone ? `Tél Destinataire : ${p.recipientPhone}` : null,
-          p.additionalNotes || null,
-        ].filter(Boolean).join(' • ');
-
-        const reqEntry = await db.deliveryRequest.create({
-          data: {
-            trackingNumber,
-            customerId: userId,
-            pickupAddress,
-            dropoffAddress: p.dropoffAddress,
-            packageType: p.packageType || 'Colis / Marchandise',
-            description: p.description,
-            quantity: p.quantity ? parseInt(p.quantity) : 1,
-            urgencyLevel: p.urgencyLevel || 'NORMAL',
-            scheduledDate: scheduledDate || new Date().toISOString().split('T')[0],
-            scheduledTime: scheduledTime || 'Immédiat',
-            additionalNotes: combinedNotes || null,
-            status: 'DEMANDE_PUBLIEE',
-          },
-        });
-        createdRequests.push(reqEntry);
-      }
-
-      if (createdRequests.length === 0) {
-        return NextResponse.json({ error: 'Veuillez remplir au moins 1 colis valide avec destination et description' }, { status: 400 });
-      }
-
-      await db.auditLog.create({
-        data: {
-          userId,
-          action: 'MULTI_DELIVERY_REQUESTS_CREATED',
-          targetEntity: 'DeliveryRequest',
-          detailsJson: JSON.stringify({ count: createdRequests.length, pickupAddress }),
-        },
-      });
-
-      return NextResponse.json({ success: true, count: createdRequests.length, deliveryRequests: createdRequests });
-    }
-
-    // Single parcel fallback
-    if (!dropoffAddress || !description) {
-      return NextResponse.json({ error: 'Veuillez remplir la destination et la description du colis' }, { status: 400 });
-    }
-
-    const trackingNumber = generateTrackingNumber();
-    const combinedNotes = [
-      recipientName ? `Destinataire : ${recipientName}` : null,
-      recipientPhone ? `Tél Destinataire : ${recipientPhone}` : null,
-      additionalNotes || null,
-    ].filter(Boolean).join(' • ');
 
     const deliveryRequest = await db.deliveryRequest.create({
       data: {
-        trackingNumber,
-        customerId: userId,
+        clientId: session.userId,
         pickupAddress,
-        dropoffAddress,
-        packageType: packageType || 'Colis / Marchandise',
-        description,
-        quantity: quantity ? parseInt(quantity) : 1,
-        urgencyLevel: urgencyLevel || 'NORMAL',
-        scheduledDate: scheduledDate || new Date().toISOString().split('T')[0],
-        scheduledTime: scheduledTime || 'Immédiat',
-        additionalNotes: combinedNotes || null,
-        status: 'DEMANDE_PUBLIEE',
+        pickupCity: pickupCity || 'Ouagadougou',
+        pickupInstructions: pickupInstructions || null,
+        pickupLatitude: pickupLatitude ? parseFloat(pickupLatitude) : null,
+        pickupLongitude: pickupLongitude ? parseFloat(pickupLongitude) : null,
+        destinationAddress,
+        destinationCity: destinationCity || 'Ouagadougou',
+        destinationInstructions: destinationInstructions || null,
+        destinationLatitude: destinationLatitude ? parseFloat(destinationLatitude) : null,
+        destinationLongitude: destinationLongitude ? parseFloat(destinationLongitude) : null,
+        recipientName,
+        recipientPhone,
+        packageDescription,
+        packageCategory: packageCategory || 'Colis Général',
+        packageWeight: packageWeight ? parseFloat(packageWeight) : null,
+        packageQuantity: packageQuantity ? parseInt(packageQuantity, 10) : 1,
+        packageSize: packageSize || null,
+        requestedDate: requestedDate ? new Date(requestedDate) : new Date(),
+        requestedTime: requestedTime || null,
+        additionalInstructions: additionalInstructions || null,
+        status: 'searching_driver',
       },
     });
 
-    await db.auditLog.create({
-      data: {
-        userId,
-        action: 'DELIVERY_REQUEST_CREATED',
-        targetEntity: 'DeliveryRequest',
-        targetId: deliveryRequest.id,
-        detailsJson: JSON.stringify({ trackingNumber, packageType }),
-      },
+    return NextResponse.json({
+      success: true,
+      deliveryRequest,
+      message: 'Votre demande est maintenant visible par les livreurs disponibles.',
     });
-
-    return NextResponse.json({ success: true, deliveryRequest });
   } catch (error: any) {
-    console.error('Error creating delivery request:', error);
-    return NextResponse.json({ error: 'Erreur lors de la création de la livraison' }, { status: 500 });
+    console.error('Erreur création livraison:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors de la création de la demande' }, { status: 500 });
   }
 }

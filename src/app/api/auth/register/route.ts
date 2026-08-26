@@ -1,198 +1,179 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
-import { sendAdminNewUserAlertEmail } from '@/lib/email';
+import { initiateUserPayment, getPlatformSettings } from '@/lib/payments';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
+      fullName,
       phone,
       email,
+      city,
+      address,
       password,
-      role,
-      fullName,
-      firstName,
-      lastName,
-      companyName,
-      taxId,
-      photoUrl,
-      idCardNumber,
-      idCardFileUrl,
+      role: rawRole,
       vehicleType,
       brand,
       model,
-      licensePlate,
+      registrationNumber,
       color,
-      preferredZones,
-      drivingLicenseUrl,
+      year,
+      idCardFileUrl,
+      driverLicenseUrl,
       vehicleDocUrl,
+      photoUrl,
       paymentMethod,
+      transactionReference,
     } = body;
 
-    const computedFullName = (firstName && lastName) ? `${firstName} ${lastName}`.trim() : (fullName || 'Utilisateur');
+    const role = (rawRole || 'client').toLowerCase() === 'driver' || (rawRole || '').toUpperCase() === 'LIVREUR' ? 'driver' : 'client';
 
-    if (!phone || !password || !computedFullName || !role) {
-      return NextResponse.json({ error: 'Veuillez remplir tous les champs obligatoires' }, { status: 400 });
+    if (!phone || !password || !fullName) {
+      return NextResponse.json({ error: 'Veuillez remplir tous les champs obligatoires (nom, téléphone, mot de passe).' }, { status: 400 });
     }
 
-    const existingUser = await db.user.findUnique({ where: { phone } });
-    if (existingUser) {
-      return NextResponse.json({ error: 'Ce numéro de téléphone est déjà enregistré' }, { status: 400 });
+    // Check duplicate phone or email
+    const cleanPhone = phone.trim();
+    const cleanEmail = email ? email.toLowerCase().trim() : null;
+
+    const existingPhoneRows: any[] = await db.$queryRaw`SELECT id FROM public.profiles WHERE phone = ${cleanPhone} LIMIT 1`;
+    if (existingPhoneRows && existingPhoneRows.length > 0) {
+      return NextResponse.json({ error: 'Ce numéro de téléphone est déjà utilisé par un autre compte.' }, { status: 400 });
+    }
+
+    if (cleanEmail) {
+      const existingEmailRows: any[] = await db.$queryRaw`SELECT id FROM public.profiles WHERE email = ${cleanEmail} LIMIT 1`;
+      if (existingEmailRows && existingEmailRows.length > 0) {
+        return NextResponse.json({ error: 'Cette adresse email est déjà enregistrée.' }, { status: 400 });
+      }
     }
 
     const passwordHash = await hashPassword(password);
+    const settings = await getPlatformSettings();
+    const registrationFee = role === 'driver' 
+      ? Number(settings.driver_registration_fee || 1500) 
+      : Number(settings.client_registration_fee || 2000);
 
-    // Format preferred zones string
-    const formattedZones = Array.isArray(preferredZones) ? preferredZones.join(', ') : (preferredZones || 'Ouaga-Centre, Ouaga 2000');
+    // Create user profile ID (UUID)
+    const crypto = require('crypto');
+    const profileId = crypto.randomUUID();
+    const userEmail = cleanEmail || `${cleanPhone}@livraisonouaga.bf`;
 
-    const user = await db.user.create({
-      data: {
-        phone,
-        email: email ? email.toLowerCase().trim() : null,
-        passwordHash,
-        approvalStatus: 'PENDING',
-        isActive: false,
-        profile: {
-          create: {
-            fullName: computedFullName,
-            avatarUrl: photoUrl || idCardFileUrl || null,
-            companyName: companyName || computedFullName || null,
-            taxId: idCardNumber || taxId || null,
-            legalInfo: JSON.stringify({ idCardNumber: idCardNumber || null, idCardFileUrl: idCardFileUrl || null }),
-            city: 'Ouagadougou',
-          },
-        },
-        ...(role === 'LIVREUR'
-          ? {
-              driver: {
-                create: {
-                  verificationStatus: 'EN_ATTENTE',
-                  idCardNumber: idCardNumber || 'Fichier pièce transmis',
-                  preferredZones: formattedZones,
-                  vehicles: {
-                    create: {
-                      vehicleType: vehicleType || 'MOTO',
-                      brand: brand || 'Moto',
-                      model: model || null,
-                      licensePlate: licensePlate || null,
-                      color: color || null,
-                      photoUrl: body.vehiclePhotoUrl || photoUrl || null,
-                    },
-                  },
-                  documents: {
-                    create: [
-                      ...(idCardFileUrl ? [{ docType: 'PIECE_RECTO_VERSO_PASSPORT', fileUrl: idCardFileUrl, status: 'EN_ATTENTE' }] : []),
-                      ...(body.vehiclePhotoUrl ? [{ docType: 'PHOTO_MOTO_VEHICULE', fileUrl: body.vehiclePhotoUrl, status: 'EN_ATTENTE' }] : []),
-                    ],
-                  },
-                },
-              },
-            }
-          : {}),
-      },
-      include: {
-        profile: true,
-        driver: {
-          include: {
-            vehicles: true,
-            documents: true,
-          },
-        },
-      },
-    });
+    // 1. Insert into auth.users first to satisfy foreign key constraint
+    await db.$executeRaw`
+      INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+      VALUES (${profileId}::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated', ${userEmail}, ${passwordHash}, NOW(), NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING;
+    `;
 
-    // Notify all Admin users about new registration awaiting validation
-    let adminUsers = await db.user.findMany({ where: { role: 'ADMIN' } });
-    if (adminUsers.length === 0) {
-      const adminHash = await hashPassword('Nick2004');
-      const defaultAdmin = await db.user.create({
-        data: {
-          phone: '+226 70 00 00 00',
-          email: 'nickyshone62@gmail.com',
-          passwordHash: adminHash,
-          role: 'ADMIN',
-          isActive: true,
-          profile: { create: { fullName: 'Super Administrateur Nick', city: 'Ouagadougou' } },
-        },
-      });
-      adminUsers = [defaultAdmin];
-    }
+    // 2. Upsert into public.profiles
+    await db.$executeRaw`
+      INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, account_status, created_at, updated_at)
+      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${photoUrl || null}, ${city || 'Ouagadougou'}, ${address || null}, 'pending'::account_status, NOW(), NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        role = EXCLUDED.role,
+        full_name = EXCLUDED.full_name,
+        phone = EXCLUDED.phone,
+        email = EXCLUDED.email,
+        avatar_url = EXCLUDED.avatar_url,
+        city = EXCLUDED.city,
+        address = EXCLUDED.address,
+        account_status = EXCLUDED.account_status,
+        updated_at = NOW();
+    `;
 
-    const userRoleLabel = role === 'LIVREUR' ? 'Livreur (KYC & Documents à vérifier)' : role === 'COMMERCANT' ? 'Boutique / Commerçant' : 'Client Particulier';
-
-    await db.notification.createMany({
-      data: adminUsers.map((admin) => ({
-        userId: admin.id,
-        title: role === 'LIVREUR' ? '🛵 NOUVEAU LIVREUR À VALIDER !' : '🏪 NOUVELLE BOUTIQUE INSCRITE !',
-        message: `L'utilisateur ${computedFullName} (${userRoleLabel}, Tél: ${phone}) vient de s'inscrire et attend la validation de son compte.`,
-        type: 'SYSTEM',
-      })),
-    });
-
-    console.log(`📱 [SMS/WhatsApp envoyé à l'Admin (+226 70 00 00 00)] : ${role === 'LIVREUR' ? '🛵 NOUVEAU LIVREUR' : '🏪 NOUVELLE BOUTIQUE'} - ${computedFullName} (Tél: ${phone}) s'est inscrit et attend votre validation.`);
-
-    // Auto-create default 1st month free subscription for both Livreur & Boutique
-    if (role !== 'ADMIN') {
-      const planCode = role === 'LIVREUR' ? 'LIVREUR' : 'COMMERCANT';
-      let defaultPlan = await db.subscriptionPlan.findFirst({
-        where: { code: planCode },
-      });
-
-      if (!defaultPlan) {
-        defaultPlan = await db.subscriptionPlan.create({
-          data: {
-            code: planCode,
-            name: role === 'LIVREUR' ? 'Plan Livreur Mensuel' : 'Plan Boutique Mensuel',
-            priceFcfa: 1000,
-            durationDays: 30,
-          },
-        });
-      }
-
-      await db.subscription.create({
-        data: {
-          userId: user.id,
-          planId: defaultPlan.id,
-          status: 'ACTIVE',
-          startsAt: new Date(),
-          endsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
-      });
-    }
-
-    // Trigger Admin Email Alert with candidate details and 1-click approval link
-    await sendAdminNewUserAlertEmail({
-      userId: user.id,
-      fullName: computedFullName,
-      phone,
-      email: email || null,
+    const profile = {
+      id: profileId,
       role,
-      idCardNumber,
-      idCardFileUrl,
-      photoUrl,
-      vehicleType,
-      brand,
-      preferredZones: formattedZones,
-      paymentMethod,
+      fullName: fullName.trim(),
+      phone: cleanPhone,
+      email: cleanEmail,
+      avatarUrl: photoUrl || null,
+      city: city || 'Ouagadougou',
+      address: address || null,
+      accountStatus: 'pending',
+    };
+
+    // If driver, create driver_profile, vehicle, and driver_documents
+    let driverProfile = null;
+    if (role === 'driver') {
+      driverProfile = await db.driverProfile.create({
+        data: {
+          userId: profile.id,
+          verificationStatus: 'pending',
+          isAvailable: false,
+          vehicles: {
+            create: {
+              vehicleType: vehicleType || 'moto',
+              brand: brand || null,
+              model: model || null,
+              registrationNumber: registrationNumber || null,
+              color: color || null,
+              year: year ? parseInt(year, 10) : null,
+              isPrimary: true,
+            },
+          },
+          documents: {
+            create: [
+              ...(idCardFileUrl ? [{ documentType: 'identity_card', fileUrl: idCardFileUrl, status: 'pending' }] : []),
+              ...(driverLicenseUrl ? [{ documentType: 'driver_license', fileUrl: driverLicenseUrl, status: 'pending' }] : []),
+              ...(vehicleDocUrl ? [{ documentType: 'vehicle_document', fileUrl: vehicleDocUrl, status: 'pending' }] : []),
+              ...(photoUrl ? [{ documentType: 'photo', fileUrl: photoUrl, status: 'pending' }] : []),
+            ],
+          },
+        },
+      });
+    }
+
+    // Initiate Registration Payment (ALWAYS status 'pending' awaiting Admin verification)
+    const selectedMethod = (paymentMethod || 'orange_money').toLowerCase();
+    await initiateUserPayment({
+      userId: profile.id,
+      paymentType: role === 'driver' ? 'driver_registration' : 'client_registration',
+      amount: registrationFee,
+      paymentMethod: selectedMethod,
+      transactionReference: transactionReference || undefined,
+      notes: `Paiement d'inscription (${role === 'driver' ? 'Livreur' : 'Client'})`,
     });
 
-    return NextResponse.json({
+    // Sign session token
+    const token = signToken({
+      userId: profile.id,
+      phone: profile.phone || '',
+      email: profile.email,
+      role: profile.role,
+      fullName: profile.fullName || 'Utilisateur',
+      accountStatus: 'pending',
+      driverStatus: driverProfile ? driverProfile.verificationStatus : undefined,
+    });
+
+    const response = NextResponse.json({
       success: true,
-      pendingApproval: true,
-      approvalStatus: 'PENDING',
-      message: "Votre compte est en attente d'approbation par l'administrateur.",
+      accountStatus: 'pending',
+      message: 'Compte créé avec succès. Votre paiement est en attente de vérification par un administrateur.',
       user: {
-        id: user.id,
-        phone: user.phone,
-        role: user.role,
-        fullName: user.profile?.fullName || computedFullName,
-        approvalStatus: 'PENDING',
-        isActive: false,
+        id: profile.id,
+        fullName: profile.fullName,
+        phone: profile.phone,
+        email: profile.email,
+        role: profile.role,
+        accountStatus: 'pending',
       },
     });
+
+    response.cookies.set(TOKEN_COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60,
+    });
+
+    return response;
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('Erreur lors de l\'inscription:', error);
     return NextResponse.json({ error: error.message || 'Erreur lors de l\'inscription' }, { status: 500 });
   }
 }

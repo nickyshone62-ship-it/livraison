@@ -2,44 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Truck, ShieldCheck, User, LogOut, Package, Store, Building2, LayoutDashboard, CheckCircle2 } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+  Truck,
+  LogOut,
+  User,
+  PlusCircle,
+  Package,
+  MessageSquare,
+  Bell,
+  CreditCard,
+  HelpCircle,
+  Home,
+  FileText,
+  ShieldAlert,
+  ChevronDown,
+  Menu,
+  X,
+  Activity,
+  Compass
+} from 'lucide-react';
+import { AdminSecretModal } from './AdminSecretModal';
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
-  // Secret Admin Code Modal state for Navbar Logo Click
   const [showAdminSecretModal, setShowAdminSecretModal] = useState(false);
-  const [adminCodeInput, setAdminCodeInput] = useState('');
-  const [adminSecretError, setAdminSecretError] = useState('');
-  const [adminSecretLoading, setAdminSecretLoading] = useState(false);
-
-  const handleAdminSecretSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdminSecretError('');
-    setAdminSecretLoading(false);
-    try {
-      const res = await fetch('/api/auth/admin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: adminCodeInput.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setShowAdminSecretModal(false);
-        router.push('/admin');
-        router.refresh();
-      } else {
-        setAdminSecretError(data.error || 'Code secret administrateur invalide.');
-      }
-    } catch (err) {
-      setAdminSecretError('Erreur de connexion réseau');
-    } finally {
-      setAdminSecretLoading(false);
-    }
-  };
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [driverAvailable, setDriverAvailable] = useState<boolean>(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const fetchUser = async () => {
     try {
@@ -47,6 +40,9 @@ export function Navbar() {
       if (res.ok) {
         const data = await res.json();
         setCurrentUser(data.user);
+        if (data.user?.driverProfile) {
+          setDriverAvailable(data.user.driverProfile.isAvailable ?? true);
+        }
       } else {
         setCurrentUser(null);
       }
@@ -59,7 +55,7 @@ export function Navbar() {
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -68,185 +64,291 @@ export function Navbar() {
     router.refresh();
   };
 
-  const handleQuickLogin = async (phone: string) => {
-    setLoading(true);
+  const toggleDriverAvailability = async () => {
+    if (updatingStatus) return;
+    setUpdatingStatus(true);
+    const newStatus = !driverAvailable;
+    setDriverAvailable(newStatus);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
+      await fetch('/api/auth/me', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, password: 'password123' }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        await fetchUser();
-        if (data.user.role === 'ADMIN') router.push('/admin');
-        else if (data.user.role === 'LIVREUR') router.push('/livreur');
-        else router.push('/client');
-      } else {
-        alert(data.error || 'Erreur de connexion rapide');
-      }
+        body: JSON.stringify({ isAvailable: newStatus })
+      }).catch(() => {});
     } catch (e) {
-      alert('Erreur réseau');
+      // Ignore fallback
     } finally {
-      setLoading(false);
+      setUpdatingStatus(false);
     }
   };
+
+  const role = (currentUser?.role || '').toLowerCase();
+  const isAdmin = role === 'admin';
+  const isDriver = role === 'driver' || role === 'livreur';
+  const isClient = role === 'client' || role === 'particulier' || role === 'commercant' || role === 'entreprise';
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b-2 border-teal-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          
-          {/* Logo with Secret Admin Trigger */}
-          <div 
-            onClick={() => setShowAdminSecretModal(true)} 
-            className="flex items-center gap-2 group cursor-pointer"
-            title="👑 Cliquer pour la Connexion Administrateur Secret"
-          >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E5D9] via-[#00B4D8] to-[#009688] flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 transition-transform">
-              <Truck className="w-6 h-6" />
+    <>
+      <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 text-slate-100 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div 
+                onClick={() => setShowAdminSecretModal(true)} 
+                className="flex items-center gap-2.5 group cursor-pointer"
+                title="👑 Cliquer sur le logo pour saisir le Code Secret Administrateur"
+              >
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white font-bold shadow-md group-hover:scale-105 transition-transform">
+                  <Truck className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg tracking-tight text-white">
+                    Livraison<span className="text-amber-500">Ouaga</span>
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-amber-500/20">
+                    BF 🇧🇫
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="font-black text-xl tracking-tight text-[#004D40]">Livraison<span className="text-[#009688]">Ouaga</span></span>
-              <span className="hidden sm:inline-block ml-2 text-xs font-black px-2 py-0.5 rounded-full bg-[#E0F2F1] text-[#004D40] border border-teal-300">
-                Burkina Faso 🇧🇫
-              </span>
-            </div>
-          </div>
 
-          {/* Navigation Links */}
-          <div className="flex items-center gap-3">
-            {currentUser ? (
-              <div className="flex items-center gap-3">
-                {currentUser.role === 'ADMIN' ? (
-                  <div className="flex items-center gap-1.5 bg-[#E0F7F6] p-1 rounded-xl border border-teal-200 shadow-sm">
-                    <span className="text-[10px] uppercase font-black px-2 text-[#004D40] hidden lg:inline-block">👑 Vue Admin :</span>
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex items-center gap-4">
+              
+              {/* UNAUTHENTICATED / PUBLIC NAV */}
+              {!currentUser && (
+                <div className="flex items-center gap-6 text-sm font-medium text-slate-300">
+                  <Link href="/" className={`hover:text-amber-400 transition-colors ${pathname === '/' ? 'text-amber-400 font-semibold' : ''}`}>
+                    Accueil
+                  </Link>
+                  <a href="/#comment-ca-marche" className="hover:text-amber-400 transition-colors">
+                    Comment ça marche
+                  </a>
+                  <a href="/#entreprise" className="hover:text-amber-400 transition-colors">
+                    Entreprise
+                  </a>
+                  <a href="/#aide" className="hover:text-amber-400 transition-colors">
+                    Aide
+                  </a>
+                  <div className="flex items-center gap-2 ml-4">
                     <Link
-                      href="/client"
-                      className="px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 bg-white hover:bg-teal-50 text-[#004D40] border border-teal-100 shadow-xs"
+                      href="/connexion"
+                      className="px-4 py-2 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition-colors border border-slate-700"
                     >
-                      Client/Boutique
+                      Connexion
                     </Link>
                     <Link
-                      href="/livreur"
-                      className="px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 bg-white hover:bg-teal-50 text-[#004D40] border border-teal-100 shadow-xs"
+                      href="/inscription"
+                      className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 rounded-lg shadow-sm transition-all"
                     >
-                      Livreur
+                      Demander une livraison
                     </Link>
                     <Link
-                      href="/admin"
-                      className="px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 bg-[#004D40] text-white border border-teal-400 shadow-xs"
+                      href="/inscription?role=LIVREUR"
+                      className="px-3.5 py-2 text-xs font-bold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-all border border-slate-700"
                     >
-                      Admin Central
+                      Devenir livreur
                     </Link>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                      👤 {currentUser.profile?.fullName || currentUser.phone} ({currentUser.role})
-                    </span>
-                    <Link
-                      href={currentUser.role === 'LIVREUR' ? '/livreur' : '/client'}
-                      className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-black hover:bg-emerald-700 transition-colors shadow-xs"
-                    >
-                      Mon Espace
-                    </Link>
-                  </div>
-                )}
+                </div>
+              )}
 
+              {/* CLIENT SPACE NAVIGATION */}
+              {currentUser && isClient && !isAdmin && (
+                <div className="flex items-center gap-3 text-xs font-medium text-slate-300">
+                  <Link href="/client" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname === '/client' ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Accueil
+                  </Link>
+                  <Link href="/client/livraison/nouvelle" className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition-all flex items-center gap-1">
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Nouvelle livraison</span>
+                  </Link>
+                  <Link href="/client/livraisons" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/livraisons') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Mes livraisons
+                  </Link>
+                  <Link href="/client/messages" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/messages') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Messages
+                  </Link>
+                  <Link href="/client/abonnement" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/abonnement') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Abonnement
+                  </Link>
+                  <Link href="/client/profil" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/profil') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Profil
+                  </Link>
+                </div>
+              )}
+
+              {/* DRIVER SPACE NAVIGATION */}
+              {currentUser && isDriver && !isAdmin && (
+                <div className="flex items-center gap-3 text-xs font-medium text-slate-300">
+                  
+                  {/* Availability Toggle Switch */}
+                  <button
+                    onClick={toggleDriverAvailability}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+                      driverAvailable 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                        : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                    }`}
+                    title="Cliquer pour changer votre disponibilité en direct"
+                  >
+                    <span className={`w-2 h-2 rounded-full ${driverAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'}`}></span>
+                    <span>{driverAvailable ? '🟢 Disponible' : '🔴 Occupé'}</span>
+                  </button>
+
+                  <Link href="/driver" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname === '/driver' || pathname === '/livreur' ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Tableau de bord
+                  </Link>
+                  <Link href="/driver/demandes" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/demandes') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Demandes
+                  </Link>
+                  <Link href="/driver/propositions" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/propositions') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Mes propositions
+                  </Link>
+                  <Link href="/driver/vehicule" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/vehicule') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Véhicule
+                  </Link>
+                  <Link href="/driver/abonnement" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/abonnement') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Abonnement
+                  </Link>
+                  <Link href="/driver/profil" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/profil') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Profil
+                  </Link>
+                </div>
+              )}
+
+              {/* ADMIN SPACE NAVIGATION */}
+              {currentUser && isAdmin && (
+                <div className="flex items-center gap-3 text-xs font-semibold">
+                  <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-lg flex items-center gap-1.5">
+                    👑 Administration Central
+                  </span>
+                  <Link
+                    href="/admin"
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-bold transition-all shadow-sm"
+                  >
+                    Tableau de bord Admin
+                  </Link>
+                </div>
+              )}
+
+              {/* LOGGED IN USER ACTIONS */}
+              {currentUser && (
+                <div className="flex items-center gap-3 border-l border-slate-800 pl-4">
+                  <div className="text-right hidden xl:block">
+                    <div className="text-xs font-semibold text-slate-200">{currentUser.fullName || currentUser.phone}</div>
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wide">{currentUser.role}</div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+                    title="Déconnexion"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center gap-2">
+              {currentUser && isDriver && (
                 <button
-                  onClick={handleLogout}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                  title="Déconnexion"
+                  onClick={toggleDriverAvailability}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5 ${
+                    driverAvailable ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}
                 >
-                  <LogOut className="w-5 h-5" />
+                  <span className={`w-2 h-2 rounded-full ${driverAvailable ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+                  <span>{driverAvailable ? 'Disponible' : 'Occupé'}</span>
+                </button>
+              )}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Mobile Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-900 border-b border-slate-800 px-4 pt-3 pb-6 space-y-3">
+            {!currentUser && (
+              <div className="flex flex-col gap-2 pt-1 text-sm font-medium">
+                <Link href="/" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Accueil</Link>
+                <a href="/#comment-ca-marche" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Comment ça marche</a>
+                <a href="/#entreprise" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Entreprise</a>
+                <a href="/#aide" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Aide</a>
+                <div className="flex flex-col gap-2 pt-3 border-t border-slate-800">
+                  <Link href="/connexion" onClick={() => setMobileMenuOpen(false)} className="w-full py-2 text-center text-xs font-semibold text-slate-200 border border-slate-700 rounded-lg">Connexion</Link>
+                  <Link href="/inscription" onClick={() => setMobileMenuOpen(false)} className="w-full py-2 text-center text-xs font-bold text-white bg-amber-500 rounded-lg">Demander une livraison</Link>
+                  <Link href="/inscription?role=LIVREUR" onClick={() => setMobileMenuOpen(false)} className="w-full py-2 text-center text-xs font-bold text-slate-200 bg-slate-800 border border-slate-700 rounded-lg">Devenir livreur</Link>
+                </div>
+              </div>
+            )}
+
+            {currentUser && isClient && (
+              <div className="flex flex-col gap-1 text-sm font-medium">
+                <div className="px-3 py-2 text-xs font-bold text-amber-400 uppercase tracking-wide border-b border-slate-800">Espace Client</div>
+                <Link href="/client" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Accueil</Link>
+                <Link href="/client/livraison/nouvelle" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-amber-400 font-bold hover:bg-slate-800 rounded-lg flex items-center gap-2">
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Nouvelle livraison</span>
+                </Link>
+                <Link href="/client/livraisons" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Mes livraisons</Link>
+                <Link href="/client/messages" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Messages</Link>
+                <Link href="/client/abonnement" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Abonnement</Link>
+                <Link href="/client/profil" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Profil</Link>
+                <button onClick={() => { setMobileMenuOpen(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-slate-800 rounded-lg flex items-center gap-2 mt-2 border-t border-slate-800">
+                  <LogOut className="w-4 h-4" />
+                  <span>Déconnexion</span>
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/auth/login"
-                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  Connexion
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.02]"
-                >
-                  Créer un compte
-                </Link>
+            )}
+
+            {currentUser && isDriver && (
+              <div className="flex flex-col gap-1 text-sm font-medium">
+                <div className="px-3 py-2 text-xs font-bold text-amber-400 uppercase tracking-wide border-b border-slate-800">Espace Livreur</div>
+                <Link href="/driver" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Tableau de bord</Link>
+                <Link href="/driver/demandes" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Demandes disponibles</Link>
+                <Link href="/driver/propositions" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Mes propositions</Link>
+                <Link href="/driver/vehicule" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Véhicule</Link>
+                <Link href="/driver/abonnement" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Abonnement</Link>
+                <Link href="/driver/profil" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg">Profil</Link>
+                <button onClick={() => { setMobileMenuOpen(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-slate-800 rounded-lg flex items-center gap-2 mt-2 border-t border-slate-800">
+                  <LogOut className="w-4 h-4" />
+                  <span>Déconnexion</span>
+                </button>
+              </div>
+            )}
+
+            {currentUser && isAdmin && (
+              <div className="flex flex-col gap-1 text-sm font-medium">
+                <div className="px-3 py-2 text-xs font-bold text-amber-400 uppercase tracking-wide border-b border-slate-800">Administration</div>
+                <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-amber-400 font-bold hover:bg-slate-800 rounded-lg">Tableau de bord Admin</Link>
+                <button onClick={() => { setMobileMenuOpen(false); handleLogout(); }} className="w-full text-left px-3 py-2 text-rose-400 hover:bg-slate-800 rounded-lg flex items-center gap-2 mt-2 border-t border-slate-800">
+                  <LogOut className="w-4 h-4" />
+                  <span>Déconnexion</span>
+                </button>
               </div>
             )}
           </div>
-        </div>
-      </div>
+        )}
+      </nav>
 
-      {/* SECRET ADMIN CODE MODAL IN NAVBAR */}
-      {showAdminSecretModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-4 border-amber-400 space-y-6 text-center animate-fadeIn relative">
-            <button
-              onClick={() => setShowAdminSecretModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-black text-xl cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <div className="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 flex items-center justify-center text-slate-950 shadow-xl border-4 border-white">
-              <ShieldCheck className="w-10 h-10 text-slate-950" />
-            </div>
-
-            <div className="space-y-2">
-              <span className="px-3 py-1 bg-amber-100 text-amber-900 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-300">
-                👑 Accès Secret Super-Administrateur
-              </span>
-              <h3 className="text-xl font-black text-slate-900">
-                Connexion Administrateur
-              </h3>
-              <p className="text-xs text-slate-500 font-medium">
-                Saisissez votre code secret confidentiel pour accéder directement au panneau d'administration.
-              </p>
-            </div>
-
-            {adminSecretError && (
-              <div className="p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200">
-                {adminSecretError}
-              </div>
-            )}
-
-            <form onSubmit={handleAdminSecretSubmit} className="space-y-4">
-              <div>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  value={adminCodeInput}
-                  onChange={(e) => setAdminCodeInput(e.target.value)}
-                  placeholder="Code Secret..."
-                  className="w-full px-4 py-3 text-center text-lg font-bold font-mono border-2 border-slate-300 rounded-2xl outline-none focus:border-amber-500 transition-all bg-slate-50 text-slate-900"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAdminSecretModal(false)}
-                  className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={adminSecretLoading}
-                  className="w-2/3 py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl cursor-pointer uppercase tracking-wider border border-amber-300"
-                >
-                  {adminSecretLoading ? 'Connexion...' : '🚀 Valider & Accéder'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </nav>
+      {/* Admin secret trigger modal */}
+      <AdminSecretModal
+        isOpen={showAdminSecretModal}
+        onClose={() => setShowAdminSecretModal(false)}
+      />
+    </>
   );
 }
+

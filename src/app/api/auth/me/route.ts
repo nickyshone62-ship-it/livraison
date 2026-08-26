@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
+const isUUID = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 export async function GET() {
   try {
     const session = await getAuthSession();
@@ -9,92 +13,103 @@ export async function GET() {
       return NextResponse.json({ user: null }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: String(session.userId) },
-      include: {
-        profile: true,
-        driver: {
-          include: {
-            vehicles: true,
-            documents: true,
-          },
-        },
-        subscriptions: {
-          include: { plan: true },
-          where: { status: 'ACTIVE' },
-          take: 1,
-        },
-      },
-    });
+    let profile: any = null;
 
-    if (!user) {
-      if (session.role === 'ADMIN') {
+    if (isUUID(session.userId)) {
+      try {
+        const rows: any[] = await db.$queryRaw`
+          SELECT 
+            p.id, 
+            p.role::text as role, 
+            p.full_name as "fullName", 
+            p.phone, 
+            p.email, 
+            p.avatar_url as "avatarUrl", 
+            p.city, 
+            p.address, 
+            p.account_status::text as "accountStatus", 
+            p.created_at as "createdAt", 
+            p.updated_at as "updatedAt",
+            dp.id as "driverProfileId",
+            dp.verification_status::text as "driverVerificationStatus",
+            dp.is_available as "driverIsAvailable"
+          FROM public.profiles p
+          LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
+          WHERE p.id = ${session.userId}::uuid
+          LIMIT 1
+        `;
+        if (rows && rows.length > 0) {
+          const r = rows[0];
+          profile = {
+            id: r.id,
+            role: r.role,
+            fullName: r.fullName,
+            phone: r.phone,
+            email: r.email,
+            avatarUrl: r.avatarUrl,
+            city: r.city,
+            address: r.address,
+            accountStatus: r.accountStatus,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt,
+            driverProfile: r.driverProfileId ? {
+              id: r.driverProfileId,
+              verificationStatus: r.driverVerificationStatus,
+              isAvailable: r.driverIsAvailable,
+            } : null,
+            subscriptions: [],
+            payments: [],
+          };
+        }
+      } catch (e) {
+        console.warn('Profile findUnique failed:', e);
+      }
+    }
+
+    if (!profile) {
+      if ((session.role || '').toLowerCase() === 'admin') {
         return NextResponse.json({
           user: {
-            id: session.userId || 'admin-root',
+            id: session.userId || '3e60767a-fac7-4c5a-bca3-36bbba9b81d5',
             phone: session.phone || '+226 06 88 73 30',
-            email: 'admin@livraisonouaga.bf',
-            role: 'ADMIN',
-            isActive: true,
-            profile: {
-              fullName: session.fullName || 'Super Administrateur Nick',
-              city: 'Ouagadougou',
-            },
-            driver: null,
+            email: session.email || 'nickyshone62@gmail.com',
+            role: 'admin',
+            accountStatus: 'active',
+            fullName: session.fullName || 'Super Administrateur Nick',
+            driverProfile: null,
             activeSubscription: null,
             isSubscriptionActive: true,
-            daysRemaining: 9999,
-            pendingPayment: null,
           },
         });
       }
       return NextResponse.json({ user: null }, { status: 404 });
     }
 
-    if (user.role !== 'ADMIN' && (user.approvalStatus !== 'APPROVED' || !user.isActive)) {
-      return NextResponse.json({
-        user: null,
-        error: user.approvalStatus === 'REJECTED'
-          ? "Votre inscription a été refusée."
-          : "Votre compte est en attente d'approbation par l'administrateur.",
-        approvalStatus: user.approvalStatus,
-        isActive: user.isActive,
-      }, { status: 403 });
-    }
-
-    const latestSub = user.subscriptions[0] || null;
+    const latestSub = profile.subscriptions[0] || null;
     const now = new Date();
-    const isSubActive = latestSub ? new Date(latestSub.endsAt) > now : false;
-    const daysRemaining = latestSub ? Math.max(0, Math.ceil((new Date(latestSub.endsAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0;
-
-    const pendingPayment = await db.payment.findFirst({
-      where: {
-        userId: user.id,
-        type: 'SUBSCRIPTION',
-        status: 'PENDING',
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const isSubActive = latestSub && latestSub.status === 'active' && latestSub.expiresAt ? new Date(latestSub.expiresAt) > now : true;
 
     const res = NextResponse.json({
       user: {
-        id: user.id,
-        phone: user.phone,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        approvalStatus: user.approvalStatus,
-        profile: user.profile,
-        driver: user.driver,
+        id: profile.id,
+        phone: profile.phone,
+        email: profile.email,
+        role: profile.role,
+        fullName: profile.fullName,
+        city: profile.city,
+        address: profile.address,
+        avatarUrl: profile.avatarUrl,
+        accountStatus: profile.accountStatus,
+        driverProfile: profile.driverProfile,
         activeSubscription: latestSub,
         isSubscriptionActive: isSubActive,
-        daysRemaining: daysRemaining,
-        pendingPayment: pendingPayment || null,
+        payments: profile.payments,
       },
     });
     res.headers.set('Cache-Control', 'private, max-age=3, stale-while-revalidate=5');
     return res;
   } catch (error: any) {
+    console.error('Erreur me route:', error);
     return NextResponse.json({ error: 'Erreur lors de la récupération du profil' }, { status: 500 });
   }
 }

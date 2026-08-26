@@ -12,35 +12,30 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const deliveryRequest = await db.deliveryRequest.findUnique({
       where: { id: params.id },
       include: {
-        customer: { include: { profile: true } },
-        proposals: {
+        client: true,
+        offers: {
           include: {
             driver: {
               include: {
                 profile: true,
-                driver: { include: { vehicles: true, documents: true } },
+                vehicles: true,
               },
             },
           },
-          orderBy: { proposedPriceFcfa: 'asc' },
+          orderBy: { proposedPrice: 'asc' },
         },
-        delivery: {
+        assignments: {
           include: {
             driver: {
               include: {
                 profile: true,
-                driver: { include: { vehicles: true } },
+                vehicles: true,
               },
             },
-            codes: true,
-            statusHistory: {
-              include: { changedByUser: { include: { profile: true } } },
-              orderBy: { createdAt: 'asc' },
-            },
-            reviews: { include: { reviewer: { include: { profile: true } } } },
-            disputes: true,
           },
         },
+        statusHistory: true,
+        reviews: true,
       },
     });
 

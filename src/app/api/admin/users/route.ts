@@ -2,36 +2,63 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs.' }, { status: 403 });
     }
 
-    const users = await db.user.findMany({
-      where: {
-        role: { not: 'ADMIN' },
-      },
-      include: {
-        profile: true,
-        driver: {
-          include: {
-            vehicles: true,
-            documents: true,
-          },
-        },
-        subscriptions: {
-          orderBy: { endsAt: 'desc' },
-          take: 1,
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const { searchParams } = new URL(req.url);
+    const roleFilter = searchParams.get('role'); // 'client', 'driver', 'admin'
+
+    let users: any[] = [];
+    if (roleFilter) {
+      users = await db.$queryRaw`
+        SELECT 
+          p.id, 
+          p.role::text as role, 
+          p.full_name as "fullName", 
+          p.phone, 
+          p.email, 
+          p.avatar_url as "avatarUrl", 
+          p.city, 
+          p.address, 
+          p.account_status::text as "accountStatus", 
+          p.created_at as "createdAt", 
+          p.updated_at as "updatedAt",
+          dp.id as "driverProfileId",
+          dp.verification_status::text as "driverVerificationStatus"
+        FROM public.profiles p
+        LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
+        WHERE p.role::text = ${roleFilter}
+        ORDER BY p.created_at DESC
+      `;
+    } else {
+      users = await db.$queryRaw`
+        SELECT 
+          p.id, 
+          p.role::text as role, 
+          p.full_name as "fullName", 
+          p.phone, 
+          p.email, 
+          p.avatar_url as "avatarUrl", 
+          p.city, 
+          p.address, 
+          p.account_status::text as "accountStatus", 
+          p.created_at as "createdAt", 
+          p.updated_at as "updatedAt",
+          dp.id as "driverProfileId",
+          dp.verification_status::text as "driverVerificationStatus"
+        FROM public.profiles p
+        LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
+        ORDER BY p.created_at DESC
+      `;
+    }
 
     return NextResponse.json({ users });
   } catch (error: any) {
-    console.error('Error fetching admin users:', error);
+    console.error('Erreur admin users GET:', error);
     return NextResponse.json({ error: 'Erreur lors du chargement des utilisateurs' }, { status: 500 });
   }
 }
@@ -39,86 +66,51 @@ export async function GET() {
 export async function PATCH(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs.' }, { status: 403 });
     }
 
-    const { userId, action, reason } = await req.json(); // action: 'APPROVE' | 'REJECT' | 'TOGGLE_STATUS'
-
+    const { userId, action, reason } = await req.json(); // action: 'approve', 'reject', 'suspend', 'reactivate'
     if (!userId || !action) {
-      return NextResponse.json({ error: 'ID utilisateur et action requis' }, { status: 400 });
+      return NextResponse.json({ error: 'L\'utilisateur et l\'action sont requis' }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      include: { driver: true, profile: true },
-    });
+    const profiles: any[] = await db.$queryRaw`
+      SELECT id, role::text as role, account_status::text as "accountStatus"
+      FROM public.profiles
+      WHERE id = ${userId}::uuid
+      LIMIT 1
+    `;
 
-    if (!user) {
+    if (!profiles || profiles.length === 0) {
       return NextResponse.json({ error: 'Utilisateur introuvable' }, { status: 404 });
     }
 
-    let newApprovalStatus = user.approvalStatus;
-    let newIsActive = user.isActive;
-    let responseMessage = '';
+    const profile = profiles[0];
+    let newAccountStatus = profile.accountStatus;
 
-    if (action === 'APPROVE') {
-      newApprovalStatus = 'APPROVED';
-      newIsActive = true;
-      responseMessage = 'Utilisateur approuvé avec succès.';
-    } else if (action === 'REJECT') {
-      newApprovalStatus = 'REJECTED';
-      newIsActive = false;
-      responseMessage = 'Utilisateur refusé.';
-    } else {
-      newIsActive = !user.isActive;
-      newApprovalStatus = newIsActive ? 'APPROVED' : user.approvalStatus;
-      responseMessage = newIsActive ? 'Utilisateur activé avec succès.' : 'Utilisateur désactivé.';
+    if (action === 'approve') {
+      newAccountStatus = 'active';
+    } else if (action === 'reject') {
+      newAccountStatus = 'rejected';
+    } else if (action === 'suspend') {
+      newAccountStatus = 'suspended';
+    } else if (action === 'reactivate') {
+      newAccountStatus = 'active';
     }
 
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: {
-        approvalStatus: newApprovalStatus,
-        isActive: newIsActive,
-      },
-      include: { profile: true },
+    await db.$executeRaw`
+      UPDATE public.profiles
+      SET account_status = ${newAccountStatus}::account_status, updated_at = NOW()
+      WHERE id = ${userId}::uuid
+    `;
+
+    return NextResponse.json({
+      success: true,
+      message: `Action ${action} effectuée avec succès sur l'utilisateur.`,
     });
-
-    // If user is a driver, update driver verification status
-    if (user.driver) {
-      await db.driver.update({
-        where: { userId },
-        data: { verificationStatus: newIsActive ? 'VERIFIE' : 'REJETE' },
-      });
-    }
-
-    // Send notification to user
-    await db.notification.create({
-      data: {
-        userId: user.id,
-        title: newIsActive ? '🎉 Compte Validé par l\'Administrateur !' : '⚠️ Statut de votre compte mis à jour',
-        message: newIsActive
-          ? 'Votre inscription a été vérifiée et approuvée par l\'administrateur. Vous avez désormais un accès complet à la plateforme LivraisonOuaga !'
-          : `Votre compte a été refusé ou désactivé par l'administrateur. Motif : ${reason || 'Vérification de dossier'}`,
-        type: 'SYSTEM',
-      },
-    });
-
-    // Audit Log
-    await db.auditLog.create({
-      data: {
-        userId: String(session.userId),
-        action: `USER_REGISTRATION_${newApprovalStatus}`,
-        targetEntity: 'User',
-        targetId: userId,
-        detailsJson: JSON.stringify({ approvalStatus: newApprovalStatus, newIsActive, phone: user.phone, role: user.role }),
-      },
-    });
-
-    return NextResponse.json({ success: true, message: responseMessage, user: updatedUser });
   } catch (error: any) {
-    console.error('Error updating user registration approval:', error);
-    return NextResponse.json({ error: 'Erreur lors de la mise à jour de l\'utilisateur' }, { status: 500 });
+    console.error('Erreur admin users PATCH:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors de la modification' }, { status: 500 });
   }
 }

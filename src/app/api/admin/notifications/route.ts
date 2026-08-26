@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
@@ -15,7 +15,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       take: 50,
       include: {
-        user: { include: { profile: true } },
+        user: true,
       },
     });
 

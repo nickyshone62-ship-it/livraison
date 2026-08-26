@@ -71,7 +71,14 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
   3. Envoi asynchrone non-bloquant avec timeout `AbortController` (2,5s max) pour les e-mails d'alerte.
   4. Création du fichier `vercel.json` configurant la région d'exécution des Serverless Functions à `fra1` (Francfort) au plus près de la base Supabase pour éliminer la latence réseau intercontinentale.
 - [x] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et valider la compilation globale Next.js (55/55 pages générées avec succès).
+- [x] **Refonte Complète Visual & UX des Interfaces (Client / Livreur / Admin)** : 
+  1. *Global & Navbar* : Thème sobre neutre (Slate-50 / Slate-900), suppression des 3 gros boutons permanents sur les pages clients/livreurs. Barre de navigation contextuelle selon le rôle de l'utilisateur. Bannière "Mode Administrateur" conservée pour naviguer sans confusion.
+  2. *Page d'accueil (`/`)* : Header épuré, héro sober "Votre livraison, simplement.", visualiseur de pipeline (`Point A 📍 -> Livreur 🚚 -> Point B 🏁`), sans grands blocs vert rutilants.
+  3. *Espace Client (`/client`, `/client/livraison/nouvelle`, `/client/livraison/[id]`)* : Formulaire guidé en 6 étapes (Point A = Lien #1 obligatoirement, Point B = Lien #2 obligatoirement). Comparateur d'offres "Choisissez votre livreur" et vue de suivi en transit avec carte GPS interactive temps réel.
+  4. *Espace Livreur (`/driver`, `/driver/demandes`, `/driver/livraison/[id]`)* : Interrupteur temps réel (🟢 Disponible / 🔴 Occupé), alerte de verrouillage si une livraison est déjà en cours, modale de tarif (Prix, Durée, Note) et parcours d'exécution en 5 étapes claires.
+  5. *Espace Administrateur (`/admin`)* : Centre de contrôle opérationnel avec sub-barre 11 sections, 4 KPIs principaux, carte interactive temps réel et 2 files d'attente de validation (Paiements & Dossiers KYC Livreurs).
 - [ ] Lancer les tests des parcours utilisateurs de bout en bout en ligne / sur le serveur local.
+
 
 ---
 

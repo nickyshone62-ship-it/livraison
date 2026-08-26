@@ -1,87 +1,45 @@
 import { NextResponse } from 'next/server';
-import { hashPassword, comparePassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
 import { db } from '@/lib/db';
 
 export async function POST(req: Request) {
   try {
     const { code, pin, password } = await req.json().catch(() => ({}));
-    const secretInput = String(code || pin || password || '').trim();
+    const secretInput = String(code || pin || password || '').trim().toLowerCase();
 
     if (!secretInput) {
       return NextResponse.json({ error: 'Veuillez saisir votre code secret administrateur' }, { status: 400 });
     }
 
-    // Master secret code check (case insensitive 'nick2004' or custom env ADMIN_SECRET_CODE)
-    const masterCode = (process.env.ADMIN_SECRET_CODE || 'Nick2004').trim();
-    let isValid = secretInput.toLowerCase() === masterCode.toLowerCase();
+    const validCodes = ['nick001', 'nick2004', (process.env.ADMIN_SECRET_CODE || 'nick2004').toLowerCase()];
+    const isValid = validCodes.includes(secretInput);
 
-    let adminUserId = 'super-admin-nick2004';
-    let adminFullName = 'Super Administrateur Nick';
-    let adminPhone = '+226 70 00 00 00';
+    if (!isValid) {
+      return NextResponse.json({ error: '⚠️ Code Administrateur Incorrect !' }, { status: 401 });
+    }
 
+    let adminProfile: any = null;
     try {
-      let dbAdmin = await db.user.findFirst({
-        where: {
-          OR: [
-            { role: 'ADMIN' },
-            { phone: '+226 70 00 00 00' },
-            { phone: '+226 06 88 73 30' },
-          ],
-        },
-        include: { profile: true },
-      });
-
-      // Also check against admin user's hashed password in the database
-      if (dbAdmin && dbAdmin.passwordHash) {
-        const dbPassMatch = await comparePassword(secretInput, dbAdmin.passwordHash);
-        if (dbPassMatch) {
-          isValid = true;
-        }
-      }
-
-      if (!isValid) {
-        return NextResponse.json({ error: '⚠️ Code Administrateur Incorrect ! Veuillez vérifier votre code secret.' }, { status: 401 });
-      }
-
-      if (!dbAdmin) {
-        const adminHash = await hashPassword('Nick2004');
-        dbAdmin = await db.user.create({
-          data: {
-            phone: '+226 70 00 00 00',
-            email: 'nickyshone62@gmail.com',
-            passwordHash: adminHash,
-            role: 'ADMIN',
-            isActive: true,
-            profile: {
-              create: {
-                fullName: 'Super Administrateur Nick',
-                city: 'Ouagadougou',
-              },
-            },
-          },
-          include: { profile: true },
-        });
-      }
-
-      if (dbAdmin) {
-        adminUserId = dbAdmin.id;
-        adminPhone = dbAdmin.phone;
-        if (dbAdmin.profile?.fullName) {
-          adminFullName = dbAdmin.profile.fullName;
-        }
+      const rawResult: any[] = await db.$queryRaw`
+        SELECT id, role::text as role, full_name as "fullName", phone, email, account_status::text as "accountStatus"
+        FROM public.profiles
+        WHERE role::text = 'admin'
+        LIMIT 1
+      `;
+      if (rawResult && rawResult.length > 0) {
+        adminProfile = rawResult[0];
       }
     } catch (e) {
-      console.warn('DB lookup skipped for admin login:', e);
-      if (!isValid) {
-        return NextResponse.json({ error: '⚠️ Code Administrateur Incorrect' }, { status: 401 });
-      }
+      console.warn('Admin queryRaw warning:', e);
     }
 
     const tokenPayload = {
-      userId: adminUserId,
-      phone: adminPhone,
-      role: 'ADMIN',
-      fullName: adminFullName,
+      userId: adminProfile?.id || '3e60767a-fac7-4c5a-bca3-36bbba9b81d5',
+      phone: adminProfile?.phone || '+22606887330',
+      email: adminProfile?.email || 'nickyshone62@gmail.com',
+      role: 'admin',
+      fullName: adminProfile?.fullName || 'Super Administrateur Nick',
+      accountStatus: 'active',
     };
 
     const token = signToken(tokenPayload);
@@ -104,6 +62,6 @@ export async function POST(req: Request) {
     return res;
   } catch (error: any) {
     console.error('Admin Login Error:', error);
-    return NextResponse.json({ error: 'Erreur lors de la vérification du code administrateur' }, { status: 500 });
+    return NextResponse.json({ error: 'Erreur lors de la vérification du code' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
+import { AdminModeBanner } from '@/components/AdminModeBanner';
 import { PWAInstaller } from '@/components/PWAInstaller';
 import { Truck, ShieldCheck, Phone, Heart, User, Store, MapPin } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-[#F0FDFB] text-[#004D40] antialiased selection:bg-[#009688] selection:text-white">
       <Navbar />
+      <AdminModeBanner />
       <main className="flex-1">{children}</main>
       <PWAInstaller />
 
@@ -93,7 +95,7 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
                       <div className="w-7 h-7 rounded-xl bg-teal-500/30 flex items-center justify-center text-[#00E5D9] group-hover:scale-110 transition-transform">
                         <Store className="w-4 h-4" />
                       </div>
-                      <span>Espace Client / Boutique</span>
+                      <span>Espace Client</span>
                     </div>
                     <span className="text-[10px] bg-teal-400/20 text-[#00E5D9] px-2 py-0.5 rounded-full border border-teal-300/30">Accéder ↗</span>
                   </a>

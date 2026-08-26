@@ -5,7 +5,7 @@ import { getAuthSession } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
@@ -17,23 +17,18 @@ export async function GET() {
       totalDeliveries,
       completedDeliveries,
       activeDeliveries,
-      openDisputes,
-      totalAgreedPrice,
+      openReports,
       activeSubscriptionsCount,
     ] = await Promise.all([
-      db.user.count(),
-      db.driver.count(),
-      db.driver.count({ where: { verificationStatus: 'VERIFIE' } }),
-      db.driver.count({ where: { verificationStatus: 'EN_VERIFICATION' } }),
+      db.profile.count(),
+      db.driverProfile.count(),
+      db.driverProfile.count({ where: { verificationStatus: 'approved' } }),
+      db.driverProfile.count({ where: { verificationStatus: 'pending' } }),
       db.deliveryRequest.count(),
-      db.deliveryRequest.count({ where: { status: 'LIVRE' } }),
-      db.deliveryRequest.count({ where: { status: { in: ['EN_COURS_LIVRAISON', 'COLIS_RECUPERE', 'LIVREUR_SELECTIONNE'] } } }),
-      db.dispute.count({ where: { status: 'OUVERT' } }),
-      db.delivery.aggregate({
-        _sum: { agreedPriceFcfa: true },
-        where: { status: 'LIVRE' },
-      }),
-      db.subscription.count({ where: { status: 'ACTIVE' } }),
+      db.deliveryRequest.count({ where: { status: 'completed' } }),
+      db.deliveryRequest.count({ where: { status: { notIn: ['completed', 'cancelled', 'failed'] } } }),
+      db.report.count({ where: { status: 'pending' } }),
+      db.subscription.count({ where: { status: 'active' } }),
     ]);
 
     return NextResponse.json({
@@ -45,9 +40,8 @@ export async function GET() {
         totalDeliveries,
         completedDeliveries,
         activeDeliveries,
-        openDisputes,
+        openReports,
         activeSubscriptionsCount,
-        totalVolumeFcfa: totalAgreedPrice._sum.agreedPriceFcfa || 0,
       },
     });
   } catch (error: any) {

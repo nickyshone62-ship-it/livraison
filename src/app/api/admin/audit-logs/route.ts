@@ -5,13 +5,13 @@ import { getAuthSession } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const auditLogs = await db.auditLog.findMany({
+    const auditLogs = await db.adminAction.findMany({
       include: {
-        user: { include: { profile: true } },
+        admin: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 100,

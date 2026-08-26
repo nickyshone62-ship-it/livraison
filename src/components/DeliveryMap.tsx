@@ -2,8 +2,14 @@ import React from 'react';
 import { MapPin, Navigation, Truck, ExternalLink, Compass } from 'lucide-react';
 
 interface DeliveryMapProps {
-  pickupAddress: string;
-  dropoffAddress: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
+  pickupLat?: number;
+  pickupLng?: number;
+  dropoffLat?: number;
+  dropoffLng?: number;
+  driverLat?: number;
+  driverLng?: number;
   driverName?: string;
   status?: string;
   showNavigationButtons?: boolean;
@@ -11,7 +17,8 @@ interface DeliveryMapProps {
   deliveredAt?: Date | string | null;
 }
 
-export function DeliveryMap({ pickupAddress, dropoffAddress, driverName, status, showNavigationButtons = true, pickedUpAt, deliveredAt }: DeliveryMapProps) {
+export function DeliveryMap({ pickupAddress = 'Point A (Départ)', dropoffAddress = 'Point B (Arrivée)', driverName, status, showNavigationButtons = true, pickedUpAt, deliveredAt }: DeliveryMapProps) {
+
   const [elapsedSeconds, setElapsedSeconds] = React.useState<number>(0);
 
   React.useEffect(() => {
@@ -202,3 +209,6 @@ export function DeliveryMap({ pickupAddress, dropoffAddress, driverName, status,
     </div>
   );
 }
+
+export default DeliveryMap;
+

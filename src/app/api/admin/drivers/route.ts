@@ -5,13 +5,13 @@ import { getAuthSession } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const drivers = await db.driver.findMany({
+    const drivers = await db.driverProfile.findMany({
       include: {
-        user: { include: { profile: true } },
+        profile: true,
         vehicles: true,
         documents: true,
       },
@@ -27,61 +27,51 @@ export async function GET() {
 export async function PATCH(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const { driverId, action, reviewNotes } = await req.json(); // action: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'START_VERIFICATION' | 'SET_PENDING'
+    const { driverId, action, reviewNotes } = await req.json();
 
     if (!driverId || !action) {
       return NextResponse.json({ error: 'ID du livreur et action requis' }, { status: 400 });
     }
 
-    let newStatus: 'EN_ATTENTE' | 'EN_VERIFICATION' | 'VERIFIE' | 'REJETE' | 'SUSPENDU' = 'VERIFIE';
-    if (action === 'REJECT') newStatus = 'REJETE';
-    if (action === 'SUSPEND') newStatus = 'SUSPENDU';
-    if (action === 'START_VERIFICATION') newStatus = 'EN_VERIFICATION';
-    if (action === 'SET_PENDING') newStatus = 'EN_ATTENTE';
-    if (action === 'APPROVE' || action === 'REACTIVATE') newStatus = 'VERIFIE';
+    const newStatus = action === 'reject' ? 'rejected' : action === 'suspend' ? 'suspended' : 'approved';
 
-    const driver = await db.driver.update({
+    const driver = await db.driverProfile.update({
       where: { id: driverId },
       data: {
         verificationStatus: newStatus,
-        rejectionReason: action === 'REJECT' ? (reviewNotes || 'Documents non conformes') : null,
+        rejectionReason: action === 'reject' ? (reviewNotes || 'Documents non conformes') : null,
+        approvedAt: newStatus === 'approved' ? new Date() : undefined,
+        approvedBy: newStatus === 'approved' ? session.userId : undefined,
       },
-      include: { user: true },
     });
 
-    if (action === 'APPROVE' || action === 'REACTIVATE') {
-      await db.user.update({
+    if (newStatus === 'approved') {
+      await db.profile.update({
         where: { id: driver.userId },
-        data: { isActive: true },
+        data: { accountStatus: 'approved' },
       });
     }
-
-    // Notify driver
-    let message = 'Votre compte livreur a été approuvé ! Vous pouvez maintenant proposer des livraisons.';
-    if (action === 'REJECT') message = `Votre dossier de vérification a été rejeté. Motif : ${reviewNotes || 'Documents non conformes'}`;
-    if (action === 'SUSPEND') message = 'Votre compte livreur a été temporairement suspendu. Contactez l\'administration.';
 
     await db.notification.create({
       data: {
         userId: driver.userId,
-        title: action === 'APPROVE' || action === 'REACTIVATE' ? '✅ Compte Vérifié !' : '⚠️ Mise à jour de votre compte',
-        message,
-        type: 'SYSTEM',
+        title: newStatus === 'approved' ? '✅ Compte Vérifié !' : '⚠️ Mise à jour de votre compte',
+        message: newStatus === 'approved' ? 'Votre profil de livreur a été vérifié et approuvé par l\'administration.' : `Statut mis à jour vers : ${newStatus}`,
+        type: 'account',
       },
     });
 
-    // Log to audit log
-    await db.auditLog.create({
+    await db.adminAction.create({
       data: {
-        userId: String(session.userId),
-        action: `DRIVER_${action}`,
-        targetEntity: 'Driver',
+        adminId: session.userId,
+        actionType: `DRIVER_VERIFY_${action.toUpperCase()}`,
+        targetTable: 'driver_profiles',
         targetId: driverId,
-        detailsJson: JSON.stringify({ newStatus, reviewNotes }),
+        newData: { verificationStatus: newStatus },
       },
     });
 

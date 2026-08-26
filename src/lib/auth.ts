@@ -9,8 +9,11 @@ export const TOKEN_COOKIE_NAME = 'ouaga_livraison_token';
 export interface UserSessionPayload {
   userId: string;
   phone: string;
-  role: 'PARTICULIER' | 'COMMERCANT' | 'ENTREPRISE' | 'LIVREUR' | 'ADMIN' | string;
+  email?: string | null;
+  role: 'client' | 'driver' | 'admin' | string;
   fullName: string;
+  accountStatus: 'pending' | 'approved' | 'rejected' | 'suspended' | string;
+  driverStatus?: 'pending' | 'approved' | 'rejected' | 'suspended' | string | null;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -63,19 +66,17 @@ export function generateDisputeNumber(): string {
 }
 
 export async function validateActiveSubscription(userId: string, role: string): Promise<{ active: boolean; message?: string }> {
-  if (role === 'ADMIN') return { active: true };
+  if (role === 'admin') return { active: true };
 
   const sub = await db.subscription.findFirst({
-    where: { userId, status: 'ACTIVE' },
-    orderBy: { endsAt: 'desc' },
+    where: { userId, status: 'active' },
+    orderBy: { expiresAt: 'desc' },
   });
 
-  if (!sub || new Date(sub.endsAt) <= new Date()) {
+  if (!sub || (sub.expiresAt && new Date(sub.expiresAt) <= new Date())) {
     return {
       active: false,
-      message: role === 'LIVREUR'
-        ? '⚠️ Votre abonnement mensuel livreur (1 000 FCFA/mois) est inactif ou expiré. Veuillez renouveler votre abonnement pour effectuer des actions sur la plateforme.'
-        : '⚠️ Votre abonnement mensuel boutique (1 000 FCFA/mois) est inactif ou expiré. Veuillez renouveler votre abonnement pour effectuer des actions sur la plateforme.',
+      message: '⚠️ Votre abonnement mensuel (1 000 FCFA/mois) est inactif ou expiré. Veuillez le renouveler pour continuer à utiliser activement la plateforme.',
     };
   }
 

@@ -5,25 +5,20 @@ import { getAuthSession } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const disputes = await db.dispute.findMany({
+    const reports = await db.report.findMany({
       include: {
-        openedByUser: { include: { profile: true } },
-        delivery: {
-          include: {
-            deliveryRequest: true,
-            customer: { include: { profile: true } },
-            driver: { include: { profile: true } },
-          },
-        },
+        reporter: true,
+        reportedUser: true,
+        delivery: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ disputes });
+    return NextResponse.json({ reports });
   } catch (error: any) {
     return NextResponse.json({ error: 'Erreur lors du chargement des litiges' }, { status: 500 });
   }
@@ -32,36 +27,37 @@ export async function GET() {
 export async function PATCH(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
     }
 
-    const { disputeId, status, resolutionNotes } = await req.json(); // status: 'EN_ANALYSE' | 'RESOLU' | 'REJETE'
+    const { reportId, status, resolutionNote } = await req.json();
 
-    if (!disputeId || !status) {
-      return NextResponse.json({ error: 'ID du litige et statut requis' }, { status: 400 });
+    if (!reportId || !status) {
+      return NextResponse.json({ error: 'ID du signalement et statut requis' }, { status: 400 });
     }
 
-    const dispute = await db.dispute.update({
-      where: { id: disputeId },
+    const report = await db.report.update({
+      where: { id: reportId },
       data: {
         status,
-        resolutionNotes: resolutionNotes || null,
-        assignedAdminId: String(session.userId),
+        resolutionNote: resolutionNote || null,
+        reviewedBy: session.userId,
+        reviewedAt: new Date(),
       },
     });
 
-    await db.auditLog.create({
+    await db.adminAction.create({
       data: {
-        userId: String(session.userId),
-        action: `DISPUTE_${status}`,
-        targetEntity: 'Dispute',
-        targetId: disputeId,
-        detailsJson: JSON.stringify({ status, resolutionNotes }),
+        adminId: session.userId,
+        actionType: `REPORT_${status.toUpperCase()}`,
+        targetTable: 'reports',
+        targetId: reportId,
+        newData: { status, resolutionNote },
       },
     });
 
-    return NextResponse.json({ success: true, dispute });
+    return NextResponse.json({ success: true, report });
   } catch (error: any) {
     return NextResponse.json({ error: 'Erreur lors de la mise à jour du litige' }, { status: 500 });
   }

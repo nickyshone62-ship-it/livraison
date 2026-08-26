@@ -5,20 +5,15 @@ import { getAuthSession } from '@/lib/auth';
 export async function GET() {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs.' }, { status: 403 });
     }
 
     const payments = await db.payment.findMany({
       include: {
         user: {
           include: {
-            profile: true,
-            driver: true,
-            subscriptions: {
-              orderBy: { endsAt: 'desc' },
-              take: 1,
-            },
+            driverProfile: true,
           },
         },
       },
@@ -27,136 +22,118 @@ export async function GET() {
 
     return NextResponse.json({ payments });
   } catch (error: any) {
-    console.error('Error fetching admin payments:', error);
-    return NextResponse.json({ error: 'Erreur lors de la récupération des paiements' }, { status: 500 });
+    console.error('Erreur admin payments GET:', error);
+    return NextResponse.json({ error: 'Erreur lors du chargement des paiements' }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
     const session = await getAuthSession();
-    if (!session || session.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs.' }, { status: 403 });
     }
 
-    const { paymentId, action } = await req.json(); // action: 'APPROVE' | 'REJECT'
-
+    const { paymentId, action, rejectionReason } = await req.json(); // action: 'approve', 'reject'
     if (!paymentId || !action) {
-      return NextResponse.json({ error: 'Identifiant du paiement et action requis' }, { status: 400 });
+      return NextResponse.json({ error: 'ID du paiement et action requis.' }, { status: 400 });
     }
 
     const payment = await db.payment.findUnique({
       where: { id: paymentId },
-      include: {
-        user: {
-          include: {
-            subscriptions: {
-              orderBy: { endsAt: 'desc' },
-              take: 1,
-            },
-          },
-        },
-      },
+      include: { user: { include: { driverProfile: true } } },
     });
 
     if (!payment) {
-      return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 });
+      return NextResponse.json({ error: 'Paiement introuvable.' }, { status: 404 });
     }
 
-    const now = new Date();
+    const newPaymentStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    if (action === 'APPROVE') {
-      // 1. Mark payment COMPLETED
-      await db.payment.update({
-        where: { id: paymentId },
-        data: { status: 'COMPLETED' },
-      });
+    // 1. Update Payment status
+    const updatedPayment = await db.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: newPaymentStatus,
+        reviewedBy: session.userId,
+        reviewedAt: new Date(),
+        rejectionReason: action === 'reject' ? (rejectionReason || 'Paiement non reçu ou référence invalide') : null,
+      },
+    });
 
-      // 2. Extend subscription by 30 days
-      const lastSubEnd = payment.user.subscriptions[0] && new Date(payment.user.subscriptions[0].endsAt) > now
-        ? new Date(payment.user.subscriptions[0].endsAt)
-        : now;
+    // 2. If approved registration payment -> activate user account
+    if (action === 'approve') {
+      if (payment.paymentType === 'client_registration' || payment.paymentType === 'driver_registration') {
+        await db.profile.update({
+          where: { id: payment.userId },
+          data: { accountStatus: 'approved' },
+        });
 
-      const newEndsAt = new Date(lastSubEnd.getTime() + 30 * 24 * 60 * 60 * 1000);
+        if (payment.user.driverProfile) {
+          await db.driverProfile.update({
+            where: { id: payment.user.driverProfile.id },
+            data: {
+              verificationStatus: 'approved',
+              approvedAt: new Date(),
+              approvedBy: session.userId,
+            },
+          });
+        }
+      }
 
-      const planCode = payment.user.role === 'LIVREUR' ? 'LIVREUR' : 'COMMERCANT';
-      let plan = await db.subscriptionPlan.findFirst({ where: { code: planCode } });
+      // 3. If approved monthly subscription payment -> create or renew subscription active for 30 days
+      if (payment.paymentType === 'monthly_subscription') {
+        const startsAt = new Date();
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      if (!plan) {
-        plan = await db.subscriptionPlan.create({
+        await db.subscription.create({
           data: {
-            code: planCode,
-            name: payment.user.role === 'LIVREUR' ? 'Plan Livreur Mensuel' : 'Plan Boutique Mensuel',
-            priceFcfa: payment.amountFcfa,
-            durationDays: 30,
+            userId: payment.userId,
+            paymentId: payment.id,
+            amount: payment.amount,
+            currency: payment.currency || 'XOF',
+            status: 'active',
+            startsAt,
+            expiresAt,
+            approvedBy: session.userId,
+            approvedAt: startsAt,
           },
         });
       }
-
-      await db.subscription.create({
-        data: {
-          userId: payment.userId,
-          planId: plan.id,
-          status: 'ACTIVE',
-          startsAt: now,
-          endsAt: newEndsAt,
-        },
-      });
-
-      // 3. Notify user
-      await db.notification.create({
-        data: {
-          userId: payment.userId,
-          title: '🎉 Abonnement Mensuel Validé par l\'Admin !',
-          message: `Votre paiement de ${payment.amountFcfa} FCFA a été vérifié et approuvé par l'administrateur. Votre abonnement est actif jusqu'au ${newEndsAt.toLocaleDateString('fr-FR')}.`,
-          type: 'PAYMENT',
-        },
-      });
-
-      // 4. Audit Log
-      await db.auditLog.create({
-        data: {
-          userId: String(session.userId),
-          action: 'APPROVE_SUBSCRIPTION_PAYMENT',
-          targetEntity: 'Payment',
-          targetId: paymentId,
-          detailsJson: JSON.stringify({ amountFcfa: payment.amountFcfa, newEndsAt }),
-        },
-      });
-
-      return NextResponse.json({ success: true, message: 'Paiement d\'abonnement approuvé et activé avec succès !' });
     }
 
-    if (action === 'REJECT') {
-      await db.payment.update({
-        where: { id: paymentId },
-        data: { status: 'FAILED' },
-      });
+    // 4. Log Admin Action
+    await db.adminAction.create({
+      data: {
+        adminId: session.userId,
+        actionType: `PAYMENT_${action.toUpperCase()}`,
+        targetTable: 'payments',
+        targetId: paymentId,
+        oldData: { status: payment.status },
+        newData: { status: newPaymentStatus },
+      },
+    });
 
-      await db.notification.create({
-        data: {
-          userId: payment.userId,
-          title: '❌ Paiement d\'abonnement rejeté',
-          message: `Votre demande de paiement d'abonnement de ${payment.amountFcfa} FCFA a été rejetée par l'administrateur. Veuillez contacter le support.`,
-          type: 'PAYMENT',
-        },
-      });
+    // 5. Send notification to user
+    await db.notification.create({
+      data: {
+        userId: payment.userId,
+        title: action === 'approve' ? '✅ Paiement Approuvé !' : '❌ Paiement Rejeté',
+        message: action === 'approve'
+          ? `Votre paiement de ${payment.amount} FCFA (${payment.paymentType}) réf: ${payment.transactionReference} a été vérifié et approuvé avec succès !`
+          : `Votre paiement de ${payment.amount} FCFA réf: ${payment.transactionReference} a été rejeté. Motif: ${rejectionReason || 'Vérification non concluante.'}`,
+        type: 'payment',
+        relatedId: paymentId,
+      },
+    });
 
-      await db.auditLog.create({
-        data: {
-          userId: String(session.userId),
-          action: 'REJECT_SUBSCRIPTION_PAYMENT',
-          targetEntity: 'Payment',
-          targetId: paymentId,
-        },
-      });
-
-      return NextResponse.json({ success: true, message: 'Paiement d\'abonnement rejeté.' });
-    }
-
-    return NextResponse.json({ error: 'Action invalide' }, { status: 400 });
+    return NextResponse.json({
+      success: true,
+      payment: updatedPayment,
+      message: `Paiement ${action === 'approve' ? 'approuvé' : 'rejeté'} avec succès.`,
+    });
   } catch (error: any) {
-    console.error('Error updating admin payment:', error);
-    return NextResponse.json({ error: 'Erreur lors de la validation du paiement' }, { status: 500 });
+    console.error('Erreur admin payments PATCH:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors du traitement du paiement' }, { status: 500 });
   }
 }

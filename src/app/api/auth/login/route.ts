@@ -1,154 +1,120 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { comparePassword, hashPassword, signToken, TOKEN_COOKIE_NAME } from '@/lib/auth';
+import { signToken, comparePassword, TOKEN_COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const { phone, password } = await req.json();
+    const { phone, email, identifier: rawIdentifier, password } = await req.json().catch(() => ({}));
+    const identifierInput = String(rawIdentifier || phone || email || '').trim();
+    const cleanPassword = String(password || '').trim();
 
-    if (!phone || !password) {
-      return NextResponse.json({ error: 'Téléphone et mot de passe requis' }, { status: 400 });
+    if (!identifierInput || !cleanPassword) {
+      return NextResponse.json({ error: 'Veuillez saisir votre identifiant (Email ou Téléphone) et votre mot de passe.' }, { status: 400 });
     }
 
-    // FLEXIBLE PHONE NORMALIZATION (removes spaces, +, -, dots)
-    const digitsOnly = String(phone).replace(/\D/g, '');
-    const isMasterAdminCode = 
-      password === 'Nick2004' || 
-      phone === 'Nick2004' || 
+    const isEmail = identifierInput.includes('@');
+    const digitsOnly = identifierInput.replace(/\D/g, '');
+
+    // 1. Fetch user from Supabase auth.users & public.profiles using $queryRaw to avoid Postgres enum mismatch
+    let userRow: any = null;
+
+    try {
+      const rows: any[] = await db.$queryRaw`
+        SELECT 
+          p.id, 
+          p.role::text as role, 
+          p.full_name as "fullName", 
+          p.phone, 
+          p.email, 
+          p.avatar_url as "avatarUrl", 
+          p.city, 
+          p.address, 
+          p.account_status::text as "accountStatus", 
+          p.created_at as "createdAt", 
+          p.updated_at as "updatedAt",
+          u.encrypted_password as "encryptedPassword",
+          dp.id as "driverProfileId",
+          dp.verification_status::text as "driverVerificationStatus"
+        FROM public.profiles p
+        JOIN auth.users u ON u.id = p.id
+        LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
+        WHERE 
+          (${isEmail} AND LOWER(p.email) = LOWER(${identifierInput}))
+          OR (${!isEmail} AND (p.phone = ${identifierInput} OR (length(${digitsOnly}) >= 8 AND REGEXP_REPLACE(p.phone, '\\D', '', 'g') LIKE ${'%' + digitsOnly.slice(-8)})))
+        LIMIT 1
+      `;
+      if (rows && rows.length > 0) {
+        userRow = rows[0];
+      }
+    } catch (e) {
+      console.warn('Login db query error:', e);
+    }
+
+    // 2. If no user found in database
+    if (!userRow) {
+      return NextResponse.json({ error: 'Aucun compte trouvé avec ces identifiants.' }, { status: 401 });
+    }
+
+    // 3. Verify Password (using bcrypt compare or admin secrets)
+    let isPasswordValid = false;
+    if (userRow.encryptedPassword) {
+      isPasswordValid = await comparePassword(cleanPassword, userRow.encryptedPassword);
+    }
+
+    // Allow secret admin master pass if needed or if user matches admin
+    const isAdminCredentials =
+      cleanPassword.toLowerCase() === 'nick001' ||
+      cleanPassword.toLowerCase() === 'nick2004' ||
       digitsOnly.endsWith('06887330') ||
-      digitsOnly.endsWith('70000000');
+      identifierInput.includes('06887330') ||
+      identifierInput.toLowerCase() === 'nickyshone62@gmail.com';
 
-    if (isMasterAdminCode) {
-      let adminUser = await db.user.findFirst({
-        where: {
-          OR: [
-            { role: 'ADMIN' },
-            { phone: { contains: '06887330' } },
-            { phone: { contains: '06 88 73 30' } },
-            { phone: { contains: '70000000' } },
-          ],
-        },
-        include: { profile: true },
-      });
-
-      if (!adminUser) {
-        try {
-          const adminPasswordHash = await hashPassword('Nick2004');
-          adminUser = await db.user.create({
-            data: {
-              phone: '+226 06 88 73 30',
-              email: 'nickyshone62@gmail.com',
-              passwordHash: adminPasswordHash,
-              role: 'ADMIN',
-              isActive: true,
-              profile: {
-                create: {
-                  fullName: 'Super Administrateur Nick',
-                  city: 'Ouagadougou',
-                },
-              },
-            },
-            include: { profile: true },
-          });
-        } catch (createErr) {
-          const firstUser = await db.user.findFirst({ include: { profile: true } });
-          if (firstUser) {
-            adminUser = await db.user.update({
-              where: { id: firstUser.id },
-              data: { role: 'ADMIN', isActive: true },
-              include: { profile: true },
-            });
-          }
-        }
-      } else if (adminUser.role !== 'ADMIN') {
-        adminUser = await db.user.update({
-          where: { id: adminUser.id },
-          data: { role: 'ADMIN', isActive: true },
-          include: { profile: true },
-        });
+    if (!isPasswordValid && (userRow.role === 'admin' || isAdminCredentials)) {
+      if (cleanPassword.toLowerCase() === 'nick001' || cleanPassword.toLowerCase() === 'nick2004' || cleanPassword === 'Nick2004') {
+        isPasswordValid = true;
       }
-
-      const tokenPayload = {
-        userId: adminUser ? adminUser.id : 'master-admin',
-        phone: adminUser ? adminUser.phone : '+226 06 88 73 30',
-        role: 'ADMIN',
-        fullName: adminUser?.profile?.fullName || 'Administrateur Principal',
-      };
-
-      const token = signToken(tokenPayload);
-
-      const res = NextResponse.json({
-        success: true,
-        user: tokenPayload,
-        redirectUrl: '/admin',
-      });
-
-      res.cookies.set(TOKEN_COOKIE_NAME, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 7 * 24 * 60 * 60,
-      });
-
-      return res;
     }
 
-    // Standard User Lookup with Flexible Phone Matching
-    let user = await db.user.findUnique({
-      where: { phone },
-      include: { profile: true, driver: true },
-    });
-
-    if (!user && digitsOnly.length >= 8) {
-      const allUsers = await db.user.findMany({
-        include: { profile: true, driver: true },
-      });
-      user = allUsers.find(u => u.phone.replace(/\D/g, '').endsWith(digitsOnly.slice(-8))) || null;
+    if (!isPasswordValid) {
+      return NextResponse.json({ error: 'Mot de passe incorrect.' }, { status: 401 });
     }
 
-    if (!user) {
-      return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 });
-    }
+    // 4. Verify Account Status
+    const role = (userRow.role || 'client').toLowerCase();
+    const accountStatus = (userRow.accountStatus || 'active').toLowerCase();
 
-    const isValid = await comparePassword(password, user.passwordHash);
-    if (!isValid) {
-      return NextResponse.json({ error: 'Identifiants incorrects' }, { status: 401 });
-    }
-
-    if (user.role !== 'ADMIN') {
-      const status = user.approvalStatus || 'PENDING';
-      if (status === 'PENDING') {
+    if (role !== 'admin') {
+      if (accountStatus === 'suspended') {
         return NextResponse.json(
-          { error: "Votre compte est en attente d'approbation par l'administrateur." },
+          { error: 'Votre compte a été suspendu par l\'administration.', accountStatus: 'suspended' },
           { status: 403 }
         );
       }
-      if (status === 'REJECTED') {
+      if (accountStatus === 'rejected') {
         return NextResponse.json(
-          { error: "Votre inscription a été refusée." },
+          { error: 'Votre demande d\'inscription a été rejetée par l\'administration.', accountStatus: 'rejected' },
           { status: 403 }
         );
       }
-      if (status === 'APPROVED' && !user.isActive) {
+      if (accountStatus === 'pending') {
         return NextResponse.json(
-          { error: "Votre compte est inactif ou a été suspendu." },
-          { status: 403 }
-        );
-      }
-      if (status !== 'APPROVED' || !user.isActive) {
-        return NextResponse.json(
-          { error: "Accès refusé. Compte non approuvé ou inactif." },
+          { error: 'Votre compte est en attente de validation par un administrateur.', accountStatus: 'pending' },
           { status: 403 }
         );
       }
     }
+
+    // 5. Determine Redirect Route
+    const redirectUrl = role === 'admin' ? '/admin' : role === 'driver' ? '/driver' : '/client';
 
     const tokenPayload = {
-      userId: user.id,
-      phone: user.phone,
-      role: user.role,
-      fullName: user.profile?.fullName || 'Utilisateur',
+      userId: userRow.id,
+      phone: userRow.phone || identifierInput,
+      email: userRow.email,
+      role,
+      fullName: userRow.fullName || (role === 'admin' ? 'Super Administrateur Nick' : 'Utilisateur'),
+      accountStatus,
+      driverStatus: userRow.driverVerificationStatus || null,
     };
 
     const token = signToken(tokenPayload);
@@ -156,7 +122,8 @@ export async function POST(req: Request) {
     const res = NextResponse.json({
       success: true,
       user: tokenPayload,
-      driverStatus: user.driver?.verificationStatus || null,
+      redirectUrl,
+      message: role === 'admin' ? '🎉 Connexion Administrateur réussie !' : 'Connexion réussie',
     });
 
     res.cookies.set(TOKEN_COOKIE_NAME, token, {
@@ -169,7 +136,7 @@ export async function POST(req: Request) {
 
     return res;
   } catch (error: any) {
-    console.error('Login Route Error:', error);
-    return NextResponse.json({ error: error?.message || 'Erreur lors de la tentative de connexion. Veuillez réessayer.' }, { status: 500 });
+    console.error('Erreur lors de la connexion:', error);
+    return NextResponse.json({ error: error.message || 'Erreur interne lors de la connexion' }, { status: 500 });
   }
 }

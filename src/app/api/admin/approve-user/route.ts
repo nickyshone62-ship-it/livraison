@@ -12,57 +12,41 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'ID utilisateur manquant' }, { status: 400 });
     }
 
-    const user = await db.user.findUnique({
+    const profile = await db.profile.findUnique({
       where: { id: userId },
-      include: { profile: true, driver: true },
+      include: { driverProfile: true },
     });
 
-    if (!user) {
+    if (!profile) {
       return NextResponse.json({ error: 'Utilisateur introuvable dans la base de données' }, { status: 404 });
     }
 
     // Approve and activate user account
-    await db.user.update({
+    await db.profile.update({
       where: { id: userId },
-      data: { approvalStatus: 'APPROVED', isActive: true },
+      data: { accountStatus: 'approved' },
     });
 
-    // If driver, update driver KYC verification status to VERIFIE
-    if (user.driver) {
-      await db.driver.update({
-        where: { id: user.driver.id },
-        data: { verificationStatus: 'VERIFIE' },
+    // If driver, update driver KYC verification status to approved
+    if (profile.driverProfile) {
+      await db.driverProfile.update({
+        where: { id: profile.driverProfile.id },
+        data: { verificationStatus: 'approved', approvedAt: new Date() },
       });
     }
-
-    // Create Audit Log
-    await db.auditLog.create({
-      data: {
-        userId: user.id,
-        action: 'ADMIN_APPROVE_USER_VIA_EMAIL',
-        targetEntity: 'USER',
-        targetId: user.id,
-        detailsJson: JSON.stringify({
-          fullName: user.profile?.fullName,
-          phone: user.phone,
-          approvedAt: new Date().toISOString(),
-          source: 'EMAIL_1_CLICK_LINK',
-        }),
-      },
-    });
 
     // Create Notification for the user
     await db.notification.create({
       data: {
-        userId: user.id,
+        userId: profile.id,
         title: '🎉 COMPTE APPROUVÉ ET ACTIVÉ !',
-        message: 'Félicitations ! Votre compte a été validé par la direction. Vous pouvez maintenant utiliser la plateforme.',
-        type: 'SYSTEM',
+        message: 'Félicitations ! Votre compte a été validé par l\'administration. Vous pouvez maintenant utiliser la plateforme.',
+        type: 'account',
       },
     });
 
     // Return HTML confirmation page for 1-click email approval
-    const userName = user.profile?.fullName || user.phone;
+    const userName = profile.fullName || profile.phone || 'Utilisateur';
     const html = `
       <!DOCTYPE html>
       <html lang="fr">
@@ -71,20 +55,20 @@ export async function GET(req: Request) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Compte Approuvé avec Succès - LivraisonOuaga</title>
         <style>
-          body { font-family: system-ui, -apple-system, sans-serif; background: #004D40; color: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
-          .card { background: white; color: #004D40; border-radius: 2rem; padding: 40px; max-width: 480px; width: 100%; shadow: 0 20px 40px rgba(0,0,0,0.3); border: 4px border #009688; }
-          .badge { background: #E6FFFA; color: #00796B; padding: 6px 16px; border-radius: 999px; font-weight: 900; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 16px; border: 1px solid #B2DFDB; }
+          body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
+          .card { background: #1e293b; color: white; border-radius: 1.5rem; padding: 40px; max-width: 480px; width: 100%; border: 1px solid #334155; }
+          .badge { background: rgba(16, 185, 129, 0.1); color: #34d399; padding: 6px 16px; border-radius: 999px; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 16px; border: 1px solid rgba(16, 185, 129, 0.2); }
           h1 { font-size: 24px; font-weight: 900; margin: 8px 0; }
-          p { font-size: 14px; color: #475569; font-weight: 600; line-height: 1.6; }
-          .btn { display: inline-block; background: linear-gradient(135deg, #00E5D9, #009688); color: #004D40; font-weight: 900; text-decoration: none; padding: 14px 28px; border-radius: 999px; margin-top: 24px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+          p { font-size: 14px; color: #94a3b8; font-weight: 500; line-height: 1.6; }
+          .btn { display: inline-block; background: linear-gradient(to right, #f59e0b, #ea580c); color: white; font-weight: 800; text-decoration: none; padding: 14px 28px; border-radius: 999px; margin-top: 24px; font-size: 13px; text-transform: uppercase; }
         </style>
       </head>
       <body>
         <div class="card">
-          <div class="badge">✓ APPROBATION EFFECTUÉE EN 1 CLIC</div>
+          <div class="badge">✓ APPROBATION EFFECTUÉE</div>
           <h1>Compte Activé !</h1>
-          <p>Le compte de <strong>${userName}</strong> (${user.role}) a été approuvé et activé avec succès sur LivraisonOuaga.</p>
-          <a href="/admin" class="btn">🚀 Accéder au Panneau Administrateur</a>
+          <p>Le compte de <strong>${userName}</strong> (${profile.role}) a été approuvé et activé avec succès sur LivraisonOuaga.</p>
+          <a href="/admin" class="btn">Accéder au Panneau Administrateur</a>
         </div>
       </body>
       </html>

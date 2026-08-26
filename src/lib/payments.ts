@@ -2,25 +2,34 @@ import { db } from './db';
 
 export interface PaymentInitiateParams {
   userId: string;
-  type: 'SUBSCRIPTION' | 'DRIVER_VERIFICATION_FEE' | 'DELIVERY_COMMISSION';
-  amountFcfa: number;
-  paymentMethod: 'ORANGE_MONEY' | 'MOOV_MONEY' | 'WAVE' | 'CASH';
-  planId?: string;
+  paymentType: 'client_registration' | 'driver_registration' | 'monthly_subscription' | string;
+  amount: number;
+  paymentMethod: 'orange_money' | 'moov_money' | 'wave' | string;
+  recipientPhone?: string;
+  transactionReference?: string;
+  notes?: string;
 }
 
-export const PAYMENT_USSD_CONFIG = {
-  ORANGE_MONEY: {
-    merchantNumber: '06887330',
-    ussdTemplate: (amount: number) => `*144*2*1*06887330*${amount}#`,
-  },
-  MOOV_MONEY: {
-    merchantNumber: '62017878',
-    ussdTemplate: (amount: number) => `*555*2*1*62017878*${amount}#`,
-  },
-  WAVE: {
-    merchantNumber: '06887330',
-  },
-};
+export async function getPlatformSettings() {
+  const settingsRows = await db.platformSetting.findMany();
+  const settings: Record<string, any> = {
+    client_registration_fee: 2000,
+    driver_registration_fee: 1500,
+    monthly_subscription_fee: 1000,
+    delivery_commission: 0,
+    orange_money_number: '06887330',
+    orange_money_ussd: '*144*2*1*06887330*{montant}#',
+    moov_money_number: '62017878',
+    moov_money_ussd: '*555*2*1*62017878*{montant}#',
+    wave_number: '06887330',
+  };
+
+  for (const s of settingsRows) {
+    settings[s.settingKey] = s.settingValue;
+  }
+
+  return settings;
+}
 
 export function generateTransactionRef(prefix: string = 'PAY'): string {
   const dateStr = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
@@ -28,88 +37,57 @@ export function generateTransactionRef(prefix: string = 'PAY'): string {
   return `${prefix}-${dateStr}-${randomSuffix}`;
 }
 
-export async function processMobileMoneyPayment(params: PaymentInitiateParams) {
-  const transactionReference = generateTransactionRef();
+export async function initiateUserPayment(params: PaymentInitiateParams) {
+  const ref = params.transactionReference || generateTransactionRef();
 
-  // Create payment record in database
+  // Mandatory: Payment ALWAYS created with status 'pending' until Admin verifies
   const payment = await db.payment.create({
     data: {
       userId: params.userId,
-      type: params.type,
-      amountFcfa: params.amountFcfa,
+      paymentType: params.paymentType,
+      amount: params.amount,
+      currency: 'XOF',
       paymentMethod: params.paymentMethod,
-      transactionReference,
-      status: 'COMPLETED', // Auto-completed in demo mode / mobile money integration ready
+      recipientPhone: params.recipientPhone || null,
+      transactionReference: ref,
+      status: 'pending',
+      notes: params.notes || null,
     },
   });
 
-  // If subscription payment, activate subscription for 30 days
-  if (params.type === 'SUBSCRIPTION' && params.planId) {
-    const plan = await db.subscriptionPlan.findUnique({ where: { id: params.planId } });
-    if (plan) {
-      // Cancel previous active subscriptions
-      await db.subscription.updateMany({
-        where: { userId: params.userId, status: 'ACTIVE' },
-        data: { status: 'CANCELLED' },
-      });
-
-      const endsAt = new Date(Date.now() + (plan.durationDays || 30) * 24 * 60 * 60 * 1000);
-      await db.subscription.create({
-        data: {
-          userId: params.userId,
-          planId: plan.id,
-          status: 'ACTIVE',
-          startsAt: new Date(),
-          endsAt,
-          paymentId: payment.id,
-        },
-      });
-
-      await db.notification.create({
-        data: {
-          userId: params.userId,
-          title: '🎉 Abonnement Activé !',
-          message: `Votre abonnement ${plan.name} a été activé avec succès par ${params.paymentMethod}. Valable jusqu'au ${endsAt.toLocaleDateString('fr-FR')}.`,
-          type: 'PAYMENT',
-        },
-      });
-    }
+  // Notify Admins in notifications table
+  const admins = await db.profile.findMany({ where: { role: 'admin' } });
+  if (admins.length > 0) {
+    await db.notification.createMany({
+      data: admins.map(a => ({
+        userId: a.id,
+        title: '💳 Nouveau paiement à vérifier',
+        message: `Paiement de ${params.amount} FCFA (${params.paymentType}, ${params.paymentMethod}) réf ${ref} soumis par un utilisateur.`,
+        type: 'payment',
+        relatedId: payment.id,
+      })),
+    });
   }
-
-  // If driver verification fee payment, update driver status to EN_VERIFICATION
-  if (params.type === 'DRIVER_VERIFICATION_FEE') {
-    const driver = await db.driver.findUnique({ where: { userId: params.userId } });
-    if (driver) {
-      await db.driver.update({
-        where: { id: driver.id },
-        data: { verificationStatus: 'EN_VERIFICATION' },
-      });
-
-      await db.notification.create({
-        data: {
-          userId: params.userId,
-          title: '💳 Frais de vérification reçus !',
-          message: `Votre paiement de ${params.amountFcfa} FCFA par ${params.paymentMethod} a été validé. Votre dossier est en cours de révision par l'administration.`,
-          type: 'PAYMENT',
-        },
-      });
-    }
-  }
-
-  // Audit Log
-  await db.auditLog.create({
-    data: {
-      userId: params.userId,
-      action: `PAYMENT_${params.type}`,
-      targetEntity: 'Payment',
-      targetId: payment.id,
-      detailsJson: JSON.stringify({ amountFcfa: params.amountFcfa, paymentMethod: params.paymentMethod, transactionReference }),
-    },
-  });
 
   return {
     success: true,
     payment,
-    transactionReference,
+    transactionReference: ref,
+    message: 'Paiement enregistré avec succès. Il est en attente de vérification par un administrateur.',
   };
+}
+
+export async function processMobileMoneyPayment(params: {
+  userId: string;
+  type: string;
+  amountFcfa: number;
+  paymentMethod: string;
+  planId?: string;
+}) {
+  return initiateUserPayment({
+    userId: params.userId,
+    paymentType: params.type,
+    amount: params.amountFcfa,
+    paymentMethod: params.paymentMethod,
+  });
 }

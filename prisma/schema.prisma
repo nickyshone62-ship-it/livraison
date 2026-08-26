@@ -8,364 +8,343 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// -------------------------------------------------------------
-// MODELS (21 Tables)
-// SQLite stores enum values as Strings with application-level validation
-// -------------------------------------------------------------
-
-model User {
-  id            String      @id @default(uuid())
-  phone         String      @unique
-  email         String?     @unique
-  passwordHash  String
-  role          String      @default("PARTICULIER") // PARTICULIER, COMMERCANT, ENTREPRISE, LIVREUR, ADMIN
-  isActive      Boolean     @default(false)
-  approvalStatus String     @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  profile                 Profile?
-  driver                  Driver?
-  subscriptions           Subscription[]
-  deliveryRequests        DeliveryRequest[]    @relation("CustomerRequests")
-  deliveryProposals       DeliveryProposal[]   @relation("DriverProposals")
-  customerDeliveries      Delivery[]           @relation("CustomerDeliveries")
-  driverDeliveries        Delivery[]           @relation("DriverDeliveries")
-  givenReviews            Review[]             @relation("GivenReviews")
-  receivedReviews         Review[]             @relation("ReceivedReviews")
-  openedDisputes          Dispute[]            @relation("UserDisputes")
-  assignedDisputes        Dispute[]            @relation("AdminDisputes")
-  reportsGiven            Report[]             @relation("Reporter")
-  reportsReceived         Report[]             @relation("ReportedUser")
-  notifications           Notification[]
-  auditLogs               AuditLog[]
-  payments                Payment[]
-  statusHistoryChanges    DeliveryStatusHistory[]
-
-  @@index([role])
-  @@index([approvalStatus, isActive])
-  @@index([createdAt])
-}
+// ==============================================================================
+// MODÈLES DE LA BASE SUPABASE EXISTANTE (18 TABLES 100% CONFORMES RELATIONS)
+// ==============================================================================
 
 model Profile {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fullName     String
-  avatarUrl    String?
-  city         String   @default("Ouagadougou")
-  address      String?
-  companyName  String?
-  taxId        String?
-  legalInfo    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @db.Uuid
+  role          String   @default("client") // client, driver, admin
+  fullName      String?  @map("full_name")
+  phone         String?
+  email         String?
+  avatarUrl     String?  @map("avatar_url")
+  city          String?
+  address       String?
+  accountStatus String   @default("pending") @map("account_status") // pending, active, suspended, rejected
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @map("updated_at")
+
+  driverProfile        DriverProfile?
+  payments             Payment[]
+  subscriptions        Subscription[]
+  clientDeliveries     DeliveryRequest[]       @relation("ClientRequests")
+  reportsGiven         Report[]                @relation("ReporterUser")
+  reportsReceived      Report[]                @relation("ReportedUser")
+  reviewsGiven         Review[]                @relation("ReviewerUser")
+  notifications        Notification[]          @relation("UserNotifications")
+  adminActions         AdminAction[]           @relation("AdminActions")
+  clientConversations  Conversation[]          @relation("ClientConversations")
+  sentMessages         Message[]               @relation("SentMessages")
+
+  @@map("profiles")
 }
 
-model Driver {
-  id                  String               @id @default(uuid())
-  userId              String               @unique
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verificationStatus  String               @default("EN_ATTENTE") // EN_ATTENTE, EN_VERIFICATION, VERIFIE, REJETE, SUSPENDU
-  rejectionReason     String?
-  idCardNumber        String?
-  totalDeliveries     Int                  @default(0)
-  successfulDeliveries Int                 @default(0)
-  successRate         Float                @default(100.0)
-  ratingAvg           Float                @default(5.0)
-  ratingCount         Int                  @default(0)
-  isAvailable         Boolean              @default(true)
-  preferredZones      String?              // Comma separated zones
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+model DriverProfile {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String    @unique @map("user_id") @db.Uuid
+  profile            Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verificationStatus String    @default("pending") @map("verification_status") // pending, under_review, approved, rejected, suspended
+  isAvailable        Boolean   @default(false) @map("is_available")
+  averageRating      Decimal   @default(0) @map("average_rating") @db.Decimal(3, 2)
+  totalRatings       Int       @default(0) @map("total_ratings")
+  totalDeliveries    Int       @default(0) @map("total_deliveries")
+  approvedAt         DateTime? @map("approved_at")
+  approvedBy         String?   @map("approved_by") @db.Uuid
+  rejectionReason    String?   @map("rejection_reason")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @map("updated_at")
 
-  vehicles            Vehicle[]
-  documents           VerificationDocument[]
+  vehicles           Vehicle[]
+  documents          DriverDocument[]
+  offers             DeliveryOffer[]         @relation("DriverOffers")
+  assignments        DeliveryAssignment[]    @relation("DriverAssignments")
+  trackingLogs       DeliveryTracking[]      @relation("DriverTracking")
+  reviews            Review[]                @relation("ReviewedDriverProfile")
+  conversations      Conversation[]          @relation("DriverConversations")
 
-  @@index([userId])
-  @@index([verificationStatus])
+  @@map("driver_profiles")
 }
 
 model Vehicle {
-  id           String      @id @default(uuid())
-  driverId     String
-  driver       Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  vehicleType  String      @default("MOTO") // MOTO, TRICYCLE, VOITURE, CAMIONNETTE
-  brand        String?
-  model        String?
-  licensePlate String?
-  color        String?
-  photoUrl     String?
-  isDefault    Boolean     @default(true)
-  createdAt    DateTime    @default(now())
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId           String        @map("driver_id") @db.Uuid
+  driver             DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  vehicleType        String        @map("vehicle_type") // motorcycle, car, van, truck, bicycle, other
+  brand              String?
+  model              String?
+  registrationNumber String?       @map("registration_number")
+  color              String?
+  year               Int?
+  isPrimary          Boolean       @default(true) @map("is_primary")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @default(now()) @map("updated_at")
+
+  @@map("vehicles")
 }
 
-model VerificationDocument {
-  id          String       @id @default(uuid())
-  driverId    String
-  driver      Driver       @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  docType     String       // ID_CARD, DRIVING_LICENSE, VEHICLE_REGISTRATION, CRIMINAL_RECORD
-  fileUrl     String
-  status      String       @default("EN_ATTENTE") // EN_ATTENTE, EN_VERIFICATION, VERIFIE, REJETE
-  reviewNotes String?
-  createdAt   DateTime     @default(now())
-}
+model DriverDocument {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  driverId        String        @map("driver_id") @db.Uuid
+  driver          DriverProfile @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  documentType    String        @map("document_type") // identity_card, driver_license, vehicle_document, other
+  documentNumber  String?       @map("document_number")
+  fileUrl         String        @map("file_url")
+  status          String        @default("pending") // pending, approved, rejected, expired
+  rejectionReason String?       @map("rejection_reason")
+  expiresAt       DateTime?     @map("expires_at") @db.Date
+  reviewedBy      String?       @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?     @map("reviewed_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @default(now()) @map("updated_at")
 
-model SubscriptionPlan {
-  id                String   @id @default(uuid())
-  code              String   @unique // PARTICULIER, COMMERCANT, PRO, ENTREPRISE
-  name              String
-  description       String?
-  priceFcfa         Int
-  durationDays      Int      @default(30)
-  maxActiveRequests Int      @default(10)
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  subscriptions     Subscription[]
-}
-
-model Subscription {
-  id         String           @id @default(uuid())
-  userId     String
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  planId     String
-  plan       SubscriptionPlan @relation(fields: [planId], references: [id])
-  status     String           @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
-  startsAt   DateTime         @default(now())
-  endsAt     DateTime
-  paymentId  String?
-  createdAt  DateTime         @default(now())
-
-  @@index([userId, status])
-  @@index([endsAt])
-}
-
-model Zone {
-  id                 String   @id @default(uuid())
-  name               String   @unique // ex: Ouaga 2000, Tampouy, Kamboinse
-  city               String   @default("Ouagadougou")
-  indicativePriceFcfa Int     @default(1500)
-  associatedQuartiers String? // Comma-separated list
-  isActive           Boolean  @default(true)
-  createdAt          DateTime @default(now())
-
-  tariffs            Tariff[]
-}
-
-model Tariff {
-  id            String      @id @default(uuid())
-  zoneId        String
-  zone          Zone        @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-  vehicleType   String      @default("MOTO") // MOTO, TRICYCLE, VOITURE, CAMIONNETTE
-  basePriceFcfa Int
-  perKmFcfa     Int         @default(200)
-  createdAt     DateTime    @default(now())
-}
-
-model DeliveryRequest {
-  id                String         @id @default(uuid())
-  trackingNumber    String         @unique // LIV-2026-000001
-  customerId        String
-  customer          User           @relation("CustomerRequests", fields: [customerId], references: [id], onDelete: Cascade)
-  pickupAddress     String
-  pickupCity        String         @default("Ouagadougou")
-  dropoffAddress    String
-  dropoffCity       String         @default("Ouagadougou")
-  packageType       String         // Document, Electroménager, Repas, Colis Lourd, etc.
-  description       String
-  quantity          Int            @default(1)
-  dimensions        String?
-  urgencyLevel      String         @default("NORMAL") // URGENT, NORMAL, PROGRAMME
-  scheduledDate     String
-  scheduledTime     String
-  additionalNotes   String?
-  imageUrl          String?
-  status            String         @default("DEMANDE_PUBLIEE") // DEMANDE_PUBLIEE, PROPOSITIONS_RECUES, LIVREUR_SELECTIONNE, EN_ATTENTE_RECUPERATION, COLIS_RECUPERE, EN_COURS_LIVRAISON, LIVRE, ANNULEE, LITIGE
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-
-  proposals         DeliveryProposal[]
-  delivery          Delivery?
-
-  @@index([customerId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model DeliveryProposal {
-  id                      String          @id @default(uuid())
-  deliveryRequestId       String
-  deliveryRequest         DeliveryRequest @relation(fields: [deliveryRequestId], references: [id], onDelete: Cascade)
-  driverId                String
-  driver                  User            @relation("DriverProposals", fields: [driverId], references: [id], onDelete: Cascade)
-  proposedPriceFcfa       Int
-  estimatedDurationMinutes Int
-  comment                 String?
-  status                  String          @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-
-  delivery                Delivery?
-
-  @@index([driverId])
-  @@index([deliveryRequestId])
-  @@index([status])
-}
-
-model Delivery {
-  id                 String            @id @default(uuid())
-  trackingNumber     String            @unique
-  deliveryRequestId  String            @unique
-  deliveryRequest    DeliveryRequest   @relation(fields: [deliveryRequestId], references: [id], onDelete: Cascade)
-  customerId         String
-  customer           User              @relation("CustomerDeliveries", fields: [customerId], references: [id], onDelete: Cascade)
-  driverId           String
-  driver             User              @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: Cascade)
-  selectedProposalId String            @unique
-  selectedProposal   DeliveryProposal  @relation(fields: [selectedProposalId], references: [id])
-  agreedPriceFcfa    Int
-  status             String            @default("LIVREUR_SELECTIONNE")
-  selectedAt         DateTime          @default(now())
-  pickedUpAt         DateTime?
-  deliveredAt        DateTime?
-  proofPhotoUrl      String?
-  signatureUrl       String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-
-  codes              DeliveryCode?
-  statusHistory      DeliveryStatusHistory[]
-  reviews            Review[]
-  disputes           Dispute[]
-
-  @@index([customerId])
-  @@index([driverId])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model DeliveryStatusHistory {
-  id             String         @id @default(uuid())
-  deliveryId     String
-  delivery       Delivery       @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  previousStatus String
-  newStatus      String
-  changedByUserId String
-  changedByUser  User           @relation(fields: [changedByUserId], references: [id])
-  note           String?
-  createdAt      DateTime       @default(now())
-}
-
-model DeliveryCode {
-  id                 String    @id @default(uuid())
-  deliveryId         String    @unique
-  delivery           Delivery  @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  pickupCode         String    // e.g., 4821
-  deliveryCode       String    // e.g., 9134
-  pickupVerifiedAt   DateTime?
-  deliveryVerifiedAt DateTime?
-  createdAt          DateTime  @default(now())
+  @@map("driver_documents")
 }
 
 model Payment {
-  id                   String        @id @default(uuid())
-  userId               String
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type                 String        // SUBSCRIPTION, DRIVER_VERIFICATION_FEE, DELIVERY_COMMISSION
-  amountFcfa           Int
-  paymentMethod        String        @default("ORANGE_MONEY") // ORANGE_MONEY, MOOV_MONEY, WAVE, CASH
-  transactionReference String        @unique
-  status               String        @default("COMPLETED") // PENDING, COMPLETED, FAILED, REFUNDED
-  createdAt            DateTime      @default(now())
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  user                 Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentType          String   @map("payment_type") // registration, subscription
+  amount               Decimal  @db.Decimal(10, 2)
+  currency             String   @default("XOF")
+  paymentMethod        String   @map("payment_method") // orange_money, moov_money, wave
+  recipientPhone       String?  @map("recipient_phone")
+  transactionReference String?  @map("transaction_reference")
+  status               String   @default("pending") // pending, approved, rejected, expired, cancelled
+  notes                String?
+  reviewedBy           String?  @map("reviewed_by") @db.Uuid
+  reviewedAt           DateTime? @map("reviewed_at")
+  rejectionReason      String?  @map("rejection_reason")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @default(now()) @map("updated_at")
 
-  @@index([userId, status])
+  subscriptions        Subscription[]
+
+  @@map("payments")
 }
 
-model Review {
-  id                    String   @id @default(uuid())
-  deliveryId            String
-  delivery              Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  reviewerId            String
-  reviewer              User     @relation("GivenReviews", fields: [reviewerId], references: [id])
-  revieweeId            String
-  reviewee              User     @relation("ReceivedReviews", fields: [revieweeId], references: [id])
-  rating                Int      // 1 to 5
-  punctualityRating     Int?
-  communicationRating   Int?
-  packageConditionRating Int?
-  comment               String?
-  createdAt             DateTime @default(now())
+model Subscription {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  user            Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentId       String?   @map("payment_id") @db.Uuid
+  payment         Payment?  @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  amount          Decimal   @default(1000) @db.Decimal(10, 2)
+  currency        String    @default("XOF")
+  status          String    @default("pending") // pending, active, expired, rejected, cancelled
+  startsAt        DateTime? @map("starts_at")
+  expiresAt       DateTime? @map("expires_at")
+  approvedBy      String?   @map("approved_by") @db.Uuid
+  approvedAt      DateTime? @map("approved_at")
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @map("updated_at")
+
+  @@map("subscriptions")
 }
 
-model Dispute {
-  id              String        @id @default(uuid())
-  disputeNumber   String        @unique // LIT-2026-0001
-  deliveryId      String
-  delivery        Delivery      @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  openedByUserId  String
-  openedByUser    User          @relation("UserDisputes", fields: [openedByUserId], references: [id])
-  category        String        // COLIS_NON_LIVRE, COLIS_ENDOMMAGE, RETARD, COMPORTEMENT_INAPPROPRIE, FRAUDE, AUTRE
-  description     String
-  evidenceUrls    String?       // JSON or comma separated URLs
-  status          String        @default("OUVERT") // OUVERT, EN_ANALYSE, RESOLU, REJETE
-  resolutionNotes String?
-  assignedAdminId String?
-  assignedAdmin   User?         @relation("AdminDisputes", fields: [assignedAdminId], references: [id])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+model DeliveryRequest {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clientId                String   @map("client_id") @db.Uuid
+  client                  Profile  @relation("ClientRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  pickupAddress           String   @map("pickup_address")
+  pickupCity              String?  @map("pickup_city")
+  pickupLatitude          Float?   @map("pickup_latitude")
+  pickupLongitude         Float?   @map("pickup_longitude")
+  pickupInstructions       String?  @map("pickup_instructions")
+  destinationAddress      String   @map("destination_address")
+  destinationCity         String?  @map("destination_city")
+  destinationLatitude     Float?   @map("destination_latitude")
+  destinationLongitude    Float?   @map("destination_longitude")
+  destinationInstructions String?  @map("destination_instructions")
+  recipientName           String   @map("recipient_name")
+  recipientPhone          String   @map("recipient_phone")
+  packageDescription      String   @map("package_description")
+  packageCategory         String?  @map("package_category")
+  packageWeight           Decimal? @map("package_weight") @db.Decimal(8, 2)
+  packageQuantity         Int      @default(1) @map("package_quantity")
+  packageSize             String?  @map("package_size")
+  requestedDate           DateTime? @map("requested_date") @db.Date
+  requestedTime           String?  @map("requested_time")
+  additionalInstructions  String?  @map("additional_instructions")
+  status                  String   @default("pending") // pending, searching_driver, driver_selected, driver_accepted, driver_arriving, package_picked_up, in_transit, delivered, completed, cancelled, failed
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @default(now()) @map("updated_at")
 
-  @@index([deliveryId])
-  @@index([openedByUserId])
-  @@index([status])
+  offers                  DeliveryOffer[]
+  assignments             DeliveryAssignment[]
+  trackingLogs            DeliveryTracking[]
+  statusHistory           DeliveryStatusHistory[]
+  conversations           Conversation[]
+  reviews                 Review[]
+  reports                 Report[]
+
+  @@map("delivery_requests")
 }
 
-model Report {
-  id             String   @id @default(uuid())
-  reporterId     String
-  reporter       User     @relation("Reporter", fields: [reporterId], references: [id])
-  reportedUserId String
-  reportedUser   User     @relation("ReportedUser", fields: [reportedUserId], references: [id])
-  reason         String
-  details        String?
-  status         String   @default("PENDING")
-  createdAt      DateTime @default(now())
+model DeliveryOffer {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId        String          @map("delivery_id") @db.Uuid
+  deliveryRequest   DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driverId          String          @map("driver_id") @db.Uuid
+  driver            DriverProfile   @relation("DriverOffers", fields: [driverId], references: [id], onDelete: Cascade)
+  proposedPrice     Decimal         @map("proposed_price") @db.Decimal(10, 2)
+  estimatedDuration Int?            @map("estimated_duration")
+  message           String?
+  status            String          @default("pending") // pending, accepted, rejected, withdrawn, expired
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @default(now()) @map("updated_at")
+
+  assignments       DeliveryAssignment[]
+
+  @@map("delivery_offers")
+}
+
+model DeliveryAssignment {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId  String          @map("delivery_id") @db.Uuid
+  delivery    DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driverId    String          @map("driver_id") @db.Uuid
+  driver      DriverProfile   @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: Cascade)
+  offerId     String?         @map("offer_id") @db.Uuid
+  offer       DeliveryOffer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  assignedAt  DateTime        @default(now()) @map("assigned_at")
+  acceptedAt  DateTime?       @map("accepted_at")
+  startedAt   DateTime?       @map("started_at")
+  pickedUpAt  DateTime?       @map("picked_up_at")
+  deliveredAt DateTime?       @map("delivered_at")
+  completedAt DateTime?       @map("completed_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @default(now()) @map("updated_at")
+
+  @@map("delivery_assignments")
+}
+
+model DeliveryTracking {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId String          @map("delivery_id") @db.Uuid
+  delivery   DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driverId   String          @map("driver_id") @db.Uuid
+  driver     DriverProfile   @relation("DriverTracking", fields: [driverId], references: [id], onDelete: Cascade)
+  latitude   Float
+  longitude  Float
+  accuracy   Float?
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@map("delivery_tracking")
+}
+
+model DeliveryStatusHistory {
+  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId String          @map("delivery_id") @db.Uuid
+  delivery   DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  status     String
+  changedBy  String?         @map("changed_by") @db.Uuid
+  note       String?
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@map("delivery_status_history")
+}
+
+model Conversation {
+  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId String?          @map("delivery_id") @db.Uuid
+  delivery   DeliveryRequest? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  clientId   String           @map("client_id") @db.Uuid
+  client     Profile          @relation("ClientConversations", fields: [clientId], references: [id], onDelete: Cascade)
+  driverId   String           @map("driver_id") @db.Uuid
+  driver     DriverProfile    @relation("DriverConversations", fields: [driverId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  messages   Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversationId String       @map("conversation_id") @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String       @map("sender_id") @db.Uuid
+  sender         Profile      @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  isRead         Boolean      @default(false) @map("is_read")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@map("messages")
 }
 
 model Notification {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title        String
-  message      String
-  type         String   // DELIVERY, SYSTEM, PAYMENT, DISPUTE
-  isRead       Boolean  @default(false)
-  metadataJson String?
-  createdAt    DateTime @default(now())
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      Profile  @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String?
+  relatedId String?  @map("related_id") @db.Uuid
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  @@index([userId, isRead])
+  @@map("notifications")
 }
 
-model AuditLog {
-  id           String   @id @default(uuid())
-  userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action       String
-  targetEntity String
-  targetId     String?
-  detailsJson  String?
-  ipAddress    String?  @default("127.0.0.1")
-  createdAt    DateTime @default(now())
+model Review {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId       String          @map("delivery_id") @db.Uuid
+  delivery         DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  reviewerId       String          @map("reviewer_id") @db.Uuid
+  reviewer         Profile         @relation("ReviewerUser", fields: [reviewerId], references: [id])
+  reviewedDriverId String          @map("reviewed_driver_id") @db.Uuid
+  reviewedDriver   DriverProfile   @relation("ReviewedDriverProfile", fields: [reviewedDriverId], references: [id])
+  rating           Int
+  comment          String?
+  createdAt        DateTime        @default(now()) @map("created_at")
 
-  @@index([userId])
-  @@index([createdAt])
+  @@map("reviews")
 }
 
-model SystemSetting {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  value       String
-  description String?
-  updatedAt   DateTime @updatedAt
+model Report {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId     String           @map("reporter_id") @db.Uuid
+  reporter       Profile          @relation("ReporterUser", fields: [reporterId], references: [id])
+  reportedUserId String?          @map("reported_user_id") @db.Uuid
+  reportedUser   Profile?         @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  deliveryId     String?          @map("delivery_id") @db.Uuid
+  delivery       DeliveryRequest? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  reason         String
+  description    String?
+  status         String           @default("pending") // pending, investigating, resolved, rejected
+  reviewedBy     String?          @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?        @map("reviewed_at")
+  resolutionNote String?          @map("resolution_note")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @map("updated_at")
+
+  @@map("reports")
+}
+
+model AdminAction {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String   @map("admin_id") @db.Uuid
+  admin       Profile  @relation("AdminActions", fields: [adminId], references: [id])
+  actionType  String   @map("action_type")
+  targetTable String?  @map("target_table")
+  targetId    String?  @map("target_id") @db.Uuid
+  oldData     Json?    @map("old_data")
+  newData     Json?    @map("new_data")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("admin_actions")
+}
+
+model PlatformSetting {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  settingKey   String   @map("setting_key")
+  settingValue Json     @map("setting_value")
+  description  String?
+  updatedBy    String?  @map("updated_by") @db.Uuid
+  updatedAt    DateTime @default(now()) @map("updated_at")
+
+  @@map("platform_settings")
 }

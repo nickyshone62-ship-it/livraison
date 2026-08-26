@@ -9,69 +9,80 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
     }
 
-    const { rating, punctualityRating, communicationRating, packageConditionRating, comment } = await req.json();
+    const { rating, comment } = await req.json();
+    const ratingVal = parseInt(rating, 10);
 
-    if (!rating || rating < 1 || rating > 5) {
-      return NextResponse.json({ error: 'Note entre 1 et 5 requise' }, { status: 400 });
+    if (isNaN(ratingVal) || ratingVal < 1 || ratingVal > 5) {
+      return NextResponse.json({ error: 'La note doit être comprise entre 1 et 5 étoiles.' }, { status: 400 });
     }
 
     const deliveryRequest = await db.deliveryRequest.findUnique({
       where: { id: params.id },
-      include: { delivery: { include: { driver: { include: { driver: true } } } } },
+      include: { assignments: true },
     });
 
-    if (!deliveryRequest || !deliveryRequest.delivery) {
+    if (!deliveryRequest) {
       return NextResponse.json({ error: 'Livraison introuvable' }, { status: 404 });
     }
 
-    const delivery = deliveryRequest.delivery;
+    if (deliveryRequest.clientId !== session.userId && session.role !== 'admin') {
+      return NextResponse.json({ error: 'Seul le client de la livraison peut soumettre une évaluation.' }, { status: 403 });
+    }
 
-    // Check if user already reviewed this delivery
+    const assignment = deliveryRequest.assignments[0];
+    if (!assignment || !assignment.driverId) {
+      return NextResponse.json({ error: 'Aucun livreur n\'a été attribué à cette livraison.' }, { status: 400 });
+    }
+
+    // Check if review already exists
     const existingReview = await db.review.findFirst({
       where: {
-        deliveryId: delivery.id,
-        reviewerId: String(session.userId),
+        deliveryId: params.id,
+        reviewerId: session.userId,
       },
     });
 
     if (existingReview) {
-      return NextResponse.json({ error: 'Vous avez déjà évalué cette livraison' }, { status: 400 });
+      return NextResponse.json({ error: 'Vous avez déjà évalué cette livraison.' }, { status: 400 });
     }
-
-    const revieweeId = session.userId === delivery.customerId ? delivery.driverId : delivery.customerId;
 
     const review = await db.review.create({
       data: {
-        deliveryId: delivery.id,
-        reviewerId: String(session.userId),
-        revieweeId,
-        rating: parseInt(rating),
-        punctualityRating: punctualityRating ? parseInt(punctualityRating) : null,
-        communicationRating: communicationRating ? parseInt(communicationRating) : null,
-        packageConditionRating: packageConditionRating ? parseInt(packageConditionRating) : null,
+        deliveryId: params.id,
+        reviewerId: session.userId,
+        reviewedDriverId: assignment.driverId,
+        rating: ratingVal,
         comment: comment || null,
       },
     });
 
-    // Update driver overall rating average if review is for a driver
-    const driverRecord = await db.driver.findUnique({ where: { userId: revieweeId } });
-    if (driverRecord) {
-      const allDriverReviews = await db.review.findMany({
-        where: { revieweeId },
-      });
-      const avg = allDriverReviews.reduce((acc, r) => acc + r.rating, 0) / allDriverReviews.length;
-      await db.driver.update({
-        where: { id: driverRecord.id },
+    // Update driver profile average rating and ratings count
+    const driverProfile = await db.driverProfile.findUnique({
+      where: { userId: assignment.driverId },
+    });
+
+    if (driverProfile) {
+      const currentTotal = driverProfile.totalRatings || 0;
+      const currentAvg = parseFloat(driverProfile.averageRating ? driverProfile.averageRating.toString() : '0');
+      const newTotal = currentTotal + 1;
+      const newAvg = ((currentAvg * currentTotal) + ratingVal) / newTotal;
+
+      await db.driverProfile.update({
+        where: { id: driverProfile.id },
         data: {
-          ratingAvg: Math.round(avg * 10) / 10,
-          ratingCount: allDriverReviews.length,
+          totalRatings: newTotal,
+          averageRating: newAvg,
         },
       });
     }
 
-    return NextResponse.json({ success: true, review });
+    return NextResponse.json({
+      success: true,
+      review,
+      message: 'Merci ! Votre évaluation a été enregistrée avec succès.',
+    });
   } catch (error: any) {
-    console.error('Error submitting review:', error);
-    return NextResponse.json({ error: 'Erreur lors de l\'enregistrement de l\'évaluation' }, { status: 500 });
+    console.error('Erreur soumission évaluation:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors de l\'enregistrement de l\'évaluation' }, { status: 500 });
   }
 }

@@ -25,8 +25,8 @@ export async function sendAdminNewUserAlertEmail(data: AdminUserAlertParams) {
   const roleLabel = data.role === 'LIVREUR' 
     ? '🛵 LIVREUR' 
     : data.role === 'COMMERCANT' 
-      ? '🏪 BOUTIQUE / COMMERÇANT' 
-      : '👤 CLIENT PARTICULIER';
+      ? '👤 CLIENT' 
+      : '👤 CLIENT';
 
   const htmlContent = `
     <!DOCTYPE html>

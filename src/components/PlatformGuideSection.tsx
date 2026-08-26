@@ -67,7 +67,7 @@ export function PlatformGuideSection({ onClose, onStartDelivery }: PlatformGuide
             <SparklesIcon className="w-6 h-6 text-blue-400" />
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 max-w-xl font-medium">
-            Découvrez comment notre réseau interconnecte expéditeurs, boutiques et livreurs professionnels à travers la capitale en toute transparence et sécurité.
+            Découvrez comment notre réseau interconnecte clients et livreurs professionnels à travers la capitale en toute transparence et sécurité.
           </p>
         </div>
 
