@@ -105,6 +105,28 @@ export async function PATCH(req: Request) {
       WHERE id = ${userId}::uuid
     `;
 
+    // Also update driver profile if driver
+    if (profile.role === 'driver') {
+      const driverVerificationStatus = newAccountStatus === 'active' ? 'approved' : newAccountStatus === 'suspended' ? 'suspended' : 'rejected';
+      await db.$executeRaw`
+        UPDATE public.driver_profiles
+        SET verification_status = ${driverVerificationStatus}::driver_verification_status, updated_at = NOW()
+        WHERE user_id = ${userId}::uuid
+      `;
+    }
+
+    // Log admin action in admin_actions
+    await db.adminAction.create({
+      data: {
+        adminId: session.userId,
+        actionType: `USER_${action.toUpperCase()}`,
+        targetTable: 'profiles',
+        targetId: userId,
+        oldData: { accountStatus: profile.accountStatus },
+        newData: { accountStatus: newAccountStatus, reason: reason || null },
+      },
+    });
+
     return NextResponse.json({
       success: true,
       message: `Action ${action} effectuée avec succès sur l'utilisateur.`,
