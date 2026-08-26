@@ -227,15 +227,15 @@ export default function HomePage() {
                   <div className="text-xs text-slate-400">Accès illimité aux demandes de courses</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-lg font-black text-amber-400">500 FCFA</div>
+                  <div className="text-lg font-black text-amber-400">1 000 FCFA</div>
                   <div className="text-[10px] text-slate-400">/ mois</div>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl bg-slate-800 border border-slate-700 flex justify-between items-center">
                 <div>
-                  <div className="font-bold text-white text-sm">Abonnement Commerçant / Boutique</div>
-                  <div className="text-xs text-slate-400">Gestion prioritaire et suivi administrateur</div>
+                  <div className="font-bold text-white text-sm">Abonnement Client</div>
+                  <div className="text-xs text-slate-400">Création et suivi illimité de livraisons</div>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-black text-amber-400">1 000 FCFA</div>
@@ -247,7 +247,7 @@ export default function HomePage() {
             <div className="pt-2">
               <button
                 onClick={handlePrimaryCTA}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition-colors text-sm"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl transition-colors text-sm cursor-pointer"
               >
                 Rejoindre la plateforme
               </button>

@@ -202,28 +202,16 @@ export default function WelcomeGuidePage() {
 
         {/* Tab 2: Features */}
         {activeTab === 'FEATURES' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-4">
               <div className="flex items-center gap-2 text-blue-400">
                 <Users className="w-6 h-6" />
-                <h3 className="font-extrabold text-white text-base">Espace Particulier</h3>
+                <h3 className="font-extrabold text-white text-base">Espace Client</h3>
               </div>
               <ul className="text-xs text-slate-400 space-y-3 font-medium">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Envois express de plis & cadeaux</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Estimation instantanée du prix</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Historique et suivi direct</li>
-              </ul>
-            </div>
-
-            <div className="p-6 bg-slate-900/90 border border-slate-800 rounded-3xl space-y-4">
-              <div className="flex items-center gap-2 text-amber-400">
-                <Store className="w-6 h-6" />
-                <h3 className="font-extrabold text-white text-base">Espace Commerçant</h3>
-              </div>
-              <ul className="text-xs text-slate-400 space-y-3 font-medium">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Cash On Delivery (Espèces à la livraison)</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Formules d'abonnements mensuels</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Factures & preuves numériques</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Envois express de plis, colis & marchandise</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Estimation instantanée & comparaison des offres livreurs</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" /> Suivi GPS en direct et sécurité par double code OTP</li>
               </ul>
             </div>
 
@@ -234,8 +222,8 @@ export default function WelcomeGuidePage() {
               </div>
               <ul className="text-xs text-slate-400 space-y-3 font-medium">
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Authentification KYC obligatoire</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Réception de courses en temps réel</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Portefeuille et virements réguliers</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Réception de demandes de livraisons en temps réel</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Abonnement mensuel fixe de 1 000 FCFA sans commission</li>
               </ul>
             </div>
           </div>

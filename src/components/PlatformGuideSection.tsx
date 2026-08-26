@@ -169,28 +169,16 @@ export function PlatformGuideSection({ onClose, onStartDelivery }: PlatformGuide
 
       {/* Tab Content 2: Features & Roles */}
       {activeTab === 'FEATURES' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-3">
             <div className="flex items-center gap-2 text-blue-400">
               <Users className="w-5 h-5" />
-              <h3 className="font-bold text-white text-sm">Pour les Particuliers</h3>
+              <h3 className="font-bold text-white text-sm">Pour les Clients</h3>
             </div>
             <ul className="text-xs text-slate-400 space-y-2 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Envoi de documents et clés en urgence</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Courses personnelles express à domicile</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Tarifs transparents sans hausse abusive</li>
-            </ul>
-          </div>
-
-          <div className="p-5 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-3">
-            <div className="flex items-center gap-2 text-amber-400">
-              <Store className="w-5 h-5" />
-              <h3 className="font-bold text-white text-sm">Pour les Commerçants</h3>
-            </div>
-            <ul className="text-xs text-slate-400 space-y-2 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Encaissement à la livraison (Cash on Delivery)</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Formules d'abonnements mensuels avantageuses</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> Reçus et factures numériques automatiques</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Envoi de colis, plis et commandes à domicile</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Choix libre du livreur et des tarifs proposés</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" /> Sécurité maximale grâce au double code OTP</li>
             </ul>
           </div>
 
@@ -200,9 +188,9 @@ export function PlatformGuideSection({ onClose, onStartDelivery }: PlatformGuide
               <h3 className="font-bold text-white text-sm">Pour les Livreurs</h3>
             </div>
             <ul className="text-xs text-slate-400 space-y-2 font-medium">
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Inscription rapide avec contrôle KYC</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Alertes en temps réel sur les opportunités proches</li>
-              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Paiements hebdomadaires garantis</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Inscription rapide avec contrôle KYC administrateur</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Alertes en temps réel sur les courses à proximité</li>
+              <li className="flex items-center gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> Formule unique d'abonnement à 1 000 FCFA / mois sans commission</li>
             </ul>
           </div>
         </div>
