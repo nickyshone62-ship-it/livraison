@@ -70,8 +70,8 @@ Ce document détaille le plan d'action étape par étape pour faire évoluer le 
   2. Réutilisation permanente de l'instance `PrismaClient` sur `globalThis` en production pour éviter la saturation des connexions Supabase.
   3. Envoi asynchrone non-bloquant avec timeout `AbortController` (2,5s max) pour les e-mails d'alerte.
   4. Création du fichier `vercel.json` configurant la région d'exécution des Serverless Functions à `fra1` (Francfort) au plus près de la base Supabase pour éliminer la latence réseau intercontinentale.
-- [ ] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et lancer le redéploiement.
-- [ ] Tester les parcours utilisateurs de bout en bout en ligne.
+- [x] Configurer les 3 variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`) sur Vercel et valider la compilation globale Next.js (55/55 pages générées avec succès).
+- [ ] Lancer les tests des parcours utilisateurs de bout en bout en ligne / sur le serveur local.
 
 ---
 
