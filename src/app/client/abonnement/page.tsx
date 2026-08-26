@@ -18,13 +18,12 @@ export default function ClientAbonnementPage() {
     setSuccess(false);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/subscriptions/renew', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'monthly_subscription',
           paymentMethod,
-          transactionReference,
+          userTxRef: transactionReference,
         }),
       });
 
