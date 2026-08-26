@@ -89,42 +89,75 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       data: { status: 'driver_selected' },
     });
 
-    // 4. Create DeliveryAssignment
+    // 4. Generate 2 secure unique OTP 6-digit codes server-side
+    const generateSecureOtp = () => {
+      const forbidden = ['123456', '000000', '111111', '222222', '333333', '444444', '555555', '666666', '777777', '888888', '999999', '654321'];
+      let code = '';
+      do {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+      } while (forbidden.includes(code));
+      return code;
+    };
+
+    const pickupOtp = generateSecureOtp();
+    let deliveryOtp = generateSecureOtp();
+    while (deliveryOtp === pickupOtp) {
+      deliveryOtp = generateSecureOtp();
+    }
+
+    // 5. Create DeliveryAssignment with OTP 1 and OTP 2
     const assignment = await db.deliveryAssignment.create({
       data: {
         deliveryId: params.id,
         driverId: selectedOffer.driverId,
         offerId: selectedOffer.id,
         assignedAt: new Date(),
+        pickupOtp,
+        deliveryOtp,
+        pickupOtpVerified: false,
+        deliveryOtpVerified: false,
+        pickupOtpAttempts: 0,
+        deliveryOtpAttempts: 0,
       },
     });
 
-    // 5. Update Driver status to BUSY (isAvailable = false)
+    // 6. Update Driver status to BUSY (isAvailable = false)
     await db.driverProfile.update({
       where: { id: selectedOffer.driverId },
       data: { isAvailable: false },
     });
 
-    // 6. Log status history
+    // 7. Log status history
     await db.deliveryStatusHistory.create({
       data: {
         deliveryId: params.id,
         status: 'driver_selected',
         changedBy: session.userId,
-        note: `Livreur ${selectedOffer.driver?.profile?.fullName || ''} sélectionné au montant de ${selectedOffer.proposedPrice} FCFA.`,
+        note: `Livreur ${selectedOffer.driver?.profile?.fullName || ''} sélectionné au montant de ${selectedOffer.proposedPrice} FCFA. CODES OTP 1 et OTP 2 générés.`,
       },
     });
 
-    // 7. Notify selected driver
+    // 8. Notify selected driver & client
     await db.notification.create({
       data: {
         userId: selectedOffer.driver.userId,
         title: '🎉 Proposition acceptée !',
-        message: `Votre proposition de ${selectedOffer.proposedPrice} FCFA a été acceptée par le client.`,
+        message: `Votre proposition de ${selectedOffer.proposedPrice} FCFA a été acceptée par le client. Rendez-vous au point de ramassage.`,
         type: 'delivery',
         relatedId: params.id,
       },
     });
+
+    await db.notification.create({
+      data: {
+        userId: deliveryRequest.clientId,
+        title: '🔒 Vos codes de sécurité OTP sont disponibles !',
+        message: `Livreur attribué. Vos codes OTP 1 (Récupération) et OTP 2 (Livraison) sont générés dans votre espace client.`,
+        type: 'delivery',
+        relatedId: params.id,
+      },
+    });
+
 
     // 8. Create Conversation for messaging if not exists
     const existingConversation = await db.conversation.findFirst({

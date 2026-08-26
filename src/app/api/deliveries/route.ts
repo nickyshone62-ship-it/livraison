@@ -55,7 +55,15 @@ export async function GET(req: Request) {
           },
           orderBy: { createdAt: 'desc' },
         });
-        return NextResponse.json({ assignments });
+
+        // Masquer impérativement les OTP pour le livreur
+        const sanitizedAssignments = assignments.map((a) => ({
+          ...a,
+          pickupOtp: undefined,
+          deliveryOtp: undefined,
+        }));
+
+        return NextResponse.json({ assignments: sanitizedAssignments });
       }
 
       // Default for driver: available open requests with status 'searching_driver' or 'pending'
@@ -112,6 +120,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Erreur lors du chargement des livraisons' }, { status: 500 });
   }
 }
+
 
 export async function POST(req: Request) {
   try {

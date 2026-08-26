@@ -41,6 +41,24 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return NextResponse.json({ error: 'Livraison introuvable' }, { status: 404 });
     }
 
+    const role = (session.role || 'client').toLowerCase();
+    const assignment = deliveryRequest.assignments[0];
+
+    // PROTECTION SERVEUR ANTI-CONTOURNEMENT DES OTP
+    if (role !== 'admin' && assignment) {
+      if (status === 'package_picked_up' && !assignment.pickupOtpVerified) {
+        return NextResponse.json({
+          error: 'Le statut ne peut pas être modifié vers "Colis récupéré" sans la saisie et validation du code OTP 1.'
+        }, { status: 400 });
+      }
+
+      if ((status === 'delivered' || status === 'completed') && !assignment.deliveryOtpVerified) {
+        return NextResponse.json({
+          error: 'La livraison ne peut pas être clôturée sans la saisie et validation du code OTP 2.'
+        }, { status: 400 });
+      }
+    }
+
     // Update delivery_request status
     const updatedRequest = await db.deliveryRequest.update({
       where: { id: params.id },
@@ -48,7 +66,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
 
     // Update assignment timestamps if driver assignment exists
-    const assignment = deliveryRequest.assignments[0];
     if (assignment) {
       const now = new Date();
       const updateData: any = {};
@@ -74,6 +91,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         });
       }
     }
+
 
     // Record in delivery_status_history
     await db.deliveryStatusHistory.create({

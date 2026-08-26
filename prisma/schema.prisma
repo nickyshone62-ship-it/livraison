@@ -202,24 +202,31 @@ model DeliveryOffer {
 }
 
 model DeliveryAssignment {
-  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  deliveryId  String          @map("delivery_id") @db.Uuid
-  delivery    DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
-  driverId    String          @map("driver_id") @db.Uuid
-  driver      DriverProfile   @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: Cascade)
-  offerId     String?         @map("offer_id") @db.Uuid
-  offer       DeliveryOffer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
-  assignedAt  DateTime        @default(now()) @map("assigned_at")
-  acceptedAt  DateTime?       @map("accepted_at")
-  startedAt   DateTime?       @map("started_at")
-  pickedUpAt  DateTime?       @map("picked_up_at")
-  deliveredAt DateTime?       @map("delivered_at")
-  completedAt DateTime?       @map("completed_at")
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @default(now()) @map("updated_at")
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryId          String          @map("delivery_id") @db.Uuid
+  delivery            DeliveryRequest @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  driverId            String          @map("driver_id") @db.Uuid
+  driver              DriverProfile   @relation("DriverAssignments", fields: [driverId], references: [id], onDelete: Cascade)
+  offerId             String?         @map("offer_id") @db.Uuid
+  offer               DeliveryOffer?  @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  assignedAt          DateTime        @default(now()) @map("assigned_at")
+  acceptedAt          DateTime?       @map("accepted_at")
+  startedAt           DateTime?       @map("started_at")
+  pickedUpAt          DateTime?       @map("picked_up_at")
+  deliveredAt         DateTime?       @map("delivered_at")
+  completedAt         DateTime?       @map("completed_at")
+  pickupOtp           String?         @map("pickup_otp")
+  deliveryOtp         String?         @map("delivery_otp")
+  pickupOtpVerified   Boolean         @default(false) @map("pickup_otp_verified")
+  deliveryOtpVerified Boolean         @default(false) @map("delivery_otp_verified")
+  pickupOtpAttempts   Int             @default(0) @map("pickup_otp_attempts")
+  deliveryOtpAttempts Int             @default(0) @map("delivery_otp_attempts")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @default(now()) @map("updated_at")
 
   @@map("delivery_assignments")
 }
+
 
 model DeliveryTracking {
   id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

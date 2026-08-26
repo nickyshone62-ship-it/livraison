@@ -67,6 +67,53 @@ export default function AdminLivraisonsPage() {
                   <div>De: <span className="text-white font-medium">{d.pickupAddress}</span></div>
                   <div>À: <span className="text-white font-medium">{d.destinationAddress}</span></div>
                 </div>
+
+                {/* AUDIT SÉCURITÉ OTP 1 ET OTP 2 ADMIN */}
+                {d.assignments && d.assignments.length > 0 && (
+                  <div className="pt-3 border-t border-slate-800 space-y-2">
+                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Traçabilité & Vérification OTP
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {/* OTP 1 */}
+                      <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                        <div className="text-slate-400 text-[10px]">OTP 1 (Récupération Point A)</div>
+                        <div className={`font-bold text-xs ${d.assignments[0].pickupOtpVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {d.assignments[0].pickupOtpVerified ? '✓ Validé' : '⏳ Non confirmé'}
+                        </div>
+                        {d.assignments[0].pickedUpAt && (
+                          <div className="text-[10px] text-slate-400">
+                            {new Date(d.assignments[0].pickedUpAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* OTP 2 */}
+                      <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                        <div className="text-slate-400 text-[10px]">OTP 2 (Livraison Point B)</div>
+                        <div className={`font-bold text-xs ${d.assignments[0].deliveryOtpVerified ? 'text-emerald-400' : 'text-sky-400'}`}>
+                          {d.assignments[0].deliveryOtpVerified ? '✓ Validé' : '⏳ Non confirmé'}
+                        </div>
+                        {d.assignments[0].deliveredAt && (
+                          <div className="text-[10px] text-slate-400">
+                            {new Date(d.assignments[0].deliveredAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* CALCUL DURÉE RÉELLE LIVRAISON */}
+                    {d.assignments[0].pickedUpAt && d.assignments[0].deliveredAt && (
+                      <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-between">
+                        <span>Durée réelle de livraison :</span>
+                        <span>
+                          {Math.max(1, Math.round((new Date(d.assignments[0].deliveredAt).getTime() - new Date(d.assignments[0].pickedUpAt).getTime()) / 60000))} min
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -75,3 +122,4 @@ export default function AdminLivraisonsPage() {
     </div>
   );
 }
+

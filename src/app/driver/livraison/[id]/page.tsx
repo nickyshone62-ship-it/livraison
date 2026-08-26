@@ -15,7 +15,9 @@ import {
   Clock,
   ExternalLink,
   Send,
-  AlertCircle
+  AlertCircle,
+  KeyRound,
+  X
 } from 'lucide-react';
 import { buildNavigationUrl } from '@/lib/mapUtils';
 import { Navbar } from '@/components/Navbar';
@@ -29,6 +31,12 @@ export default function ExecutionLivraisonDriverPage() {
   const [delivery, setDelivery] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Modales OTP
+  const [otpModalType, setOtpModalType] = useState<'PICKUP' | 'DELIVERY' | null>(null);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDelivery();
@@ -64,6 +72,46 @@ export default function ExecutionLivraisonDriverPage() {
       await fetchDelivery();
     } catch (err: any) {
       alert(err.message || 'Erreur mise à jour statut');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleOpenOtpModal = (type: 'PICKUP' | 'DELIVERY') => {
+    setOtpModalType(type);
+    setOtpInput('');
+    setOtpError(null);
+    setOtpSuccess(null);
+  };
+
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpModalType || !otpInput) return;
+
+    setActionLoading(true);
+    setOtpError(null);
+    setOtpSuccess(null);
+
+    try {
+      const res = await fetch(`/api/deliveries/${deliveryId}/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: otpModalType,
+          code: otpInput,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur de vérification');
+
+      setOtpSuccess(data.message || 'Code validé avec succès !');
+      setTimeout(async () => {
+        setOtpModalType(null);
+        await fetchDelivery();
+      }, 1200);
+    } catch (err: any) {
+      setOtpError(err.message || 'Code incorrect');
     } finally {
       setActionLoading(false);
     }
@@ -118,8 +166,7 @@ export default function ExecutionLivraisonDriverPage() {
     );
   }
 
-  const selectedOffer = delivery.offers?.find((o: any) => o.status === 'accepted');
-
+  const assignment = delivery.assignments?.[0];
   const pickupNavUrl = buildNavigationUrl(delivery.pickupLatitude, delivery.pickupLongitude, delivery.pickupAddress);
   const destinationNavUrl = buildNavigationUrl(delivery.destinationLatitude, delivery.destinationLongitude, delivery.destinationAddress);
 
@@ -134,7 +181,6 @@ export default function ExecutionLivraisonDriverPage() {
       case 'in_transit':
         return 3;
       case 'delivered':
-        return 4;
       case 'completed':
         return 5;
       default:
@@ -179,8 +225,8 @@ export default function ExecutionLivraisonDriverPage() {
             <div className={`p-2 rounded-lg ${currentStepNum >= 1 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'}`}>
               1. Départ
             </div>
-            <div className={`p-2 rounded-lg ${currentStepNum >= 2 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'}`}>
-              2. Récupéré
+            <div className={`p-2 rounded-lg ${assignment?.pickupOtpVerified ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 text-slate-400'}`}>
+              2. OTP 1 ✓
             </div>
             <div className={`p-2 rounded-lg ${currentStepNum >= 3 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'}`}>
               3. En route
@@ -188,8 +234,8 @@ export default function ExecutionLivraisonDriverPage() {
             <div className={`p-2 rounded-lg ${currentStepNum >= 4 ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-slate-100 text-slate-400'}`}>
               4. Arrivée
             </div>
-            <div className={`p-2 rounded-lg ${currentStepNum >= 5 ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 text-slate-400'}`}>
-              5. Livré
+            <div className={`p-2 rounded-lg ${assignment?.deliveryOtpVerified ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 text-slate-400'}`}>
+              5. OTP 2 ✓
             </div>
           </div>
         </div>
@@ -251,9 +297,9 @@ export default function ExecutionLivraisonDriverPage() {
           </button>
         </div>
 
-        {/* BOUTONS D'ACTION DU WORKFLOW */}
+        {/* BOUTONS D'ACTION DU WORKFLOW D'ÉTAPES AVEC OTP 1 ET OTP 2 */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Action suivante</div>
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Action suivante de la course</div>
 
           {delivery.status === 'driver_selected' && (
             <button
@@ -275,13 +321,15 @@ export default function ExecutionLivraisonDriverPage() {
             </button>
           )}
 
-          {delivery.status === 'driver_arriving' && (
+          {/* ÉTAPE OTP 1 : RAMASSAGE AU POINT A */}
+          {(delivery.status === 'driver_arriving' || (delivery.status === 'driver_accepted' && !assignment?.pickupOtpVerified)) && (
             <button
-              onClick={() => handleUpdateStatus('package_picked_up')}
+              onClick={() => handleOpenOtpModal('PICKUP')}
               disabled={actionLoading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-md cursor-pointer"
+              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              Colis récupéré au départ
+              <KeyRound className="w-5 h-5" />
+              <span>Saisir le Code OTP 1 — Récupération du colis</span>
             </button>
           )}
 
@@ -295,37 +343,99 @@ export default function ExecutionLivraisonDriverPage() {
             </button>
           )}
 
-          {delivery.status === 'in_transit' && (
+          {/* ÉTAPE OTP 2 : CONFIRMATION FINALE AU POINT B */}
+          {(delivery.status === 'in_transit' || (delivery.status === 'package_picked_up' && assignment?.pickupOtpVerified)) && !assignment?.deliveryOtpVerified && (
             <button
-              onClick={() => handleUpdateStatus('delivered')}
+              onClick={() => handleOpenOtpModal('DELIVERY')}
               disabled={actionLoading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md cursor-pointer"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              Colis remis au destinataire
+              <KeyRound className="w-5 h-5" />
+              <span>Saisir le Code OTP 2 — Valider la livraison finale</span>
             </button>
           )}
 
-          {delivery.status === 'delivered' && (
-            <button
-              onClick={() => handleUpdateStatus('completed')}
-              disabled={actionLoading}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold text-sm rounded-xl shadow-md cursor-pointer"
-            >
-              Paiement reçu & Clôturer la livraison
-            </button>
-          )}
-
-          {delivery.status === 'completed' && (
+          {(delivery.status === 'completed' || assignment?.deliveryOtpVerified) && (
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center flex items-center justify-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <span>Livraison terminée et clôturée avec succès !</span>
+              <span>Livraison confirmée et clôturée avec succès grâce aux deux OTP !</span>
             </div>
           )}
         </div>
 
       </main>
 
+      {/* MODALE SAISIE ET VÉRIFICATION DES CODES OTP 1 & OTP 2 */}
+      {otpModalType && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="max-w-md w-full bg-white border border-slate-200 p-6 rounded-2xl shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
+                <KeyRound className="w-5 h-5 text-amber-600" />
+                <span>
+                  {otpModalType === 'PICKUP' ? 'OTP 1 — Récupération du colis' : 'OTP 2 — Confirmation de livraison'}
+                </span>
+              </div>
+              <button onClick={() => setOtpModalType(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-slate-600 text-xs font-medium">
+              {otpModalType === 'PICKUP'
+                ? 'Demandez le code à 6 chiffres au client au point de ramassage.'
+                : 'Demandez le deuxième code à 6 chiffres au destinataire à l\'arrivée.'}
+            </p>
+
+            {otpError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center">
+                {otpError}
+              </div>
+            )}
+
+            {otpSuccess && (
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center">
+                {otpSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Entrez le code OTP 6 chiffres *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="Ex: 482731"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-center text-2xl font-mono font-black tracking-widest text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={actionLoading || otpInput.length < 6}
+                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
+              >
+                {actionLoading ? (
+                  <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>{otpModalType === 'PICKUP' ? 'Valider le code de récupération' : 'Confirmer la livraison'}</span>
+                    <Send className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
 
