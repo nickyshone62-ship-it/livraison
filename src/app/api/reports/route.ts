@@ -77,3 +77,73 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || 'Erreur lors de la création du signalement' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await getAuthSession();
+    if (!session || (session.role || '').toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs.' }, { status: 403 });
+    }
+
+    const { reportId, action, resolutionNote } = await req.json(); // action: 'investigate', 'resolve', 'reject'
+    if (!reportId || !action) {
+      return NextResponse.json({ error: 'L\'ID du signalement et l\'action sont requis.' }, { status: 400 });
+    }
+
+    const report = await db.report.findUnique({ where: { id: reportId } });
+    if (!report) {
+      return NextResponse.json({ error: 'Signalement introuvable.' }, { status: 404 });
+    }
+
+    let newStatus = report.status;
+    if (action === 'investigate') newStatus = 'investigating';
+    else if (action === 'resolve') newStatus = 'resolved';
+    else if (action === 'reject') newStatus = 'rejected';
+
+    const updatedReport = await db.report.update({
+      where: { id: reportId },
+      data: {
+        status: newStatus,
+        reviewedBy: session.userId,
+        reviewedAt: new Date(),
+        resolutionNote: resolutionNote || null,
+      },
+    });
+
+    // Log admin action in admin_actions
+    await db.adminAction.create({
+      data: {
+        adminId: session.userId,
+        actionType: `REPORT_${action.toUpperCase()}`,
+        targetTable: 'reports',
+        targetId: reportId,
+        oldData: { status: report.status },
+        newData: { status: newStatus, resolutionNote: resolutionNote || null },
+      },
+    });
+
+    // Notify reporter
+    await db.notification.create({
+      data: {
+        userId: report.reporterId,
+        title: '🛡️ Mise à jour de votre signalement',
+        message: action === 'resolve'
+          ? 'Votre signalement a été examiné et résolu par notre équipe d\'administration.'
+          : action === 'reject'
+          ? 'Votre signalement a été examiné. Aucune infraction n\'a été retenue.'
+          : 'Votre signalement est actuellement en cours d\'investigation par notre équipe.',
+        type: 'report',
+        relatedId: reportId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      report: updatedReport,
+      message: `Signalement ${newStatus} avec succès.`,
+    });
+  } catch (error: any) {
+    console.error('Erreur admin reports PATCH:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors du traitement du signalement' }, { status: 500 });
+  }
+}

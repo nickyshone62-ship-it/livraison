@@ -25,6 +25,10 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Livraison introuvable' }, { status: 404 });
     }
 
+    if (deliveryRequest.status !== 'completed') {
+      return NextResponse.json({ error: 'Une évaluation ne peut être soumise que pour une livraison réellement terminée.' }, { status: 400 });
+    }
+
     if (deliveryRequest.clientId !== session.userId && session.role !== 'admin') {
       return NextResponse.json({ error: 'Seul le client de la livraison peut soumettre une évaluation.' }, { status: 403 });
     }
