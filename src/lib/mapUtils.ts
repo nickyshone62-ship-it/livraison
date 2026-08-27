@@ -51,24 +51,35 @@ function isValidLatLong(lat: number, lng: number): boolean {
 }
 
 /**
- * Builds a universal map navigation URL for mobile & desktop devices.
+ * Builds a universal Google Maps navigation URL for mobile & desktop devices.
  */
 export function buildNavigationUrl(
   latitude?: number | null,
   longitude?: number | null,
   addressOrUrl?: string | null
 ): string {
-  if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  // 1. If explicit coordinates exist
+  if (latitude !== undefined && latitude !== null && longitude !== undefined && longitude !== null && !isNaN(latitude) && !isNaN(longitude)) {
+    return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
   }
 
   if (addressOrUrl && addressOrUrl.trim().length > 0) {
     const text = addressOrUrl.trim();
-    if (text.startsWith('http://') || text.startsWith('https://')) {
+
+    // 2. If it's already a full HTTP/HTTPS URL (Google Maps, maps.app.goo.gl, etc.)
+    if (/^https?:\/\//i.test(text)) {
       return text;
     }
+
+    // 3. Try to extract lat,lng coordinates from text
+    const coords = extractCoordinatesFromMapUrl(text);
+    if (coords) {
+      return `https://www.google.com/maps/search/?api=1&query=${coords.latitude},${coords.longitude}`;
+    }
+
+    // 4. Otherwise search query on Google Maps
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;
   }
 
-  return 'https://maps.google.com';
+  return 'https://www.google.com/maps';
 }

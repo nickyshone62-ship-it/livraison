@@ -15,10 +15,12 @@ import {
   Navigation,
   ShieldCheck,
   User,
-  ArrowRight
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
+import { buildNavigationUrl } from '@/lib/mapUtils';
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -220,17 +222,33 @@ export default function DriverDashboard() {
                     <p className="text-xs text-slate-500 mt-1">Client: {req.client?.fullName || 'Client'}</p>
                   </div>
 
-                  <div className="space-y-1 text-xs">
-                    <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                      <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>📍 {req.pickupAddress || 'Ouagadougou Centre'}</span>
+                  <div className="space-y-1.5 text-xs bg-slate-50 p-3 rounded-lg border border-slate-100">
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={buildNavigationUrl(req.pickupLatitude, req.pickupLongitude, req.pickupAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-amber-700 font-bold hover:underline"
+                      >
+                        <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>📍 {req.pickupAddress || 'Ouagadougou Centre'}</span>
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                      </a>
                     </div>
                     <div className="ml-2 pl-3 border-l-2 border-slate-200 text-slate-400 text-[11px] py-0.5">
                       ↓
                     </div>
-                    <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                      <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>🏁 {req.destinationAddress || 'Karpala'}</span>
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={buildNavigationUrl(req.destinationLatitude, req.destinationLongitude, req.destinationAddress)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-emerald-700 font-bold hover:underline"
+                      >
+                        <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>🏁 {req.destinationAddress || 'Karpala'}</span>
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                      </a>
                     </div>
                   </div>
 

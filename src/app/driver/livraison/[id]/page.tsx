@@ -243,18 +243,26 @@ export default function ExecutionLivraisonDriverPage() {
           <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm space-y-3">
             <div className="text-xs font-extrabold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
               <MapPin className="w-4 h-4" />
-              <span>📍 1. Aller au point de départ (Point A)</span>
+              <span>📍 1. Point de départ (Ramassage Point A)</span>
             </div>
-            <div className="text-sm font-bold text-slate-900 break-all">{delivery.pickupAddress}</div>
+            <a
+              href={pickupNavUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-bold text-amber-700 hover:text-amber-800 hover:underline break-all block flex items-center gap-1"
+            >
+              <span>{delivery.pickupAddress}</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 inline text-amber-600" />
+            </a>
             {delivery.pickupInstructions && <div className="text-xs text-slate-500">Note: {delivery.pickupInstructions}</div>}
 
             <a
               href={pickupNavUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm block text-center"
+              className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md block text-center"
             >
-              <span>Aller au point de départ</span>
+              <span>🗺️ Ouvrir localisation Google Maps (Point A)</span>
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>
@@ -263,18 +271,26 @@ export default function ExecutionLivraisonDriverPage() {
           <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm space-y-3">
             <div className="text-xs font-extrabold text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
               <Navigation className="w-4 h-4" />
-              <span>🏁 2. Aller au point d'arrivée (Point B)</span>
+              <span>🏁 2. Point d'arrivée (Destination Point B)</span>
             </div>
-            <div className="text-sm font-bold text-slate-900 break-all">{delivery.destinationAddress}</div>
+            <a
+              href={destinationNavUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-bold text-emerald-700 hover:text-emerald-800 hover:underline break-all block flex items-center gap-1"
+            >
+              <span>{delivery.destinationAddress}</span>
+              <ExternalLink className="w-3.5 h-3.5 shrink-0 inline text-emerald-600" />
+            </a>
             {delivery.destinationInstructions && <div className="text-xs text-slate-500">Note: {delivery.destinationInstructions}</div>}
 
             <a
               href={destinationNavUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold text-xs rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm block text-center"
+              className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-md block text-center"
             >
-              <span>Aller au point d'arrivée</span>
+              <span>🗺️ Ouvrir localisation Google Maps (Point B)</span>
               <ExternalLink className="w-4 h-4" />
             </a>
           </div>
