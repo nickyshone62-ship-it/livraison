@@ -115,6 +115,7 @@ export default function AdminDashboardPage() {
   const activeDriversCount = users.filter(u => u.role === 'driver' && u.driverProfile?.isAvailable).length;
   const pendingPayments = payments.filter(p => p.status === 'pending');
   const pendingDrivers = users.filter(u => u.role === 'driver' && u.driverProfile?.verificationStatus === 'pending');
+  const pendingClients = users.filter(u => u.role === 'client' && u.accountStatus === 'pending');
   const activeDeliveries = deliveries.filter(d => !['completed', 'cancelled', 'failed'].includes(d.status));
 
   const firstActiveDelivery = activeDeliveries[0];
@@ -161,8 +162,13 @@ export default function AdminDashboardPage() {
           <Link href="/admin/utilisateurs" className="pb-2 whitespace-nowrap hover:text-white">
             2. Utilisateurs ({users.length})
           </Link>
-          <Link href="/admin/clients" className="pb-2 whitespace-nowrap hover:text-white">
-            3. Clients ({clientsCount})
+          <Link href="/admin/clients" className="pb-2 whitespace-nowrap hover:text-white flex items-center gap-1">
+            <span>3. Clients ({clientsCount})</span>
+            {pendingClients.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+                {pendingClients.length}
+              </span>
+            )}
           </Link>
           <Link href="/admin/livreurs" className="pb-2 whitespace-nowrap hover:text-white flex items-center gap-1">
             <span>4. Livreurs ({driversCount})</span>
@@ -208,7 +214,14 @@ export default function AdminDashboardPage() {
           <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
             <div>
               <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Clients Inscrits</div>
-              <div className="text-2xl font-black text-slate-900 mt-1">{clientsCount}</div>
+              <div className="text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
+                <span>{clientsCount}</span>
+                {pendingClients.length > 0 && (
+                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    {pendingClients.length} en attente
+                  </span>
+                )}
+              </div>
             </div>
             <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
               <Users className="w-5 h-5" />
@@ -270,7 +283,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* FILES D'ATTENTE DES ACTIONS ADMINISTRATIVES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* FILE 1 : PAIEMENTS À VALIDER */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
@@ -311,12 +324,46 @@ export default function AdminDashboardPage() {
             )}
           </div>
 
-          {/* FILE 2 : LIVREURS À VÉRIFIER (KYC) */}
+          {/* FILE 2 : CLIENTS À VALIDER (CNI & DOSSIER) */}
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-600" />
+                <span>Inscriptions Clients ({pendingClients.length})</span>
+              </h3>
+              <Link href="/admin/clients" className="text-xs text-amber-600 hover:underline font-bold">
+                Voir tout →
+              </Link>
+            </div>
+
+            {pendingClients.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center">Toutes les inscriptions clients sont traitées.</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingClients.map((c) => (
+                  <div key={c.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-slate-900">{c.fullName || 'Client'}</div>
+                      <div className="text-slate-500">Tél: {c.phone || 'N/A'} | CNI: {c.cniRectoUrl ? 'Oui' : 'Non'}</div>
+                    </div>
+                    <Link
+                      href="/admin/clients"
+                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded text-[11px] flex items-center gap-1 shadow-sm"
+                    >
+                      <span>Inspecter CNI</span>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* FILE 3 : LIVREURS À VÉRIFIER (KYC) */}
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Dossiers Livreurs KYC à Vérifier ({pendingDrivers.length})</span>
+                <span>Livreurs KYC ({pendingDrivers.length})</span>
               </h3>
             </div>
 

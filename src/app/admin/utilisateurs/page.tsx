@@ -190,20 +190,20 @@ export default function AdminUtilisateursPage() {
                         </div>
 
                         {u.role === 'driver' && (
-                          <>
-                            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
-                              <div className="font-bold text-orange-400 text-sm">Véhicule Déclaré :</div>
-                              {vehicles.length > 0 ? (
-                                <>
-                                  <div>Type: <strong className="text-white uppercase">{vehicles[0].vehicleType}</strong></div>
-                                  <div>Marque: <strong className="text-white">{vehicles[0].brand || 'N/A'}</strong></div>
-                                  <div>Modèle: <strong className="text-white">{vehicles[0].model || 'N/A'}</strong></div>
-                                  <div>Couleur: <strong className="text-white">{vehicles[0].color || 'N/A'}</strong></div>
-                                </>
-                              ) : (
-                                <div className="text-slate-500">Aucun véhicule enregistré.</div>
-                              )}
-                            </div>
+                          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+                            <div className="font-bold text-orange-400 text-sm">Véhicule Déclaré :</div>
+                            {vehicles.length > 0 ? (
+                              <>
+                                <div>Type: <strong className="text-white uppercase">{vehicles[0].vehicleType}</strong></div>
+                                <div>Marque: <strong className="text-white">{vehicles[0].brand || 'N/A'}</strong></div>
+                                <div>Modèle: <strong className="text-white">{vehicles[0].model || 'N/A'}</strong></div>
+                                <div>Couleur: <strong className="text-white">{vehicles[0].color || 'N/A'}</strong></div>
+                              </>
+                            ) : (
+                              <div className="text-slate-500">Aucun véhicule enregistré.</div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Photos & Pièces d'identité Client ou Livreur */}
                         {(() => {
@@ -300,8 +300,6 @@ export default function AdminUtilisateursPage() {
                             </div>
                           );
                         })()}
-                          </>
-                        )}
                       </div>
                     </div>
                   )}
