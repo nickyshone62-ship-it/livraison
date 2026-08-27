@@ -106,10 +106,52 @@ export async function GET() {
         payments: profile.payments,
       },
     });
-    res.headers.set('Cache-Control', 'private, max-age=3, stale-while-revalidate=5');
+
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     return res;
   } catch (error: any) {
     console.error('Erreur me route:', error);
     return NextResponse.json({ error: 'Erreur lors de la récupération du profil' }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const session = await getAuthSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { isAvailable, fullName, phone, city, address } = body;
+
+    if (isAvailable !== undefined) {
+      await db.$executeRaw`
+        UPDATE public.driver_profiles
+        SET is_available = ${Boolean(isAvailable)}, updated_at = NOW()
+        WHERE user_id = ${session.userId}::uuid
+      `;
+    }
+
+    if (fullName || phone || city || address) {
+      await db.$executeRaw`
+        UPDATE public.profiles
+        SET 
+          full_name = COALESCE(${fullName || null}, full_name),
+          phone = COALESCE(${phone || null}, phone),
+          city = COALESCE(${city || null}, city),
+          address = COALESCE(${address || null}, address),
+          updated_at = NOW()
+        WHERE id = ${session.userId}::uuid
+      `;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Profil et statut mis à jour avec succès.',
+    });
+  } catch (error: any) {
+    console.error('Erreur PATCH me route:', error);
+    return NextResponse.json({ error: error.message || 'Erreur lors de la mise à jour' }, { status: 500 });
   }
 }
