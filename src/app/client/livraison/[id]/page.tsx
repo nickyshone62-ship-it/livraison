@@ -34,8 +34,8 @@ export default function DetailLivraisonClientPage() {
   const [actionLoading, setActionLoading] = useState(false);
 
   // OTP Visibility & Copy states
-  const [showOtp1, setShowOtp1] = useState(false);
-  const [showOtp2, setShowOtp2] = useState(false);
+  const [showOtp1, setShowOtp1] = useState(true);
+  const [showOtp2, setShowOtp2] = useState(true);
   const [copiedOtp, setCopiedOtp] = useState<string | null>(null);
 
   const handleCopyOtp = (code: string, label: string) => {

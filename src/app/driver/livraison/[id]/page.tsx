@@ -17,7 +17,9 @@ import {
   Send,
   AlertCircle,
   KeyRound,
-  X
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { buildNavigationUrl } from '@/lib/mapUtils';
 import { Navbar } from '@/components/Navbar';
@@ -35,6 +37,7 @@ export default function ExecutionLivraisonDriverPage() {
   // Modales OTP
   const [otpModalType, setOtpModalType] = useState<'PICKUP' | 'DELIVERY' | null>(null);
   const [otpInput, setOtpInput] = useState('');
+  const [showOtpInputText, setShowOtpInputText] = useState(true);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
 
@@ -412,15 +415,28 @@ export default function ExecutionLivraisonDriverPage() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Entrez le code OTP 6 chiffres *
                 </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  value={otpInput}
-                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Ex: 482731"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-center text-2xl font-mono font-black tracking-widest text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showOtpInputText ? "text" : "password"}
+                    required
+                    maxLength={6}
+                    value={otpInput}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Ex: 482731"
+                    className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-300 rounded-xl text-center text-2xl font-mono font-black tracking-widest text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowOtpInputText(!showOtpInputText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-slate-900 transition-colors"
+                    title={showOtpInputText ? "Masquer les chiffres" : "Afficher les chiffres"}
+                  >
+                    {showOtpInputText ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="text-[11px] text-slate-500 font-semibold mt-1 text-center">
+                  Vérifiez attentivement les 6 chiffres saisis avant de valider.
+                </div>
               </div>
 
               <button

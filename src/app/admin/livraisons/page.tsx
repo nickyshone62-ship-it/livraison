@@ -78,13 +78,16 @@ export default function AdminLivraisonsPage() {
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       {/* OTP 1 */}
                       <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                        <div className="text-slate-400 text-[10px]">OTP 1 (Récupération Point A)</div>
-                        <div className={`font-bold text-xs ${d.assignments[0].pickupOtpVerified ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {d.assignments[0].pickupOtpVerified ? '✓ Validé' : '⏳ Non confirmé'}
+                        <div className="text-slate-400 text-[10px]">OTP 1 (Ramassage Point A)</div>
+                        <div className="font-mono text-sm font-black text-amber-400">
+                          {d.assignments[0].pickupOtp || 'N/A'}
+                        </div>
+                        <div className={`font-bold text-[11px] ${d.assignments[0].pickupOtpVerified ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          {d.assignments[0].pickupOtpVerified ? '✓ Validé par le livreur' : '⏳ Non confirmé'}
                         </div>
                         {d.assignments[0].pickedUpAt && (
-                          <div className="text-[10px] text-slate-400">
-                            {new Date(d.assignments[0].pickedUpAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="text-[10px] text-slate-500">
+                            Validé à {new Date(d.assignments[0].pickedUpAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         )}
                       </div>
@@ -92,12 +95,15 @@ export default function AdminLivraisonsPage() {
                       {/* OTP 2 */}
                       <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                         <div className="text-slate-400 text-[10px]">OTP 2 (Livraison Point B)</div>
-                        <div className={`font-bold text-xs ${d.assignments[0].deliveryOtpVerified ? 'text-emerald-400' : 'text-sky-400'}`}>
-                          {d.assignments[0].deliveryOtpVerified ? '✓ Validé' : '⏳ Non confirmé'}
+                        <div className="font-mono text-sm font-black text-sky-400">
+                          {d.assignments[0].deliveryOtp || 'N/A'}
+                        </div>
+                        <div className={`font-bold text-[11px] ${d.assignments[0].deliveryOtpVerified ? 'text-emerald-400' : 'text-slate-400'}`}>
+                          {d.assignments[0].deliveryOtpVerified ? '✓ Validé à la livraison' : '⏳ Non confirmé'}
                         </div>
                         {d.assignments[0].deliveredAt && (
-                          <div className="text-[10px] text-slate-400">
-                            {new Date(d.assignments[0].deliveredAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="text-[10px] text-slate-500">
+                            Validé à {new Date(d.assignments[0].deliveredAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         )}
                       </div>
