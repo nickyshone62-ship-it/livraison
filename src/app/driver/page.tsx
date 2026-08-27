@@ -48,6 +48,11 @@ export default function DriverDashboard() {
       setUser(dataMe.user);
       setIsAvailable(dataMe.user?.driverProfile?.isAvailable ?? true);
 
+      if (dataMe.user?.accountStatus === 'pending') {
+        router.push('/attente-validation');
+        return;
+      }
+
       const resReq = await fetch('/api/deliveries');
       if (resReq.ok) {
         const dataReq = await resReq.json();

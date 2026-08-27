@@ -28,6 +28,11 @@ export default function ClientDashboard() {
       const dataMe = await resMe.json();
       setUser(dataMe.user);
 
+      if (dataMe.user?.accountStatus === 'pending') {
+        router.push('/attente-validation');
+        return;
+      }
+
       const resDeliv = await fetch('/api/deliveries');
       if (resDeliv.ok) {
         const dataDeliv = await resDeliv.json();

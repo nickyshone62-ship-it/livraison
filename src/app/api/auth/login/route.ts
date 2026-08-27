@@ -96,16 +96,16 @@ export async function POST(req: Request) {
           { status: 403 }
         );
       }
-      if (accountStatus === 'pending') {
-        return NextResponse.json(
-          { error: 'Votre compte est en attente de validation par un administrateur.', accountStatus: 'pending' },
-          { status: 403 }
-        );
-      }
     }
 
     // 5. Determine Redirect Route
-    const redirectUrl = role === 'admin' ? '/admin' : role === 'driver' ? '/driver' : '/client';
+    const redirectUrl = accountStatus === 'pending'
+      ? '/attente-validation'
+      : role === 'admin'
+      ? '/admin'
+      : role === 'driver'
+      ? '/driver'
+      : '/client';
 
     const tokenPayload = {
       userId: userRow.id,
