@@ -12,6 +12,7 @@ export async function GET(req: Request) {
     }
 
     const userId = session.userId;
+    const role = (session.role || 'client').toLowerCase();
 
     const conversations = await db.conversation.findMany({
       where: {
@@ -55,52 +56,5 @@ export async function GET(req: Request) {
   } catch (error: any) {
     console.error('Erreur liste conversations:', error);
     return NextResponse.json({ error: 'Erreur lors du chargement des conversations' }, { status: 500 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const session = await getAuthSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-    }
-
-    const { deliveryId, recipientId } = await req.json();
-    if (!deliveryId) {
-      return NextResponse.json({ error: 'Identifiant de livraison requis' }, { status: 400 });
-    }
-
-    const delivery = await db.deliveryRequest.findUnique({
-      where: { id: deliveryId },
-    });
-
-    if (!delivery) {
-      return NextResponse.json({ error: 'Livraison introuvable' }, { status: 404 });
-    }
-
-    const clientId = delivery.clientId;
-    const driverUserId = session.role === 'driver' ? session.userId : (recipientId || session.userId);
-
-    // Find existing conversation for this delivery
-    let conversation = await db.conversation.findFirst({
-      where: {
-        deliveryId,
-      },
-    });
-
-    if (!conversation) {
-      conversation = await db.conversation.create({
-        data: {
-          deliveryId,
-          clientId,
-          driverId: driverUserId,
-        },
-      });
-    }
-
-    return NextResponse.json({ success: true, conversation });
-  } catch (error: any) {
-    console.error('Erreur création conversation:', error);
-    return NextResponse.json({ error: error.message || 'Erreur lors de la création de la conversation' }, { status: 500 });
   }
 }
