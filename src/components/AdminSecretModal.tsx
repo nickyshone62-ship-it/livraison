@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Truck, KeyRound } from 'lucide-react';
+import { ShieldCheck, Truck, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 interface AdminSecretModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface AdminSecretModalProps {
 export function AdminSecretModal({ isOpen, onClose }: AdminSecretModalProps) {
   const router = useRouter();
   const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -83,14 +84,22 @@ export function AdminSecretModal({ isOpen, onClose }: AdminSecretModalProps) {
               <KeyRound className="w-5 h-5" />
             </div>
             <input
-              type="password"
+              type={showCode ? 'text' : 'password'}
               required
               autoFocus
               value={adminCodeInput}
               onChange={(e) => setAdminCodeInput(e.target.value)}
               placeholder="Code secret..."
-              className="w-full pl-12 pr-4 py-3.5 text-center text-lg font-bold font-mono bg-slate-950 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+              className="w-full pl-12 pr-12 py-3.5 text-center text-lg font-bold font-mono bg-slate-950 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
             />
+            <button
+              type="button"
+              onClick={() => setShowCode(!showCode)}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+              title={showCode ? 'Masquer le code secret' : 'Afficher le code secret'}
+            >
+              {showCode ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
           </div>
 
           <div className="flex gap-3">
