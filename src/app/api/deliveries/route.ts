@@ -171,6 +171,21 @@ export async function POST(req: Request) {
     const pQty = packageQuantity ? parseInt(packageQuantity, 10) : 1;
     const reqDate = requestedDate ? new Date(requestedDate) : new Date();
 
+    const generateSecureOtp = () => {
+      const forbidden = ['123456', '000000', '111111', '222222', '333333', '444444', '555555', '666666', '777777', '888888', '999999', '654321'];
+      let code = '';
+      do {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+      } while (forbidden.includes(code));
+      return code;
+    };
+
+    const initialPickupOtp = generateSecureOtp();
+    let initialDeliveryOtp = generateSecureOtp();
+    while (initialDeliveryOtp === initialPickupOtp) {
+      initialDeliveryOtp = generateSecureOtp();
+    }
+
     let deliveryRequest;
     try {
       deliveryRequest = await db.deliveryRequest.create({
@@ -225,8 +240,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      deliveryRequest,
-      message: 'Votre demande est maintenant visible par les livreurs disponibles.',
+      deliveryRequest: {
+        ...deliveryRequest,
+        initialPickupOtp,
+        initialDeliveryOtp,
+      },
+      message: 'Votre demande est publiée. Vos codes OTP 1 (Récupération Point A) et OTP 2 (Livraison Point B) sont réservés.',
     });
   } catch (error: any) {
     console.error('Erreur création livraison:', error);

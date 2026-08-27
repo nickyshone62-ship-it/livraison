@@ -17,7 +17,8 @@ import {
   Navigation,
   Phone,
   Truck,
-  Check
+  Check,
+  Copy
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
@@ -32,9 +33,17 @@ export default function DetailLivraisonClientPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // OTP Visibility states
+  // OTP Visibility & Copy states
   const [showOtp1, setShowOtp1] = useState(false);
   const [showOtp2, setShowOtp2] = useState(false);
+  const [copiedOtp, setCopiedOtp] = useState<string | null>(null);
+
+  const handleCopyOtp = (code: string, label: string) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedOtp(label);
+    setTimeout(() => setCopiedOtp(null), 2000);
+  };
 
   // Formulaire d'avis
   const [rating, setRating] = useState(5);
@@ -264,6 +273,17 @@ export default function DetailLivraisonClientPage() {
                     >
                       {showOtp1 ? 'Masquer' : 'Afficher'}
                     </button>
+                    {delivery.assignments?.[0]?.pickupOtp && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyOtp(delivery.assignments[0].pickupOtp, 'OTP1')}
+                        className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Copier le code OTP 1"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedOtp === 'OTP1' ? 'Copié !' : 'Copier'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -271,7 +291,7 @@ export default function DetailLivraisonClientPage() {
                 <div className="p-4 rounded-xl bg-sky-50/60 border border-sky-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-sky-900 text-xs uppercase tracking-wider">
-                      CODE 2 — LIVRAISON FINALE
+                      CODE 2 — LIVRAISON FINALE (Point B)
                     </span>
                     <span className={`text-[11px] font-black px-2 py-0.5 rounded ${
                       delivery.assignments?.[0]?.deliveryOtpVerified
@@ -297,6 +317,17 @@ export default function DetailLivraisonClientPage() {
                     >
                       {showOtp2 ? 'Masquer' : 'Afficher'}
                     </button>
+                    {delivery.assignments?.[0]?.deliveryOtp && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyOtp(delivery.assignments[0].deliveryOtp, 'OTP2')}
+                        className="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Copier le code OTP 2"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedOtp === 'OTP2' ? 'Copié !' : 'Copier'}</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-2 rounded bg-amber-100/80 border border-amber-300 text-[11px] font-bold text-amber-900 flex items-center gap-1.5">

@@ -64,6 +64,7 @@ export default function NouvelleLivraisonPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdDelivery, setCreatedDelivery] = useState<any | null>(null);
 
   // Extraction GPS Départ (Lien 1)
   const handlePickupAddressChange = (val: string) => {
@@ -159,7 +160,11 @@ export default function NouvelleLivraisonPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erreur lors de la création de la livraison');
 
-      router.push(`/client/livraison/${data.deliveryRequest.id}`);
+      if (data.deliveryRequest) {
+        setCreatedDelivery(data.deliveryRequest);
+      } else {
+        router.push('/client');
+      }
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la soumission');
     } finally {
@@ -628,6 +633,70 @@ export default function NouvelleLivraisonPage() {
         </form>
 
       </main>
+
+      {/* MODALE DE CONFIRMATION AVEC CODES OTP 1 ET OTP 2 POUR LE CLIENT */}
+      {createdDelivery && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="max-w-lg w-full bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-6 text-[#004D40]">
+            
+            <div className="text-center space-y-2">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-md border-2 border-emerald-300">
+                🎉
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900">Demande Publiée avec Succès !</h2>
+              <p className="text-xs text-slate-600 font-medium">
+                Votre demande de livraison est maintenant en ligne et visible par les livreurs à Ouagadougou.
+              </p>
+            </div>
+
+            {/* BOX DES CODES OTP 1 & OTP 2 */}
+            <div className="bg-slate-50 p-5 rounded-2xl border-2 border-amber-200 space-y-4">
+              <div className="font-extrabold text-xs uppercase tracking-wider text-amber-900 flex items-center justify-between">
+                <span>🔒 Vos Codes de Sécurité OTP (À conserver)</span>
+                <span className="bg-amber-200 px-2 py-0.5 rounded text-[10px]">Confidentiels</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* OTP 1 */}
+                <div className="p-3 rounded-xl bg-white border border-amber-300 text-center space-y-1 shadow-sm">
+                  <div className="text-[11px] font-black text-amber-800 uppercase">OTP 1 — RAMASSAGE (Point A)</div>
+                  <div className="font-mono text-2xl font-black text-slate-900 tracking-widest">
+                    {createdDelivery.initialPickupOtp || '--- ---'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-bold">À donner au livreur au départ</div>
+                </div>
+
+                {/* OTP 2 */}
+                <div className="p-3 rounded-xl bg-white border border-sky-300 text-center space-y-1 shadow-sm">
+                  <div className="text-[11px] font-black text-sky-800 uppercase">OTP 2 — LIVRAISON (Point B)</div>
+                  <div className="font-mono text-2xl font-black text-slate-900 tracking-widest">
+                    {createdDelivery.initialDeliveryOtp || '--- ---'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-bold">À donner au livreur à l'arrivée</div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-100/70 border border-amber-300 text-[11px] font-bold text-amber-950 leading-relaxed">
+                ℹ️ <strong>Instructions :</strong>
+                <ul className="list-disc list-inside mt-1 space-y-1 font-semibold text-slate-700">
+                  <li><strong>OTP 1</strong> : Le livreur le saisira sur son téléphone lors de la collecte du colis. L'admin verra qu'il est arrivé au Point A.</li>
+                  <li><strong>OTP 2</strong> : Le livreur le saisira lors de la remise au destinataire. L'admin saura que la tâche est terminée.</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => router.push(`/client/livraison/${createdDelivery.id}`)}
+              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-sm uppercase rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>Accéder au Suivi & Choisir mon Livreur</span>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
