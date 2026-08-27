@@ -205,12 +205,20 @@ export default function AdminUtilisateursPage() {
                               )}
                             </div>
 
-                            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                        {/* Photos & Pièces d'identité Client ou Livreur */}
+                        {(() => {
+                          const userDocs = u.role === 'driver' ? docs : [
+                            ...(u.cniRectoUrl ? [{ id: '', documentType: 'identity_card_recto', fileUrl: u.cniRectoUrl }] : []),
+                            ...(u.cniVersoUrl ? [{ id: '', documentType: 'identity_card_verso', fileUrl: u.cniVersoUrl }] : []),
+                          ];
+
+                          return (
+                            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 md:col-span-2 lg:col-span-1">
                               <div className="font-bold text-cyan-400 text-sm flex items-center justify-between flex-wrap gap-2">
-                                <span>Photos & Pièces KYC ({docs.length}) :</span>
-                                {docs.length > 0 && (
+                                <span>Pièces d'identité CNI ({userDocs.length}) :</span>
+                                {userDocs.length > 0 && (
                                   <button
-                                    onClick={() => downloadAllUserPhotos(docs, u.fullName)}
+                                    onClick={() => downloadAllUserPhotos(userDocs, u.fullName)}
                                     className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] flex items-center gap-1 border border-emerald-400/30 cursor-pointer shadow-sm"
                                   >
                                     <FolderDown className="w-3.5 h-3.5" />
@@ -219,9 +227,9 @@ export default function AdminUtilisateursPage() {
                                 )}
                               </div>
 
-                              {docs.length > 0 ? (
+                              {userDocs.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {docs.map((doc: any) => {
+                                  {userDocs.map((doc: any, idx: number) => {
                                     const labelMap: Record<string, string> = {
                                       identity_card_recto: "CNI (Face RECTO)",
                                       identity_card_verso: "CNI (Face VERSO)",
@@ -233,7 +241,7 @@ export default function AdminUtilisateursPage() {
                                     const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
 
                                     return (
-                                      <div key={doc.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between">
+                                      <div key={doc.id || idx} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between">
                                         <div className="text-[11px] font-bold text-slate-300 truncate">{title}</div>
                                         {fileUrl ? (
                                           <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-28 flex items-center justify-center">
@@ -290,6 +298,8 @@ export default function AdminUtilisateursPage() {
                                 <div className="text-slate-500 italic text-xs">Aucune photo téléversée.</div>
                               )}
                             </div>
+                          );
+                        })()}
                           </>
                         )}
                       </div>

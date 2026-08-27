@@ -44,6 +44,8 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
   const [lastName, setLastName] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [idCardFileUrl, setIdCardFileUrl] = useState('');
+  const [idCardRectoUrl, setIdCardRectoUrl] = useState('');
+  const [idCardVersoUrl, setIdCardVersoUrl] = useState('');
   const [idCardNumber, setIdCardNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('MOTO');
   const [brand, setBrand] = useState('Yamaha');
@@ -301,8 +303,10 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
       }
 
       if (role === 'CLIENT') {
-        if (!idCardFileUrl) {
-          throw new Error('La photo de la pièce d\'identité (CNIB / Passeport) du gérant est obligatoire.');
+        const recto = idCardRectoUrl || idCardFileUrl;
+        const verso = idCardVersoUrl || idCardFileUrl;
+        if (!recto || !verso) {
+          throw new Error('La photo de la pièce d\'identité (Face RECTO et Face VERSO) est obligatoire pour le client.');
         }
       }
 
@@ -313,8 +317,10 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
         if (!photoUrl) {
           throw new Error('La photo de profil est obligatoire (Veuillez importer une image).');
         }
-        if (!idCardFileUrl) {
-          throw new Error('La photo de la pièce d\'identité (recto-verso) ou du passeport est obligatoire.');
+        const recto = idCardRectoUrl || idCardFileUrl;
+        const verso = idCardVersoUrl || idCardFileUrl;
+        if (!recto || !verso) {
+          throw new Error('La photo de la pièce d\'identité (Face RECTO et Face VERSO) est obligatoire.');
         }
         if (!brand.trim()) {
           throw new Error('La marque et le modèle du véhicule sont obligatoires.');
@@ -341,7 +347,9 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
           companyName: companyName || null,
           photoUrl: photoUrl || null,
           idCardNumber: idCardNumber.trim(),
-          idCardFileUrl: idCardFileUrl || null,
+          idCardFileUrl: idCardRectoUrl || idCardFileUrl || null,
+          idCardRectoUrl: idCardRectoUrl || idCardFileUrl || null,
+          idCardVersoUrl: idCardVersoUrl || idCardFileUrl || null,
           vehicleType,
           brand,
           vehiclePhotoUrl: vehiclePhotoUrl || null,
@@ -698,42 +706,74 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                         />
                       </div>
 
-                      {/* Photo de la pièce du gérant en second */}
-                      <div className="space-y-2">
-                        <label className="block text-xs font-black uppercase text-[#004D40]">
-                          Photo de la Pièce d'Identité du Gérant (CNIB / Passeport) * :
-                        </label>
-
+                      {/* Photo Recto & Verso de la pièce du gérant */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        {/* Recto */}
                         <div className="space-y-2 bg-white p-4 rounded-2xl border border-teal-200">
-                          {idCardFileUrl ? (
+                          <label className="block text-xs font-black uppercase text-[#004D40]">
+                            1. Face RECTO * :
+                          </label>
+                          {idCardRectoUrl ? (
                             <div className="relative">
-                              <img src={idCardFileUrl} alt="Aperçu Pièce Gérant" className="w-full max-h-48 object-cover rounded-xl border-2 border-[#009688] shadow-md" />
+                              <img src={idCardRectoUrl} alt="Aperçu RECTO" className="w-full max-h-36 object-cover rounded-xl border-2 border-[#009688] shadow-md" />
                               <button
                                 type="button"
-                                onClick={() => setIdCardFileUrl('')}
-                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full px-3 py-1 text-xs font-bold shadow-md"
+                                onClick={() => setIdCardRectoUrl('')}
+                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full px-2 py-0.5 text-[10px] font-bold shadow-md"
                               >
-                                ✕ Changer la photo
+                                ✕
                               </button>
                             </div>
                           ) : (
-                            <div className="p-6 text-center border-2 border-dashed border-teal-300 rounded-xl space-y-2 bg-teal-50/50">
-                              <span className="text-2xl">🪪</span>
-                              <div className="text-xs font-bold text-[#004D40]">Aucune photo de pièce sélectionnée *</div>
+                            <div className="p-4 text-center border-2 border-dashed border-teal-300 rounded-xl space-y-1 bg-teal-50/50">
+                              <span className="text-xl">📷</span>
+                              <div className="text-[11px] font-bold text-[#004D40]">Photo CNI RECTO *</div>
                             </div>
                           )}
 
-                          <div className="pt-1">
-                            <label className="w-full py-3.5 px-4 bg-[#009688] hover:bg-[#00796B] text-white font-black text-xs rounded-xl cursor-pointer flex items-center justify-center gap-2 shadow-sm transition-all border border-white">
-                              <span>📷 Choisir la photo d'identité du gérant (CNIB / Passeport) *</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleFileRead(e, setIdCardFileUrl)}
-                                className="hidden"
-                              />
-                            </label>
-                          </div>
+                          <label className="w-full py-2.5 px-3 bg-[#009688] hover:bg-[#00796B] text-white font-black text-[11px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-all border border-white">
+                            <span>📷 Choisir RECTO *</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileRead(e, setIdCardRectoUrl)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Verso */}
+                        <div className="space-y-2 bg-white p-4 rounded-2xl border border-teal-200">
+                          <label className="block text-xs font-black uppercase text-[#004D40]">
+                            2. Face VERSO * :
+                          </label>
+                          {idCardVersoUrl ? (
+                            <div className="relative">
+                              <img src={idCardVersoUrl} alt="Aperçu VERSO" className="w-full max-h-36 object-cover rounded-xl border-2 border-[#009688] shadow-md" />
+                              <button
+                                type="button"
+                                onClick={() => setIdCardVersoUrl('')}
+                                className="absolute top-2 right-2 bg-red-600 text-white rounded-full px-2 py-0.5 text-[10px] font-bold shadow-md"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="p-4 text-center border-2 border-dashed border-teal-300 rounded-xl space-y-1 bg-teal-50/50">
+                              <span className="text-xl">📷</span>
+                              <div className="text-[11px] font-bold text-[#004D40]">Photo CNI VERSO *</div>
+                            </div>
+                          )}
+
+                          <label className="w-full py-2.5 px-3 bg-[#009688] hover:bg-[#00796B] text-white font-black text-[11px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 shadow-sm transition-all border border-white">
+                            <span>📷 Choisir VERSO *</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleFileRead(e, setIdCardVersoUrl)}
+                              className="hidden"
+                            />
+                          </label>
                         </div>
                       </div>
                     </div>

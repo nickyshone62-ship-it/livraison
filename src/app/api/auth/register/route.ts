@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // Mandatory driver photos validation
+    // Mandatory photos validation for Driver & Client
     const rectoPhoto = idCardRectoUrl || idCardFileUrl;
     const versoPhoto = idCardVersoUrl;
     const enginPhoto = vehiclePhotoUrl || vehicleDocUrl;
@@ -67,6 +67,12 @@ export async function POST(req: Request) {
       }
       if (!enginPhoto) {
         return NextResponse.json({ error: 'La photo de l\'engin (véhicule) est obligatoire pour le livreur.' }, { status: 400 });
+      }
+    }
+
+    if (role === 'client') {
+      if (!rectoPhoto || !versoPhoto) {
+        return NextResponse.json({ error: 'La pièce d\'identité (Recto ET Verso) est obligatoire pour le client.' }, { status: 400 });
       }
     }
 
@@ -88,10 +94,10 @@ export async function POST(req: Request) {
       ON CONFLICT (id) DO NOTHING;
     `;
 
-    // 2. Upsert into public.profiles
+    // 2. Upsert into public.profiles (avec cni_recto_url et cni_verso_url)
     await db.$executeRaw`
-      INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, account_status, created_at, updated_at)
-      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, 'pending'::account_status, NOW(), NOW())
+      INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, cni_recto_url, cni_verso_url, account_status, created_at, updated_at)
+      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, ${rectoPhoto || null}, ${versoPhoto || null}, 'pending'::account_status, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
         role = EXCLUDED.role,
         full_name = EXCLUDED.full_name,
@@ -100,6 +106,8 @@ export async function POST(req: Request) {
         avatar_url = EXCLUDED.avatar_url,
         city = EXCLUDED.city,
         address = EXCLUDED.address,
+        cni_recto_url = EXCLUDED.cni_recto_url,
+        cni_verso_url = EXCLUDED.cni_verso_url,
         account_status = EXCLUDED.account_status,
         updated_at = NOW();
     `;
@@ -111,6 +119,8 @@ export async function POST(req: Request) {
       phone: cleanPhone,
       email: cleanEmail,
       avatarUrl: profilePhoto || null,
+      cniRectoUrl: rectoPhoto || null,
+      cniVersoUrl: versoPhoto || null,
       city: city || 'Ouagadougou',
       address: address || null,
       accountStatus: 'pending',

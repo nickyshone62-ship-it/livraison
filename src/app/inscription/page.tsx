@@ -69,6 +69,13 @@ export default function InscriptionPage() {
       return;
     }
 
+    if (role === 'client') {
+      if (!idCardRectoUrl || !idCardVersoUrl) {
+        setError('La pièce d\'identité (Recto ET Verso) est obligatoire pour le client.');
+        return;
+      }
+    }
+
     if (role === 'driver') {
       if (!photoUrl) {
         setError('Une photo de profil est obligatoire pour le livreur.');
@@ -279,6 +286,90 @@ export default function InscriptionPage() {
               />
             </div>
           </div>
+
+          {/* Client Specific ID Card Section */}
+          {role === 'client' && (
+            <>
+              <div className="border-b border-slate-800 pb-4 pt-6">
+                <h2 className="text-xl font-bold text-amber-400">Pièce d'identité Client (Obligatoire)</h2>
+                <p className="text-xs text-slate-400 mt-1">Veuillez fournir la photo RECTO et VERSO de votre pièce d'identité (CNIB, Passeport ou Permis).</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 1. CNI Recto */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <span>1. Pièce d'identité - Face RECTO *</span>
+                    </label>
+                    {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {idCardRectoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={idCardRectoUrl} alt="CNI Recto Client" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setIdCardRectoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (RECTO)</span>
+                      <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 2. CNI Verso */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <span>2. Pièce d'identité - Face VERSO *</span>
+                    </label>
+                    {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {idCardVersoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={idCardVersoUrl} alt="CNI Verso Client" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setIdCardVersoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (VERSO)</span>
+                      <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Driver Specific Section */}
           {role === 'driver' && (

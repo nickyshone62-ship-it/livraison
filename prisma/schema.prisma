@@ -142,6 +142,8 @@ model Profile {
   avatarUrl     String?       @map("avatar_url")
   city          String?
   address       String?
+  cniRectoUrl   String?       @map("cni_recto_url")
+  cniVersoUrl   String?       @map("cni_verso_url")
   accountStatus AccountStatus @default(pending) @map("account_status")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @default(now()) @map("updated_at")
