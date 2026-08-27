@@ -17,7 +17,8 @@ import {
   Send,
   AlertCircle,
   KeyRound,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { buildNavigationUrl } from '@/lib/mapUtils';
 import { Navbar } from '@/components/Navbar';
@@ -297,12 +298,35 @@ export default function ExecutionLivraisonDriverPage() {
 
         </div>
 
-        {/* ÉMETTEUR DE POSITION GPS */}
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div className="text-xs text-slate-600 font-medium">Partage GPS temps réel activé</div>
+        {/* ÉMETTEUR DE POSITION GPS & MESSAGERIE CLIENT */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/conversations', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ deliveryId, recipientId: delivery.clientId }),
+                });
+                const data = await res.json();
+                if (res.ok && data.conversation) {
+                  router.push(`/driver/messages?conv=${data.conversation.id}`);
+                } else {
+                  router.push('/driver/messages');
+                }
+              } catch (e) {
+                router.push('/driver/messages');
+              }
+            }}
+            className="w-full sm:w-auto px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold rounded-lg text-xs flex items-center justify-center gap-2 shadow-sm cursor-pointer transition-colors"
+          >
+            <MessageSquare className="w-4 h-4" />
+            <span>💬 Discuter par message avec le client</span>
+          </button>
+
           <button
             onClick={handleEmitGps}
-            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg text-xs flex items-center gap-1.5"
+            className="w-full sm:w-auto px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Navigation className="w-3.5 h-3.5 text-amber-600" />
             <span>Actualiser ma position GPS</span>

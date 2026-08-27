@@ -207,6 +207,9 @@ export function Navbar() {
                   <Link href="/driver/propositions" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/propositions') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
                     Mes propositions
                   </Link>
+                  <Link href="/driver/messages" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/messages') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
+                    Messagerie
+                  </Link>
                   <Link href="/driver/vehicule" className={`px-3 py-1.5 rounded-lg transition-colors ${pathname.includes('/vehicule') ? 'bg-slate-800 text-amber-400 font-semibold' : 'hover:bg-slate-800 hover:text-white'}`}>
                     Véhicule
                   </Link>

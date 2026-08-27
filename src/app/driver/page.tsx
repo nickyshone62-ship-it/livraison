@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  MessageSquare
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
@@ -282,6 +283,10 @@ export default function DriverDashboard() {
         <Link href="/driver/propositions" className="flex flex-col items-center gap-0.5 hover:text-white">
           <Star className="w-5 h-5" />
           <span className="text-[10px] font-bold">Propositions</span>
+        </Link>
+        <Link href="/driver/messages" className="flex flex-col items-center gap-0.5 hover:text-white">
+          <MessageSquare className="w-5 h-5 text-amber-400" />
+          <span className="text-[10px] font-bold">Messages</span>
         </Link>
         <Link href="/driver/profil" className="flex flex-col items-center gap-0.5 hover:text-white">
           <User className="w-5 h-5 text-slate-400" />
