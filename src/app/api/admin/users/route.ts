@@ -12,49 +12,24 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const roleFilter = searchParams.get('role'); // 'client', 'driver', 'admin'
 
-    let users: any[] = [];
-    if (roleFilter) {
-      users = await db.$queryRaw`
-        SELECT 
-          p.id, 
-          p.role::text as role, 
-          p.full_name as "fullName", 
-          p.phone, 
-          p.email, 
-          p.avatar_url as "avatarUrl", 
-          p.city, 
-          p.address, 
-          p.account_status::text as "accountStatus", 
-          p.created_at as "createdAt", 
-          p.updated_at as "updatedAt",
-          dp.id as "driverProfileId",
-          dp.verification_status::text as "driverVerificationStatus"
-        FROM public.profiles p
-        LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
-        WHERE p.role::text = ${roleFilter}
-        ORDER BY p.created_at DESC
-      `;
-    } else {
-      users = await db.$queryRaw`
-        SELECT 
-          p.id, 
-          p.role::text as role, 
-          p.full_name as "fullName", 
-          p.phone, 
-          p.email, 
-          p.avatar_url as "avatarUrl", 
-          p.city, 
-          p.address, 
-          p.account_status::text as "accountStatus", 
-          p.created_at as "createdAt", 
-          p.updated_at as "updatedAt",
-          dp.id as "driverProfileId",
-          dp.verification_status::text as "driverVerificationStatus"
-        FROM public.profiles p
-        LEFT JOIN public.driver_profiles dp ON dp.user_id = p.id
-        ORDER BY p.created_at DESC
-      `;
-    }
+    const users = await db.profile.findMany({
+      where: roleFilter ? { role: roleFilter as any } : undefined,
+      include: {
+        driverProfile: {
+          include: {
+            vehicles: true,
+            documents: true,
+          },
+        },
+        subscriptions: {
+          orderBy: { createdAt: 'desc' },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return NextResponse.json({ users });
   } catch (error: any) {
@@ -91,6 +66,23 @@ export async function PATCH(req: Request) {
 
     if (action === 'approve') {
       newAccountStatus = 'active';
+
+      // Grant 1 month free active subscription starting from approval date
+      const startsAt = new Date();
+      const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+      await db.subscription.create({
+        data: {
+          userId,
+          amount: 1000,
+          currency: 'XOF',
+          status: 'active',
+          startsAt,
+          expiresAt,
+          approvedBy: session.userId,
+          approvedAt: startsAt,
+        },
+      }).catch(console.error);
+
     } else if (action === 'reject') {
       newAccountStatus = 'rejected';
     } else if (action === 'suspend') {

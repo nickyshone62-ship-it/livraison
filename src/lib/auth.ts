@@ -68,17 +68,32 @@ export function generateDisputeNumber(): string {
 export async function validateActiveSubscription(userId: string, role: string): Promise<{ active: boolean; message?: string }> {
   if (role === 'admin') return { active: true };
 
+  // 1. Check active subscription record in DB
   const sub = await db.subscription.findFirst({
     where: { userId, status: 'active' },
     orderBy: { expiresAt: 'desc' },
   });
 
-  if (!sub || (sub.expiresAt && new Date(sub.expiresAt) <= new Date())) {
-    return {
-      active: false,
-      message: '⚠️ Votre abonnement mensuel (1 000 FCFA/mois) est inactif ou expiré. Veuillez le renouveler pour continuer à utiliser activement la plateforme.',
-    };
+  if (sub && sub.expiresAt && new Date(sub.expiresAt) > new Date()) {
+    return { active: true };
   }
 
-  return { active: true };
+  // 2. 1st Month (30 days) of usage is offered starting from registration/approval date
+  const profile = await db.profile.findUnique({
+    where: { id: userId },
+    select: { createdAt: true, updatedAt: true },
+  });
+
+  if (profile) {
+    const creationDate = new Date(profile.createdAt);
+    const oneMonthLater = new Date(creationDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (new Date() <= oneMonthLater) {
+      return { active: true };
+    }
+  }
+
+  return {
+    active: false,
+    message: '⚠️ Votre période d\'utilisation (1er mois offert) est arrivée à terme. Veuillez contacter l\'administrateur ou renouveler votre abonnement mensuel (1 000 FCFA/mois) pour continuer.',
+  };
 }
