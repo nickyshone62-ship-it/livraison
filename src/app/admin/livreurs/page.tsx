@@ -63,6 +63,7 @@ export default function AdminLivreursPage() {
     }
   };
 
+  // Convert Base64 data URL or HTTP URL to a Blob URL to avoid about:blank#blocked browser security policy
   const downloadPhoto = async (fileUrl: string, title: string, driverName: string) => {
     if (!fileUrl) return;
     const cleanDriverName = (driverName || 'livreur').toLowerCase().replace(/[^a-z0-9]/g, '_');
@@ -70,30 +71,42 @@ export default function AdminLivreursPage() {
     const filename = `${cleanDriverName}_${cleanTitle}.jpg`;
 
     try {
+      let blobUrl = fileUrl;
+      let isBlobCreated = false;
+
       if (fileUrl.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = fileUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        return;
+        const parts = fileUrl.split(';base64,');
+        const contentType = parts[0].split(':')[1] || 'image/jpeg';
+        const raw = window.atob(parts[1]);
+        const rawLength = raw.length;
+        const uInt8Array = new Uint8Array(rawLength);
+        for (let i = 0; i < rawLength; ++i) {
+          uInt8Array[i] = raw.charCodeAt(i);
+        }
+        const blob = new Blob([uInt8Array], { type: contentType });
+        blobUrl = URL.createObjectURL(blob);
+        isBlobCreated = true;
+      } else if (fileUrl.startsWith('http')) {
+        const res = await fetch(fileUrl, { mode: 'cors' });
+        const blob = await res.blob();
+        blobUrl = URL.createObjectURL(blob);
+        isBlobCreated = true;
       }
 
-      const res = await fetch(fileUrl, { mode: 'cors' });
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+      if (isBlobCreated) {
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      }
     } catch (e) {
+      console.error('Erreur téléchargement photo:', e);
       const a = document.createElement('a');
       a.href = fileUrl;
-      a.target = '_blank';
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -114,7 +127,7 @@ export default function AdminLivreursPage() {
       if (doc.fileUrl) {
         const title = labelMap[doc.documentType] || doc.documentType;
         await downloadPhoto(doc.fileUrl, title, driverName);
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 400));
       }
     }
   };
