@@ -297,23 +297,19 @@ export default function ExecutionLivraisonDriverPage() {
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
           <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Action suivante de la course</div>
 
-          {delivery.status === 'driver_selected' && (
+          {(delivery.status === 'driver_selected' || delivery.status === 'driver_accepted') && (
             <button
-              onClick={() => handleUpdateStatus('driver_accepted')}
+              onClick={() => {
+                handleUpdateStatus('driver_arriving');
+                if (pickupNavUrl && pickupNavUrl !== '#') {
+                  window.open(pickupNavUrl, '_blank');
+                }
+              }}
               disabled={actionLoading}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-sm rounded-xl shadow-md cursor-pointer"
+              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-base rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01]"
             >
-              Accepter la course
-            </button>
-          )}
-
-          {delivery.status === 'driver_accepted' && (
-            <button
-              onClick={() => handleUpdateStatus('driver_arriving')}
-              disabled={actionLoading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-md cursor-pointer"
-            >
-              En route vers le point de ramassage (Point A)
+              <Navigation className="w-6 h-6 shrink-0" />
+              <span>🚀 COMMENCER LA TÂCHE & OUVRIR LE GPS (POINT A)</span>
             </button>
           )}
 

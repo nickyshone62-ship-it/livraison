@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, MapPin, Package, Clock, Send, AlertCircle, CheckCircle2, Navigation, X } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
+import { buildNavigationUrl } from '@/lib/mapUtils';
 
 export default function DemandesDisponiblesDriverPage() {
   const [requests, setRequests] = useState<any[]>([]);
@@ -123,14 +124,38 @@ export default function DemandesDisponiblesDriverPage() {
                   </div>
 
                   <div className="space-y-1.5 text-xs bg-slate-50 p-3 rounded-lg border border-slate-100">
-                    <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                      <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>📍 Départ: {req.pickupAddress}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                        <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>📍 Départ: {req.pickupAddress}</span>
+                      </div>
+                      {req.pickupAddress && (
+                        <a
+                          href={buildNavigationUrl(req.pickupLatitude, req.pickupLongitude, req.pickupAddress)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-amber-600 hover:underline font-bold shrink-0 ml-2"
+                        >
+                          GPS 📍
+                        </a>
+                      )}
                     </div>
                     <div className="ml-2 pl-3 border-l-2 border-slate-200 text-slate-400 text-[11px] py-0.5">↓</div>
-                    <div className="flex items-center gap-2 text-slate-700 font-semibold">
-                      <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>🏁 Arrivée: {req.destinationAddress}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-slate-700 font-semibold">
+                        <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>🏁 Arrivée: {req.destinationAddress}</span>
+                      </div>
+                      {req.destinationAddress && (
+                        <a
+                          href={buildNavigationUrl(req.destinationLatitude, req.destinationLongitude, req.destinationAddress)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-emerald-600 hover:underline font-bold shrink-0 ml-2"
+                        >
+                          GPS 🏁
+                        </a>
+                      )}
                     </div>
                   </div>
 
