@@ -2,7 +2,28 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, FileText, ExternalLink, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText, ExternalLink, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+
+const formatDocTitle = (type: string) => {
+  switch (type) {
+    case 'identity_card_recto':
+      return "Pièce d'identité (Face RECTO)";
+    case 'identity_card_verso':
+      return "Pièce d'identité (Face VERSO)";
+    case 'vehicle_photo':
+      return "Photo de l'Engin / Véhicule";
+    case 'photo':
+      return 'Photo de Profil';
+    case 'identity_card':
+      return "Pièce d'identité (CNIB/Passeport)";
+    case 'driver_license':
+      return 'Permis de Conduire';
+    case 'vehicle_document':
+      return 'Document Véhicule / Carte Grise';
+    default:
+      return type;
+  }
+};
 
 export default function DriverDocumentsPage() {
   const [user, setUser] = useState<any>(null);
@@ -33,7 +54,7 @@ export default function DriverDocumentsPage() {
           <Link href="/driver/profil" className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Mes Documents KYC & Permis</h1>
+          <h1 className="text-xl font-bold text-white">Mes Photos & Documents KYC</h1>
         </div>
       </header>
 
@@ -43,22 +64,24 @@ export default function DriverDocumentsPage() {
             Aucun document téléversé.
           </div>
         ) : (
-          docs.map((doc: any) => (
-            <div key={doc.id} className="p-6 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-              <div className="space-y-1">
-                <div className="font-bold text-white text-base">{doc.documentType}</div>
-                <div className="text-xs text-slate-400">Numéro: {doc.documentNumber || 'N/A'}</div>
-                <div className="text-[10px] text-emerald-400 font-bold uppercase">Statut: {doc.status}</div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {docs.map((doc: any) => (
+              <div key={doc.id} className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-white text-base">{formatDocTitle(doc.documentType)}</div>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase">
+                    {doc.status}
+                  </span>
+                </div>
 
-              {doc.fileUrl && (
-                <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold text-xs flex items-center space-x-2">
-                  <span>Visualiser</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              )}
-            </div>
-          ))
+                {doc.fileUrl && (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950">
+                    <img src={doc.fileUrl} alt={doc.documentType} className="w-full h-44 object-cover" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </main>
     </div>

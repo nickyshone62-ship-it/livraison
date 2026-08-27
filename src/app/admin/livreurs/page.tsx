@@ -128,7 +128,6 @@ export default function AdminLivreursPage() {
                         <div>
                           <div>Type: <strong className="text-white uppercase">{vehicles[0].vehicleType}</strong></div>
                           <div>Marque/Modèle: <strong className="text-white">{vehicles[0].brand} {vehicles[0].model}</strong></div>
-                          <div>Immatriculation: <code className="text-amber-300">{vehicles[0].registrationNumber || 'N/A'}</code></div>
                         </div>
                       ) : (
                         <div className="text-slate-500">Aucun véhicule enregistré.</div>
@@ -136,24 +135,36 @@ export default function AdminLivreursPage() {
                     </div>
 
                     {/* Documents */}
-                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-                      <div className="font-bold text-cyan-400">Documents Fournis :</div>
+                    <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                      <div className="font-bold text-cyan-400">Photos & Pièces KYC (Mandataires) :</div>
                       {docs.length > 0 ? (
-                        <div className="space-y-1">
-                          {docs.map((doc: any) => (
-                            <div key={doc.id} className="flex items-center justify-between">
-                              <span>{doc.documentType} ({doc.documentNumber || 'N/A'})</span>
-                              {doc.fileUrl && (
-                                <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-amber-400 hover:underline flex items-center space-x-1">
-                                  <span>Voir le fichier</span>
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                              )}
-                            </div>
-                          ))}
+                        <div className="space-y-1.5">
+                          {docs.map((doc: any) => {
+                            const labelMap: Record<string, string> = {
+                              identity_card_recto: "CNI (Face RECTO)",
+                              identity_card_verso: "CNI (Face VERSO)",
+                              vehicle_photo: "Photo Engin",
+                              photo: "Photo Profil",
+                              identity_card: "Pièce d'identité",
+                              driver_license: "Permis de conduire",
+                              vehicle_document: "Document véhicule",
+                            };
+                            const title = labelMap[doc.documentType] || doc.documentType;
+                            return (
+                              <div key={doc.id} className="flex items-center justify-between">
+                                <span className="font-medium text-slate-300">{title}</span>
+                                {doc.fileUrl && (
+                                  <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-amber-400 hover:underline flex items-center space-x-1 font-bold">
+                                    <span>Voir photo</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       ) : (
-                        <div className="text-slate-500">Aucun document téléversé.</div>
+                        <div className="text-slate-500">Aucune photo/document téléversé.</div>
                       )}
                     </div>
                   </div>

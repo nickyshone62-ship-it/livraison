@@ -71,11 +71,6 @@ export default function DriverVehiculePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Numéro d'immatriculation</label>
-              <input type="text" disabled value={registrationNumber || 'Non renseigné'} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-amber-300 font-bold" />
-            </div>
-
-            <div>
               <label className="block text-xs font-semibold text-slate-400 mb-1">Couleur</label>
               <input type="text" disabled value={color || 'N/A'} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-white font-bold" />
             </div>

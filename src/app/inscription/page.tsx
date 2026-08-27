@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Truck, User, Bike, ShieldCheck, ArrowRight, Phone, Mail, MapPin, Lock, CreditCard, Upload } from 'lucide-react';
+import { Truck, User, Bike, ArrowRight, Upload, CheckCircle2, Image as ImageIcon, Trash2, Camera } from 'lucide-react';
 import { AdminSecretModal } from '@/components/AdminSecretModal';
 
 export default function InscriptionPage() {
@@ -18,19 +18,18 @@ export default function InscriptionPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Driver fields
+  // Driver fields (Immatriculation retirée)
   const [vehicleType, setVehicleType] = useState('motorcycle');
   const [brand, setBrand] = useState('Yamaha');
   const [model, setModel] = useState('Sirius');
-  const [registrationNumber, setRegistrationNumber] = useState('');
   const [color, setColor] = useState('');
   const [year, setYear] = useState('2024');
 
-  // Documents
-  const [idCardFileUrl, setIdCardFileUrl] = useState('');
-  const [driverLicenseUrl, setDriverLicenseUrl] = useState('');
-  const [vehicleDocUrl, setVehicleDocUrl] = useState('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  // Documents obligatoires livreur (Photos au lieu de simples URLs)
+  const [photoUrl, setPhotoUrl] = useState(''); // Photo de profil
+  const [idCardRectoUrl, setIdCardRectoUrl] = useState(''); // CNI Recto
+  const [idCardVersoUrl, setIdCardVersoUrl] = useState(''); // CNI Verso
+  const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState(''); // Photo de l'engin
 
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<'orange_money' | 'moov_money' | 'wave'>('orange_money');
@@ -40,6 +39,27 @@ export default function InscriptionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper file upload -> Base64 Data URL
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setter: (value: string) => void
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      setError('La photo ne doit pas dépasser 8 Mo.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setter(reader.result as string);
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -47,6 +67,21 @@ export default function InscriptionPage() {
     if (password !== confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
       return;
+    }
+
+    if (role === 'driver') {
+      if (!photoUrl) {
+        setError('Une photo de profil est obligatoire pour le livreur.');
+        return;
+      }
+      if (!idCardRectoUrl || !idCardVersoUrl) {
+        setError('La pièce d\'identité (Recto ET Verso) est obligatoire pour le livreur.');
+        return;
+      }
+      if (!vehiclePhotoUrl) {
+        setError('La photo de l\'engin (véhicule) est obligatoire pour le livreur.');
+        return;
+      }
     }
 
     if (!hasPaid) {
@@ -71,13 +106,12 @@ export default function InscriptionPage() {
           vehicleType,
           brand,
           model,
-          registrationNumber,
           color,
           year,
-          idCardFileUrl,
-          driverLicenseUrl,
-          vehicleDocUrl,
           photoUrl,
+          idCardRectoUrl,
+          idCardVersoUrl,
+          vehiclePhotoUrl,
           paymentMethod,
           transactionReference,
         }),
@@ -250,12 +284,12 @@ export default function InscriptionPage() {
           {role === 'driver' && (
             <>
               <div className="border-b border-slate-800 pb-4 pt-6">
-                <h2 className="text-xl font-bold text-orange-400">Informations Véhicule & Documents</h2>
+                <h2 className="text-xl font-bold text-orange-400">Informations Véhicule</h2>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Type Véhicule</label>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">Type Véhicule *</label>
                   <select
                     value={vehicleType}
                     onChange={(e) => setVehicleType(e.target.value)}
@@ -268,49 +302,166 @@ export default function InscriptionPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Marque</label>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">Marque / Modèle</label>
                   <input
                     type="text"
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
-                    placeholder="Yamaha, Honda..."
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Immatriculation</label>
-                  <input
-                    type="text"
-                    value={registrationNumber}
-                    onChange={(e) => setRegistrationNumber(e.target.value)}
-                    placeholder="11-JJ-0000"
+                    placeholder="Yamaha, Honda, Rato..."
                     className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
                   />
                 </div>
               </div>
 
+              {/* Photos & Documents KYC pour Livreur */}
+              <div className="border-b border-slate-800 pb-4 pt-6">
+                <h2 className="text-xl font-bold text-orange-400">Photos & Pièces d'identité (Obligatoires)</h2>
+                <p className="text-xs text-slate-400 mt-1">Prenez en photo ou téléversez des images claires depuis votre téléphone.</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">URL Pièce d'identité (CNIB/Passeport)</label>
-                  <input
-                    type="url"
-                    value={idCardFileUrl}
-                    onChange={(e) => setIdCardFileUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                  />
+                {/* 1. Photo de profil */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <Camera className="w-4 h-4 text-amber-400" />
+                      <span>1. Photo de Profil *</span>
+                    </label>
+                    {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {photoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={photoUrl} alt="Photo de Profil" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPhotoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-amber-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo</span>
+                      <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setPhotoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">URL Permis / Carte Grise</label>
-                  <input
-                    type="url"
-                    value={driverLicenseUrl}
-                    onChange={(e) => setDriverLicenseUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                  />
+                {/* 2. Photo de l'engin */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <Bike className="w-4 h-4 text-orange-400" />
+                      <span>2. Photo de l'Engin (Véhicule) *</span>
+                    </label>
+                    {vehiclePhotoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {vehiclePhotoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={vehiclePhotoUrl} alt="Photo Engin" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setVehiclePhotoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-orange-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-orange-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo Engin</span>
+                      <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setVehiclePhotoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 3. CNI Recto */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <span>3. Pièce d'identité - Face RECTO *</span>
+                    </label>
+                    {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {idCardRectoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={idCardRectoUrl} alt="CNI Recto" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setIdCardRectoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (RECTO)</span>
+                      <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 4. CNI Verso */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-white flex items-center space-x-2">
+                      <ImageIcon className="w-4 h-4 text-cyan-400" />
+                      <span>4. Pièce d'identité - Face VERSO *</span>
+                    </label>
+                    {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                  </div>
+
+                  {idCardVersoUrl ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
+                      <img src={idCardVersoUrl} alt="CNI Verso" className="w-full h-40 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setIdCardVersoUrl('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
+                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (VERSO)</span>
+                      <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </>

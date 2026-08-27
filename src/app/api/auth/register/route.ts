@@ -17,13 +17,15 @@ export async function POST(req: Request) {
       vehicleType,
       brand,
       model,
-      registrationNumber,
       color,
       year,
+      photoUrl,
+      idCardRectoUrl,
+      idCardVersoUrl,
+      vehiclePhotoUrl,
       idCardFileUrl,
       driverLicenseUrl,
       vehicleDocUrl,
-      photoUrl,
       paymentMethod,
       transactionReference,
     } = body;
@@ -34,10 +36,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Veuillez remplir tous les champs obligatoires (nom, téléphone, mot de passe).' }, { status: 400 });
     }
 
-    // Check duplicate phone or email
     const cleanPhone = phone.trim();
     const cleanEmail = email ? email.toLowerCase().trim() : null;
 
+    // Check duplicate phone or email
     const existingPhoneRows: any[] = await db.$queryRaw`SELECT id FROM public.profiles WHERE phone = ${cleanPhone} LIMIT 1`;
     if (existingPhoneRows && existingPhoneRows.length > 0) {
       return NextResponse.json({ error: 'Ce numéro de téléphone est déjà utilisé par un autre compte.' }, { status: 400 });
@@ -47,6 +49,24 @@ export async function POST(req: Request) {
       const existingEmailRows: any[] = await db.$queryRaw`SELECT id FROM public.profiles WHERE email = ${cleanEmail} LIMIT 1`;
       if (existingEmailRows && existingEmailRows.length > 0) {
         return NextResponse.json({ error: 'Cette adresse email est déjà enregistrée.' }, { status: 400 });
+      }
+    }
+
+    // Mandatory driver photos validation
+    const rectoPhoto = idCardRectoUrl || idCardFileUrl;
+    const versoPhoto = idCardVersoUrl;
+    const enginPhoto = vehiclePhotoUrl || vehicleDocUrl;
+    const profilePhoto = photoUrl;
+
+    if (role === 'driver') {
+      if (!profilePhoto) {
+        return NextResponse.json({ error: 'La photo de profil est obligatoire pour le livreur.' }, { status: 400 });
+      }
+      if (!rectoPhoto || !versoPhoto) {
+        return NextResponse.json({ error: 'La pièce d\'identité (Recto ET Verso) est obligatoire pour le livreur.' }, { status: 400 });
+      }
+      if (!enginPhoto) {
+        return NextResponse.json({ error: 'La photo de l\'engin (véhicule) est obligatoire pour le livreur.' }, { status: 400 });
       }
     }
 
@@ -71,7 +91,7 @@ export async function POST(req: Request) {
     // 2. Upsert into public.profiles
     await db.$executeRaw`
       INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, account_status, created_at, updated_at)
-      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${photoUrl || null}, ${city || 'Ouagadougou'}, ${address || null}, 'pending'::account_status, NOW(), NOW())
+      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, 'pending'::account_status, NOW(), NOW())
       ON CONFLICT (id) DO UPDATE SET
         role = EXCLUDED.role,
         full_name = EXCLUDED.full_name,
@@ -90,7 +110,7 @@ export async function POST(req: Request) {
       fullName: fullName.trim(),
       phone: cleanPhone,
       email: cleanEmail,
-      avatarUrl: photoUrl || null,
+      avatarUrl: profilePhoto || null,
       city: city || 'Ouagadougou',
       address: address || null,
       accountStatus: 'pending',
@@ -109,7 +129,6 @@ export async function POST(req: Request) {
               vehicleType: (vehicleType === 'moto' || !vehicleType) ? 'motorcycle' : (vehicleType as any),
               brand: brand || null,
               model: model || null,
-              registrationNumber: registrationNumber || null,
               color: color || null,
               year: year ? parseInt(year, 10) : null,
               isPrimary: true,
@@ -117,10 +136,11 @@ export async function POST(req: Request) {
           },
           documents: {
             create: [
-              ...(idCardFileUrl ? [{ documentType: 'identity_card', fileUrl: idCardFileUrl, status: 'pending' as const }] : []),
+              ...(rectoPhoto ? [{ documentType: 'identity_card_recto', fileUrl: rectoPhoto, status: 'pending' as const }] : []),
+              ...(versoPhoto ? [{ documentType: 'identity_card_verso', fileUrl: versoPhoto, status: 'pending' as const }] : []),
+              ...(enginPhoto ? [{ documentType: 'vehicle_photo', fileUrl: enginPhoto, status: 'pending' as const }] : []),
+              ...(profilePhoto ? [{ documentType: 'photo', fileUrl: profilePhoto, status: 'pending' as const }] : []),
               ...(driverLicenseUrl ? [{ documentType: 'driver_license', fileUrl: driverLicenseUrl, status: 'pending' as const }] : []),
-              ...(vehicleDocUrl ? [{ documentType: 'vehicle_document', fileUrl: vehicleDocUrl, status: 'pending' as const }] : []),
-              ...(photoUrl ? [{ documentType: 'photo', fileUrl: photoUrl, status: 'pending' as const }] : []),
             ],
           },
         },
