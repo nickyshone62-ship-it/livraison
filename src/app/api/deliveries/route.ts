@@ -216,7 +216,7 @@ export async function POST(req: Request) {
           ${destinationInstructions || null}, ${dLat}, ${dLng},
           ${recipientName}, ${recipientPhone}, ${packageDescription}, ${packageCategory || 'Colis Général'},
           ${pWeight}, ${pQty}, ${packageSize || null}, ${reqDate},
-          ${requestedTime || null}, ${additionalInstructions || null}, 'searching_driver'::delivery_status, NOW(), NOW()
+          ${requestedTime || null}::time, ${additionalInstructions || null}, 'searching_driver'::public.delivery_status, NOW(), NOW()
         );
       `;
 
