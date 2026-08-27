@@ -14,7 +14,8 @@ import {
   Eye,
   X,
   FileImage,
-  ZoomIn
+  ZoomIn,
+  FolderDown
 } from 'lucide-react';
 
 export default function AdminLivreursPage() {
@@ -62,18 +63,60 @@ export default function AdminLivreursPage() {
     }
   };
 
-  const downloadPhoto = (fileUrl: string, title: string, driverName: string) => {
+  const downloadPhoto = async (fileUrl: string, title: string, driverName: string) => {
     if (!fileUrl) return;
     const cleanDriverName = (driverName || 'livreur').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const cleanTitle = (title || 'photo').toLowerCase().replace(/[^a-z0-9]/g, '_');
     const filename = `${cleanDriverName}_${cleanTitle}.jpg`;
 
-    const a = document.createElement('a');
-    a.href = fileUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      if (fileUrl.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = fileUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+
+      const res = await fetch(fileUrl, { mode: 'cors' });
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (e) {
+      const a = document.createElement('a');
+      a.href = fileUrl;
+      a.target = '_blank';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const downloadAllDriverPhotos = async (docs: any[], driverName: string) => {
+    if (!docs || docs.length === 0) return;
+    const labelMap: Record<string, string> = {
+      identity_card_recto: "CNI (Face RECTO)",
+      identity_card_verso: "CNI (Face VERSO)",
+      vehicle_photo: "Photo Engin",
+      photo: "Photo Profil",
+    };
+
+    for (const doc of docs) {
+      if (doc.fileUrl) {
+        const title = labelMap[doc.documentType] || doc.documentType;
+        await downloadPhoto(doc.fileUrl, title, driverName);
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
   };
 
   return (
@@ -85,8 +128,8 @@ export default function AdminLivreursPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-white">Validation & Téléchargement Documents Livreurs ({drivers.length})</h1>
-              <p className="text-xs text-slate-400">Examinez les pièces KYC, téléchargez et prévisualisez les photos en local</p>
+              <h1 className="text-xl font-bold text-white">Validation & Enregistrement Photos Livreurs ({drivers.length})</h1>
+              <p className="text-xs text-slate-400">Examinez les pièces KYC, prévisualisez et enregistrez toutes les photos en local</p>
             </div>
           </div>
         </div>
@@ -173,14 +216,24 @@ export default function AdminLivreursPage() {
                       )}
                     </div>
 
-                    {/* GALERIE DE PHOTOS ET PIÈCES KYC DES LIVREURS (TÉLÉCHARGEABLES) */}
-                    <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                      <div className="font-bold text-cyan-400 text-sm flex items-center justify-between">
-                        <span className="flex items-center gap-2">
+                    {/* GALERIE DE PHOTOS ET PIÈCES KYC DES LIVREURS (TÉLÉCHARGEABLES EN LOCAL) */}
+                    <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+                        <span className="flex items-center gap-2 font-bold text-cyan-400 text-sm">
                           <FileImage className="w-4 h-4" />
-                          <span>Photos & Pièces Téléchargeables ({docs.length})</span>
+                          <span>Photos & Pièces KYC Téléchargeables ({docs.length})</span>
                         </span>
-                        <span className="text-[11px] text-slate-400 font-normal">Cliquez sur une photo pour l'agrandir ou la télécharger</span>
+
+                        {docs.length > 0 && (
+                          <button
+                            onClick={() => downloadAllDriverPhotos(docs, d.fullName)}
+                            className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center gap-1.5 border border-amber-500/30 cursor-pointer shadow-sm"
+                            title="Télécharger l'ensemble des photos de ce livreur en 1 clic"
+                          >
+                            <FolderDown className="w-4 h-4" />
+                            <span>💾 Enregistrer TOUTES les photos du livreur</span>
+                          </button>
+                        )}
                       </div>
 
                       {docs.length === 0 ? (
@@ -232,7 +285,7 @@ export default function AdminLivreursPage() {
                                         <button
                                           onClick={() => downloadPhoto(fileUrl, title, d.fullName)}
                                           className="p-2 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center gap-1 shadow-md hover:bg-slate-700"
-                                          title="Télécharger sur PC / Téléphone"
+                                          title="Enregistrer en local sur mon PC / Téléphone"
                                         >
                                           <Download className="w-4 h-4" />
                                         </button>
@@ -245,23 +298,23 @@ export default function AdminLivreursPage() {
                                   )}
                                 </div>
 
-                                {/* BOUTONS D'ACTION POUR CHAQUE PHOTO */}
+                                {/* BOUTONS D'ACTION INDIVIDUELS */}
                                 {fileUrl && (
                                   <div className="flex items-center gap-2 pt-1">
                                     <button
                                       onClick={() => setSelectedPhoto({ url: fileUrl, title, driverName: d.fullName })}
-                                      className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-slate-700"
+                                      className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-slate-700 cursor-pointer"
                                     >
                                       <Eye className="w-3 h-3 text-amber-400" />
-                                      <span>Voir</span>
+                                      <span>Agrandir</span>
                                     </button>
 
                                     <button
                                       onClick={() => downloadPhoto(fileUrl, title, d.fullName)}
-                                      className="flex-1 py-1.5 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-amber-500/20"
+                                      className="flex-1 py-1.5 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-amber-500/20 cursor-pointer"
                                     >
                                       <Download className="w-3 h-3" />
-                                      <span>Télécharger</span>
+                                      <span>Enregistrer</span>
                                     </button>
                                   </div>
                                 )}
@@ -279,7 +332,7 @@ export default function AdminLivreursPage() {
         )}
       </main>
 
-      {/* MODALE LIGHTBOX POUR VISUALISATION HIGH-RES ET TÉLÉCHARGEMENT */}
+      {/* MODALE LIGHTBOX POUR VISUALISATION HIGH-RES ET ENREGISTREMENT LOCAL */}
       {selectedPhoto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col justify-between">
@@ -295,12 +348,12 @@ export default function AdminLivreursPage() {
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Télécharger sur mon appareil</span>
+                  <span>Enregistrer cette photo en local</span>
                 </button>
 
                 <button
                   onClick={() => setSelectedPhoto(null)}
-                  className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-slate-700"
+                  className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-slate-700 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -317,10 +370,10 @@ export default function AdminLivreursPage() {
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
-              <span>Vous pouvez télécharger cette pièce en local pour la sauvegarder ou l'analyser.</span>
+              <span>La photo sera enregistrée directement dans votre dossier de téléchargements.</span>
               <button
                 onClick={() => setSelectedPhoto(null)}
-                className="px-4 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold"
+                className="px-4 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold cursor-pointer"
               >
                 Fermer
               </button>
