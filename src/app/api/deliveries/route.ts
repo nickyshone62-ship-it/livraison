@@ -162,32 +162,66 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Veuillez remplir les informations obligatoires (Départ, Destination, Destinataire, Description colis).' }, { status: 400 });
     }
 
-    const deliveryRequest = await db.deliveryRequest.create({
-      data: {
-        clientId: session.userId,
-        pickupAddress,
-        pickupCity: pickupCity || 'Ouagadougou',
-        pickupInstructions: pickupInstructions || null,
-        pickupLatitude: pickupLatitude ? parseFloat(pickupLatitude) : null,
-        pickupLongitude: pickupLongitude ? parseFloat(pickupLongitude) : null,
-        destinationAddress,
-        destinationCity: destinationCity || 'Ouagadougou',
-        destinationInstructions: destinationInstructions || null,
-        destinationLatitude: destinationLatitude ? parseFloat(destinationLatitude) : null,
-        destinationLongitude: destinationLongitude ? parseFloat(destinationLongitude) : null,
-        recipientName,
-        recipientPhone,
-        packageDescription,
-        packageCategory: packageCategory || 'Colis Général',
-        packageWeight: packageWeight ? parseFloat(packageWeight) : null,
-        packageQuantity: packageQuantity ? parseInt(packageQuantity, 10) : 1,
-        packageSize: packageSize || null,
-        requestedDate: requestedDate ? new Date(requestedDate) : new Date(),
-        requestedTime: requestedTime || null,
-        additionalInstructions: additionalInstructions || null,
-        status: 'searching_driver',
-      },
-    });
+    const id = require('crypto').randomUUID();
+    const pLat = pickupLatitude ? parseFloat(pickupLatitude) : null;
+    const pLng = pickupLongitude ? parseFloat(pickupLongitude) : null;
+    const dLat = destinationLatitude ? parseFloat(destinationLatitude) : null;
+    const dLng = destinationLongitude ? parseFloat(destinationLongitude) : null;
+    const pWeight = packageWeight ? parseFloat(packageWeight) : null;
+    const pQty = packageQuantity ? parseInt(packageQuantity, 10) : 1;
+    const reqDate = requestedDate ? new Date(requestedDate) : new Date();
+
+    let deliveryRequest;
+    try {
+      deliveryRequest = await db.deliveryRequest.create({
+        data: {
+          clientId: session.userId,
+          pickupAddress,
+          pickupCity: pickupCity || 'Ouagadougou',
+          pickupInstructions: pickupInstructions || null,
+          pickupLatitude: pLat,
+          pickupLongitude: pLng,
+          destinationAddress,
+          destinationCity: destinationCity || 'Ouagadougou',
+          destinationInstructions: destinationInstructions || null,
+          destinationLatitude: dLat,
+          destinationLongitude: dLng,
+          recipientName,
+          recipientPhone,
+          packageDescription,
+          packageCategory: packageCategory || 'Colis Général',
+          packageWeight: pWeight,
+          packageQuantity: pQty,
+          packageSize: packageSize || null,
+          requestedDate: reqDate,
+          requestedTime: requestedTime || null,
+          additionalInstructions: additionalInstructions || null,
+          status: 'searching_driver',
+        },
+      });
+    } catch (createErr: any) {
+      console.warn('Prisma create failed, executing raw SQL fallback:', createErr.message);
+
+      await db.$executeRaw`
+        INSERT INTO public.delivery_requests (
+          id, client_id, pickup_address, pickup_city, pickup_instructions,
+          pickup_latitude, pickup_longitude, destination_address, destination_city,
+          destination_instructions, destination_latitude, destination_longitude,
+          recipient_name, recipient_phone, package_description, package_category,
+          package_weight, package_quantity, package_size, requested_date,
+          requested_time, additional_instructions, status, created_at, updated_at
+        ) VALUES (
+          ${id}::uuid, ${session.userId}::uuid, ${pickupAddress}, ${pickupCity || 'Ouagadougou'}, ${pickupInstructions || null},
+          ${pLat}, ${pLng}, ${destinationAddress}, ${destinationCity || 'Ouagadougou'},
+          ${destinationInstructions || null}, ${dLat}, ${dLng},
+          ${recipientName}, ${recipientPhone}, ${packageDescription}, ${packageCategory || 'Colis Général'},
+          ${pWeight}, ${pQty}, ${packageSize || null}, ${reqDate},
+          ${requestedTime || null}, ${additionalInstructions || null}, 'searching_driver'::delivery_status, NOW(), NOW()
+        );
+      `;
+
+      deliveryRequest = { id, pickupAddress, destinationAddress, recipientName, recipientPhone, status: 'searching_driver' };
+    }
 
     return NextResponse.json({
       success: true,
