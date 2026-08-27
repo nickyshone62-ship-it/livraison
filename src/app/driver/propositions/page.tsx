@@ -87,33 +87,33 @@ export default function MesPropositionsDriverPage() {
               return (
                 <div
                   key={offer.id}
-                  className={`p-6 rounded-3xl border transition-all space-y-4 ${
+                  className={`p-6 rounded-3xl border transition-all space-y-4 max-w-full overflow-hidden ${
                     isAccepted
-                      ? 'bg-slate-900 border-amber-500/50 shadow-xl shadow-amber-500/5'
+                      ? 'bg-slate-900 border-emerald-500/40 shadow-xl'
                       : 'bg-slate-900 border-slate-800'
                   }`}
                 >
                   {/* EN-TÊTE DE CARTE PROPOSITION */}
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
+                    <div className="space-y-1 max-w-full overflow-hidden">
+                      <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
                           isAccepted ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                           isRejected ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                           'bg-amber-500/10 border-amber-500/20 text-amber-400'
                         }`}>
-                          {isAccepted ? '🎉 Offre Acceptée par le Client' : isRejected ? 'Refusée' : '⏳ En attente de validation'}
+                          {isAccepted ? '✓ Offre Acceptée' : isRejected ? 'Refusée' : '⏳ En attente'}
                         </span>
                         <span className="text-xs text-slate-500">
                           {new Date(offer.createdAt).toLocaleDateString('fr-FR')}
                         </span>
                       </div>
 
-                      <h3 className="font-extrabold text-white text-lg mt-1">{req.packageDescription || 'Colis'}</h3>
+                      <h3 className="font-bold text-white text-lg mt-1 truncate max-w-full">{req.packageDescription || 'Colis'}</h3>
                       <p className="text-xs text-slate-400">Catégorie: <strong className="text-slate-200">{req.packageCategory || 'Colis Général'}</strong></p>
                     </div>
 
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 shrink-0">
                       <div className="text-right">
                         <div className="text-2xl font-black text-amber-400">{offer.proposedPrice} FCFA</div>
                         <div className="text-xs text-slate-500">Durée estimée: ~{offer.estimatedDuration || 20} min</div>
@@ -130,16 +130,16 @@ export default function MesPropositionsDriverPage() {
 
                   {/* BANNIÈRE ACCEPTATION SI PROPOSITION ACCEPTÉE */}
                   {isAccepted && (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold flex flex-col md:flex-row items-center justify-between gap-3">
+                    <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex flex-col md:flex-row items-center justify-between gap-3 max-w-full overflow-hidden">
                       <div className="flex items-center space-x-2">
-                        <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0" />
-                        <span>Félicitations ! Le client a accepté votre tarif de {offer.proposedPrice} FCFA.</span>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <span>Le client a accepté votre offre ({offer.proposedPrice} FCFA).</span>
                       </div>
                       <Link
                         href={`/driver/livraison/${offer.deliveryId}`}
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-xs flex items-center space-x-2 shadow-lg shrink-0"
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-md shrink-0 transition-colors"
                       >
-                        <span>🚀 EXÉCUTER ET DÉMARRER LA COURSE</span>
+                        <span>Accéder à la livraison</span>
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                     </div>
@@ -147,50 +147,50 @@ export default function MesPropositionsDriverPage() {
 
                   {/* DÉTAILS COMPLETS DE LA LIVRAISON ACCEPTÉE OU DE L'OFFRE */}
                   {isExpanded && (
-                    <div className="space-y-4 pt-2">
+                    <div className="space-y-4 pt-2 max-w-full overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         
                         {/* ADRESSE DÉPART POINT A */}
-                        <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                        <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 max-w-full overflow-hidden">
                           <div className="font-bold text-amber-400 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
-                              <MapPin className="w-4 h-4" />
-                              <span>📍 Point de Départ (Ramassage Point A)</span>
+                              <MapPin className="w-4 h-4 shrink-0" />
+                              <span>📍 Point de Départ (Ramassage)</span>
                             </span>
                           </div>
-                          <div className="text-slate-200 font-bold text-sm">{req.pickupAddress}</div>
-                          {req.pickupInstructions && <div className="text-slate-400">Note: {req.pickupInstructions}</div>}
+                          <div className="text-slate-200 font-bold text-sm break-words max-w-full overflow-hidden">{req.pickupAddress}</div>
+                          {req.pickupInstructions && <div className="text-slate-400 break-words">Note: {req.pickupInstructions}</div>}
                           
                           <a
                             href={pickupNavUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-amber-400 hover:underline font-bold pt-1"
+                            className="inline-flex items-center gap-1 text-amber-400 hover:underline font-bold pt-1 max-w-full truncate"
                           >
-                            <span>🗺️ Ouvrir localisation Google Maps (Point A)</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span className="truncate">Ouvrir localisation Google Maps</span>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                           </a>
                         </div>
 
                         {/* ADRESSE ARRIVÉE POINT B */}
-                        <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                        <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 max-w-full overflow-hidden">
                           <div className="font-bold text-emerald-400 flex items-center justify-between">
                             <span className="flex items-center gap-1.5">
-                              <Navigation className="w-4 h-4" />
-                              <span>🏁 Point d'Arrivée (Destination Point B)</span>
+                              <Navigation className="w-4 h-4 shrink-0" />
+                              <span>🏁 Point d'Arrivée (Destination)</span>
                             </span>
                           </div>
-                          <div className="text-slate-200 font-bold text-sm">{req.destinationAddress}</div>
-                          {req.destinationInstructions && <div className="text-slate-400">Note: {req.destinationInstructions}</div>}
+                          <div className="text-slate-200 font-bold text-sm break-words max-w-full overflow-hidden">{req.destinationAddress}</div>
+                          {req.destinationInstructions && <div className="text-slate-400 break-words">Note: {req.destinationInstructions}</div>}
 
                           <a
                             href={destinationNavUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold pt-1"
+                            className="inline-flex items-center gap-1 text-emerald-400 hover:underline font-bold pt-1 max-w-full truncate"
                           >
-                            <span>🗺️ Ouvrir localisation Google Maps (Point B)</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span className="truncate">Ouvrir localisation Google Maps</span>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                           </a>
                         </div>
 
@@ -199,13 +199,13 @@ export default function MesPropositionsDriverPage() {
                       {/* INFORMATIONS CONTACT CLIENT & DESTINATAIRE */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                         <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
-                          <div className="font-bold text-slate-300 uppercase text-[11px] tracking-wider">Contact Client (Émetteur)</div>
+                          <div className="font-bold text-slate-400 uppercase text-[11px] tracking-wider">Client (Émetteur)</div>
                           <div>Nom: <strong className="text-white">{client.fullName || 'Client'}</strong></div>
                           <div>Téléphone: <strong className="text-white">{client.phone || 'N/A'}</strong></div>
                           {client.phone && (
                             <a
                               href={`tel:${client.phone}`}
-                              className="mt-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold text-[11px] inline-flex items-center space-x-1.5 border border-slate-700"
+                              className="mt-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-[11px] inline-flex items-center space-x-1.5 border border-slate-800"
                             >
                               <Phone className="w-3.5 h-3.5" />
                               <span>Appeler le client ({client.phone})</span>
@@ -214,13 +214,13 @@ export default function MesPropositionsDriverPage() {
                         </div>
 
                         <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
-                          <div className="font-bold text-slate-300 uppercase text-[11px] tracking-wider">Contact Destinataire (Récepteur)</div>
+                          <div className="font-bold text-slate-400 uppercase text-[11px] tracking-wider">Destinataire (Récepteur)</div>
                           <div>Nom: <strong className="text-white">{req.recipientName || 'Destinataire'}</strong></div>
                           <div>Téléphone: <strong className="text-white">{req.recipientPhone || 'N/A'}</strong></div>
                           {req.recipientPhone && (
                             <a
                               href={`tel:${req.recipientPhone}`}
-                              className="mt-2 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-[11px] inline-flex items-center space-x-1.5 border border-slate-700"
+                              className="mt-2 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-emerald-400 font-bold text-[11px] inline-flex items-center space-x-1.5 border border-slate-800"
                             >
                               <Phone className="w-3.5 h-3.5" />
                               <span>Appeler le destinataire ({req.recipientPhone})</span>
@@ -230,10 +230,10 @@ export default function MesPropositionsDriverPage() {
                       </div>
 
                       {/* INFORMATIONS COMPLÉMENTAIRES SUR LE COLIS */}
-                      <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1 text-slate-400">
+                      <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1 text-slate-400 max-w-full overflow-hidden">
                         <div>Quantité: <strong className="text-white">{req.packageQuantity || 1}</strong> | Poids: <strong className="text-white">{req.packageWeight ? `${req.packageWeight} kg` : 'Non renseigné'}</strong> | Taille: <strong className="text-white">{req.packageSize || 'Standard'}</strong></div>
-                        {req.additionalInstructions && <div>Instructions spéciales: <span className="text-amber-300">{req.additionalInstructions}</span></div>}
-                        {offer.message && <div>Votre message transmis: <span className="text-slate-300">"{offer.message}"</span></div>}
+                        {req.additionalInstructions && <div className="break-words">Instructions spéciales: <span className="text-amber-300">{req.additionalInstructions}</span></div>}
+                        {offer.message && <div className="break-words">Votre message: <span className="text-slate-300">"{offer.message}"</span></div>}
                       </div>
 
                       {/* BOUTON D'ACTION PRINCIPAL POUR COURSE ACCEPTÉE */}
@@ -241,10 +241,10 @@ export default function MesPropositionsDriverPage() {
                         <div className="pt-2">
                           <Link
                             href={`/driver/livraison/${offer.deliveryId}`}
-                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-sm flex items-center justify-center space-x-2 shadow-xl cursor-pointer text-center"
+                            className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm flex items-center justify-center space-x-2 shadow-md cursor-pointer text-center transition-colors"
                           >
-                            <span>🚀 EXÉCUTER ET DÉMARRER CETTE LIVRAISON</span>
-                            <ArrowRight className="w-5 h-5" />
+                            <span>Accéder à la livraison</span>
+                            <ArrowRight className="w-4 h-4" />
                           </Link>
                         </div>
                       )}

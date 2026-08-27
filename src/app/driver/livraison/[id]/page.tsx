@@ -322,10 +322,10 @@ export default function ExecutionLivraisonDriverPage() {
                 }
               }}
               disabled={actionLoading}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-black text-base rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01]"
+              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 transition-colors"
             >
-              <Navigation className="w-6 h-6 shrink-0" />
-              <span>🚀 COMMENCER LA TÂCHE & OUVRIR LE GPS (POINT A)</span>
+              <Navigation className="w-5 h-5 shrink-0" />
+              <span>📍 Aller au Point de Ramassage & Ouvrir le GPS (Point A)</span>
             </button>
           )}
 
