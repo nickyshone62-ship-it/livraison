@@ -2,13 +2,29 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, XCircle, ShieldAlert, User, Bike, ExternalLink, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
+  User,
+  Bike,
+  ExternalLink,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  ZoomIn,
+  X,
+  FileImage
+} from 'lucide-react';
 
 export default function AdminUtilisateursPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string; userName: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -46,6 +62,20 @@ export default function AdminUtilisateursPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const downloadPhoto = (fileUrl: string, title: string, userName: string) => {
+    if (!fileUrl) return;
+    const cleanUserName = (userName || 'utilisateur').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const filename = `${cleanUserName}_${cleanTitle}.jpg`;
+
+    const a = document.createElement('a');
+    a.href = fileUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -98,7 +128,7 @@ export default function AdminUtilisateursPage() {
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
-                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1.5 border border-slate-700"
+                        className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center space-x-1.5 border border-slate-700 cursor-pointer"
                       >
                         <Eye className="w-4 h-4 text-amber-400" />
                         <span>{isExpanded ? 'Masquer détails' : 'Voir tout le dossier'}</span>
@@ -109,7 +139,7 @@ export default function AdminUtilisateursPage() {
                         <button
                           onClick={() => handleUserAction(u.id, 'approve')}
                           disabled={actionLoading}
-                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg"
+                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Approuver</span>
@@ -120,7 +150,7 @@ export default function AdminUtilisateursPage() {
                         <button
                           onClick={() => handleUserAction(u.id, 'suspend')}
                           disabled={actionLoading}
-                          className="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-bold text-xs border border-orange-500/20"
+                          className="px-4 py-2 rounded-xl bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 font-bold text-xs border border-orange-500/20 cursor-pointer"
                         >
                           Suspendre
                         </button>
@@ -130,7 +160,7 @@ export default function AdminUtilisateursPage() {
 
                   {/* Section Détails Complète (Consultable avant et toujours après approbation) */}
                   {isExpanded && (
-                    <div className="pt-4 border-t border-slate-800 space-y-4 animate-fadeIn">
+                    <div className="pt-4 border-t border-slate-800 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
                         <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
                           <div className="font-bold text-amber-400 text-sm">Informations Profil :</div>
@@ -158,10 +188,12 @@ export default function AdminUtilisateursPage() {
                               )}
                             </div>
 
-                            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-                              <div className="font-bold text-cyan-400 text-sm">Photos & Pièces KYC :</div>
+                            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                              <div className="font-bold text-cyan-400 text-sm flex items-center justify-between">
+                                <span>Photos & Pièces KYC ({docs.length}) :</span>
+                              </div>
                               {docs.length > 0 ? (
-                                <div className="space-y-1.5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                   {docs.map((doc: any) => {
                                     const labelMap: Record<string, string> = {
                                       identity_card_recto: "CNI (Face RECTO)",
@@ -170,21 +202,64 @@ export default function AdminUtilisateursPage() {
                                       photo: "Photo Profil",
                                     };
                                     const title = labelMap[doc.documentType] || doc.documentType;
+                                    const fileUrl = doc.fileUrl;
+
                                     return (
-                                      <div key={doc.id} className="flex items-center justify-between">
-                                        <span className="text-slate-300 font-medium">{title}</span>
-                                        {doc.fileUrl && (
-                                          <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-amber-400 hover:underline flex items-center space-x-1 font-bold">
-                                            <span>Voir photo</span>
-                                            <ExternalLink className="w-3 h-3" />
-                                          </a>
+                                      <div key={doc.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between">
+                                        <div className="text-[11px] font-bold text-slate-300 truncate">{title}</div>
+                                        {fileUrl ? (
+                                          <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-28 flex items-center justify-center">
+                                            <img
+                                              src={fileUrl}
+                                              alt={title}
+                                              className="w-full h-full object-cover cursor-pointer"
+                                              onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                            />
+                                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                              <button
+                                                onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                                className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold"
+                                              >
+                                                <ZoomIn className="w-3.5 h-3.5" />
+                                              </button>
+                                              <button
+                                                onClick={() => downloadPhoto(fileUrl, title, u.fullName)}
+                                                className="p-1.5 rounded-lg bg-slate-800 text-white font-bold"
+                                              >
+                                                <Download className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="h-28 rounded-lg border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
+                                            Sans photo
+                                          </div>
+                                        )}
+
+                                        {fileUrl && (
+                                          <div className="flex items-center gap-1 pt-1">
+                                            <button
+                                              onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                              className="flex-1 py-1 text-[10px] font-bold rounded bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center gap-1"
+                                            >
+                                              <Eye className="w-3 h-3 text-amber-400" />
+                                              <span>Agrandir</span>
+                                            </button>
+                                            <button
+                                              onClick={() => downloadPhoto(fileUrl, title, u.fullName)}
+                                              className="flex-1 py-1 text-[10px] font-bold rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 flex items-center justify-center gap-1"
+                                            >
+                                              <Download className="w-3 h-3" />
+                                              <span>Télécharger</span>
+                                            </button>
+                                          </div>
                                         )}
                                       </div>
                                     );
                                   })}
                                 </div>
                               ) : (
-                                <div className="text-slate-500">Aucune photo téléversée.</div>
+                                <div className="text-slate-500 italic text-xs">Aucune photo téléversée.</div>
                               )}
                             </div>
                           </>
@@ -198,6 +273,55 @@ export default function AdminUtilisateursPage() {
           </div>
         )}
       </main>
+
+      {/* MODALE LIGHTBOX PHOTO POUR ADMIN UTILISATEURS */}
+      {selectedPhoto && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col justify-between">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="font-extrabold text-white text-base">{selectedPhoto.title}</h3>
+                <p className="text-xs text-slate-400">Utilisateur : <strong className="text-amber-400">{selectedPhoto.userName}</strong></p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => downloadPhoto(selectedPhoto.url, selectedPhoto.title, selectedPhoto.userName)}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Télécharger sur mon PC / Téléphone</span>
+                </button>
+
+                <button
+                  onClick={() => setSelectedPhoto(null)}
+                  className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-slate-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto flex items-center justify-center p-2 rounded-2xl bg-slate-950 border border-slate-800 min-h-[300px]">
+              <img
+                src={selectedPhoto.url}
+                alt={selectedPhoto.title}
+                className="max-h-[60vh] w-auto max-w-full object-contain rounded-xl shadow-lg"
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
+              <span>Vous pouvez télécharger cette pièce en local pour la consulter à tout moment.</span>
+              <button
+                onClick={() => setSelectedPhoto(null)}
+                className="px-4 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
