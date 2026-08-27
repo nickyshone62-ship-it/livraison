@@ -25,7 +25,7 @@ export default function AdminUtilisateursPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string; userName: string } | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; url: string; title: string; userName: string } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -65,49 +65,21 @@ export default function AdminUtilisateursPage() {
     }
   };
 
-  const downloadPhoto = async (fileUrl: string, title: string, userName: string) => {
-    if (!fileUrl) return;
-    const cleanUserName = (userName || 'utilisateur').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const cleanTitle = (title || 'photo').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const filename = `${cleanUserName}_${cleanTitle}.jpg`;
-
-    try {
-      let blobUrl = fileUrl;
-      let isBlobCreated = false;
-
-      if (fileUrl.startsWith('data:')) {
-        const parts = fileUrl.split(';base64,');
-        const contentType = parts[0].split(':')[1] || 'image/jpeg';
-        const raw = window.atob(parts[1]);
-        const rawLength = raw.length;
-        const uInt8Array = new Uint8Array(rawLength);
-        for (let i = 0; i < rawLength; ++i) {
-          uInt8Array[i] = raw.charCodeAt(i);
-        }
-        const blob = new Blob([uInt8Array], { type: contentType });
-        blobUrl = URL.createObjectURL(blob);
-        isBlobCreated = true;
-      } else if (fileUrl.startsWith('http')) {
-        const res = await fetch(fileUrl, { mode: 'cors' });
-        const blob = await res.blob();
-        blobUrl = URL.createObjectURL(blob);
-        isBlobCreated = true;
-      }
+  const triggerServerDownload = (docId: string, fallbackUrl?: string, title?: string, userName?: string) => {
+    if (docId) {
+      const downloadUrl = `/api/admin/documents/${docId}/download`;
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 5000);
+    } else if (fallbackUrl) {
+      const cleanName = (userName || 'utilisateur').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const cleanTitle = (title || 'photo').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const filename = `${cleanName}_${cleanTitle}.jpg`;
 
       const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      if (isBlobCreated) {
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      }
-    } catch (e) {
-      console.error('Erreur téléchargement photo:', e);
-      const a = document.createElement('a');
-      a.href = fileUrl;
+      a.href = fallbackUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -117,19 +89,9 @@ export default function AdminUtilisateursPage() {
 
   const downloadAllUserPhotos = async (docs: any[], userName: string) => {
     if (!docs || docs.length === 0) return;
-    const labelMap: Record<string, string> = {
-      identity_card_recto: "CNI (Face RECTO)",
-      identity_card_verso: "CNI (Face VERSO)",
-      vehicle_photo: "Photo Engin",
-      photo: "Photo Profil",
-    };
-
     for (const doc of docs) {
-      if (doc.fileUrl) {
-        const title = labelMap[doc.documentType] || doc.documentType;
-        await downloadPhoto(doc.fileUrl, title, userName);
-        await new Promise(r => setTimeout(r, 400));
-      }
+      triggerServerDownload(doc.id, doc.fileUrl, doc.documentType, userName);
+      await new Promise(r => setTimeout(r, 600));
     }
   };
 
@@ -249,10 +211,10 @@ export default function AdminUtilisateursPage() {
                                 {docs.length > 0 && (
                                   <button
                                     onClick={() => downloadAllUserPhotos(docs, u.fullName)}
-                                    className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-[11px] flex items-center gap-1 border border-amber-500/30 cursor-pointer"
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-[11px] flex items-center gap-1 border border-emerald-400/30 cursor-pointer shadow-sm"
                                   >
                                     <FolderDown className="w-3.5 h-3.5" />
-                                    <span>💾 Tout enregistrer</span>
+                                    <span>💾 Tout télécharger</span>
                                   </button>
                                 )}
                               </div>
@@ -268,6 +230,7 @@ export default function AdminUtilisateursPage() {
                                     };
                                     const title = labelMap[doc.documentType] || doc.documentType;
                                     const fileUrl = doc.fileUrl;
+                                    const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
 
                                     return (
                                       <div key={doc.id} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between">
@@ -275,21 +238,21 @@ export default function AdminUtilisateursPage() {
                                         {fileUrl ? (
                                           <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-28 flex items-center justify-center">
                                             <img
-                                              src={fileUrl}
+                                              src={viewUrl}
                                               alt={title}
                                               className="w-full h-full object-cover cursor-pointer"
-                                              onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                              onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
                                             />
                                             <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                                               <button
-                                                onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                                onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
                                                 className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold"
                                               >
                                                 <ZoomIn className="w-3.5 h-3.5" />
                                               </button>
                                               <button
-                                                onClick={() => downloadPhoto(fileUrl, title, u.fullName)}
-                                                className="p-1.5 rounded-lg bg-slate-800 text-white font-bold"
+                                                onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, u.fullName)}
+                                                className="p-1.5 rounded-lg bg-emerald-500 text-slate-950 font-bold"
                                               >
                                                 <Download className="w-3.5 h-3.5" />
                                               </button>
@@ -304,18 +267,18 @@ export default function AdminUtilisateursPage() {
                                         {fileUrl && (
                                           <div className="flex items-center gap-1 pt-1">
                                             <button
-                                              onClick={() => setSelectedPhoto({ url: fileUrl, title, userName: u.fullName })}
+                                              onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
                                               className="flex-1 py-1 text-[10px] font-bold rounded bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
                                             >
                                               <Eye className="w-3 h-3 text-amber-400" />
                                               <span>Agrandir</span>
                                             </button>
                                             <button
-                                              onClick={() => downloadPhoto(fileUrl, title, u.fullName)}
-                                              className="flex-1 py-1 text-[10px] font-bold rounded bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 flex items-center justify-center gap-1 cursor-pointer"
+                                              onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, u.fullName)}
+                                              className="flex-1 py-1 text-[10px] font-bold rounded bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center gap-1 cursor-pointer border border-emerald-500/20"
                                             >
                                               <Download className="w-3 h-3" />
-                                              <span>Enregistrer</span>
+                                              <span>Télécharger</span>
                                             </button>
                                           </div>
                                         )}
@@ -351,8 +314,8 @@ export default function AdminUtilisateursPage() {
 
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => downloadPhoto(selectedPhoto.url, selectedPhoto.title, selectedPhoto.userName)}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer"
+                  onClick={() => triggerServerDownload(selectedPhoto.id, selectedPhoto.url, selectedPhoto.title, selectedPhoto.userName)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>Enregistrer en local</span>

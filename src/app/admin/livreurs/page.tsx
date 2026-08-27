@@ -22,7 +22,7 @@ export default function AdminLivreursPage() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string; driverName: string } | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; url: string; title: string; driverName: string } | null>(null);
 
   useEffect(() => {
     fetchDrivers();
@@ -63,50 +63,22 @@ export default function AdminLivreursPage() {
     }
   };
 
-  // Convert Base64 data URL or HTTP URL to a Blob URL to avoid about:blank#blocked browser security policy
-  const downloadPhoto = async (fileUrl: string, title: string, driverName: string) => {
-    if (!fileUrl) return;
-    const cleanDriverName = (driverName || 'livreur').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const cleanTitle = (title || 'photo').toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const filename = `${cleanDriverName}_${cleanTitle}.jpg`;
-
-    try {
-      let blobUrl = fileUrl;
-      let isBlobCreated = false;
-
-      if (fileUrl.startsWith('data:')) {
-        const parts = fileUrl.split(';base64,');
-        const contentType = parts[0].split(':')[1] || 'image/jpeg';
-        const raw = window.atob(parts[1]);
-        const rawLength = raw.length;
-        const uInt8Array = new Uint8Array(rawLength);
-        for (let i = 0; i < rawLength; ++i) {
-          uInt8Array[i] = raw.charCodeAt(i);
-        }
-        const blob = new Blob([uInt8Array], { type: contentType });
-        blobUrl = URL.createObjectURL(blob);
-        isBlobCreated = true;
-      } else if (fileUrl.startsWith('http')) {
-        const res = await fetch(fileUrl, { mode: 'cors' });
-        const blob = await res.blob();
-        blobUrl = URL.createObjectURL(blob);
-        isBlobCreated = true;
-      }
+  // Direct 100% reliable server download trigger (bypasses browser about:blank#blocked restriction)
+  const triggerServerDownload = (docId: string, fallbackUrl?: string, title?: string, driverName?: string) => {
+    if (docId) {
+      const downloadUrl = `/api/admin/documents/${docId}/download`;
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 5000);
+    } else if (fallbackUrl) {
+      const cleanName = (driverName || 'livreur').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const cleanTitle = (title || 'photo').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const filename = `${cleanName}_${cleanTitle}.jpg`;
 
       const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-
-      if (isBlobCreated) {
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      }
-    } catch (e) {
-      console.error('Erreur téléchargement photo:', e);
-      const a = document.createElement('a');
-      a.href = fileUrl;
+      a.href = fallbackUrl;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -116,19 +88,9 @@ export default function AdminLivreursPage() {
 
   const downloadAllDriverPhotos = async (docs: any[], driverName: string) => {
     if (!docs || docs.length === 0) return;
-    const labelMap: Record<string, string> = {
-      identity_card_recto: "CNI (Face RECTO)",
-      identity_card_verso: "CNI (Face VERSO)",
-      vehicle_photo: "Photo Engin",
-      photo: "Photo Profil",
-    };
-
     for (const doc of docs) {
-      if (doc.fileUrl) {
-        const title = labelMap[doc.documentType] || doc.documentType;
-        await downloadPhoto(doc.fileUrl, title, driverName);
-        await new Promise(r => setTimeout(r, 400));
-      }
+      triggerServerDownload(doc.id, doc.fileUrl, doc.documentType, driverName);
+      await new Promise(r => setTimeout(r, 600));
     }
   };
 
@@ -229,22 +191,22 @@ export default function AdminLivreursPage() {
                       )}
                     </div>
 
-                    {/* GALERIE DE PHOTOS ET PIÈCES KYC DES LIVREURS (TÉLÉCHARGEABLES EN LOCAL) */}
+                    {/* GALERIE DE PHOTOS ET PIÈCES KYC DES LIVREURS (TÉLÉCHARGEABLES EN LOCAL VIA SERVEUR) */}
                     <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
                         <span className="flex items-center gap-2 font-bold text-cyan-400 text-sm">
                           <FileImage className="w-4 h-4" />
-                          <span>Photos & Pièces KYC Téléchargeables ({docs.length})</span>
+                          <span>Photos & Pièces KYC ({docs.length})</span>
                         </span>
 
                         {docs.length > 0 && (
                           <button
                             onClick={() => downloadAllDriverPhotos(docs, d.fullName)}
-                            className="px-3.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center gap-1.5 border border-amber-500/30 cursor-pointer shadow-sm"
-                            title="Télécharger l'ensemble des photos de ce livreur en 1 clic"
+                            className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
+                            title="Télécharger l'ensemble des photos de ce livreur directement sur votre ordinateur"
                           >
                             <FolderDown className="w-4 h-4" />
-                            <span>💾 Enregistrer TOUTES les photos du livreur</span>
+                            <span>💾 Télécharger TOUTES les photos</span>
                           </button>
                         )}
                       </div>
@@ -267,6 +229,7 @@ export default function AdminLivreursPage() {
                             };
                             const title = labelMap[doc.documentType] || doc.documentType;
                             const fileUrl = doc.fileUrl;
+                            const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
 
                             return (
                               <div
@@ -282,23 +245,23 @@ export default function AdminLivreursPage() {
                                   {fileUrl ? (
                                     <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-32 flex items-center justify-center">
                                       <img
-                                        src={fileUrl}
+                                        src={viewUrl}
                                         alt={title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
-                                        onClick={() => setSelectedPhoto({ url: fileUrl, title, driverName: d.fullName })}
+                                        onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
                                       />
                                       <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                         <button
-                                          onClick={() => setSelectedPhoto({ url: fileUrl, title, driverName: d.fullName })}
-                                          className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md"
+                                          onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
+                                          className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md cursor-pointer"
                                           title="Agrandir"
                                         >
                                           <ZoomIn className="w-4 h-4" />
                                         </button>
                                         <button
-                                          onClick={() => downloadPhoto(fileUrl, title, d.fullName)}
-                                          className="p-2 rounded-lg bg-slate-800 text-white font-bold text-xs flex items-center gap-1 shadow-md hover:bg-slate-700"
-                                          title="Enregistrer en local sur mon PC / Téléphone"
+                                          onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
+                                          className="p-2 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md hover:bg-emerald-400 cursor-pointer"
+                                          title="Télécharger directement en local"
                                         >
                                           <Download className="w-4 h-4" />
                                         </button>
@@ -311,11 +274,11 @@ export default function AdminLivreursPage() {
                                   )}
                                 </div>
 
-                                {/* BOUTONS D'ACTION INDIVIDUELS */}
+                                {/* BOUTONS D'ACTION DIRECTS */}
                                 {fileUrl && (
                                   <div className="flex items-center gap-2 pt-1">
                                     <button
-                                      onClick={() => setSelectedPhoto({ url: fileUrl, title, driverName: d.fullName })}
+                                      onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
                                       className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-slate-700 cursor-pointer"
                                     >
                                       <Eye className="w-3 h-3 text-amber-400" />
@@ -323,11 +286,11 @@ export default function AdminLivreursPage() {
                                     </button>
 
                                     <button
-                                      onClick={() => downloadPhoto(fileUrl, title, d.fullName)}
-                                      className="flex-1 py-1.5 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-amber-500/20 cursor-pointer"
+                                      onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
+                                      className="flex-1 py-1.5 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-emerald-500/30 cursor-pointer"
                                     >
                                       <Download className="w-3 h-3" />
-                                      <span>Enregistrer</span>
+                                      <span>Télécharger</span>
                                     </button>
                                   </div>
                                 )}
@@ -345,7 +308,7 @@ export default function AdminLivreursPage() {
         )}
       </main>
 
-      {/* MODALE LIGHTBOX POUR VISUALISATION HIGH-RES ET ENREGISTREMENT LOCAL */}
+      {/* MODALE LIGHTBOX POUR VISUALISATION HIGH-RES ET ENREGISTREMENT LOCAL DIRECT */}
       {selectedPhoto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col justify-between">
@@ -357,11 +320,11 @@ export default function AdminLivreursPage() {
 
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => downloadPhoto(selectedPhoto.url, selectedPhoto.title, selectedPhoto.driverName)}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
+                  onClick={() => triggerServerDownload(selectedPhoto.id, selectedPhoto.url, selectedPhoto.title, selectedPhoto.driverName)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md cursor-pointer transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Enregistrer cette photo en local</span>
+                  <span>Enregistrer sur mon appareil</span>
                 </button>
 
                 <button
@@ -383,7 +346,7 @@ export default function AdminLivreursPage() {
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-400 pt-2 border-t border-slate-800">
-              <span>La photo sera enregistrée directement dans votre dossier de téléchargements.</span>
+              <span>Le fichier image sera enregistré directement sur votre appareil.</span>
               <button
                 onClick={() => setSelectedPhoto(null)}
                 className="px-4 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white font-bold cursor-pointer"
