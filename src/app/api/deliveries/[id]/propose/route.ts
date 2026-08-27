@@ -42,7 +42,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const existingOffer = await db.deliveryOffer.findFirst({
       where: {
         deliveryId: params.id,
-        driverId: session.userId,
+        driverId: driverProfile.id,
       },
     });
 
@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       offer = await db.deliveryOffer.create({
         data: {
           deliveryId: params.id,
-          driverId: session.userId,
+          driverId: driverProfile.id,
           proposedPrice: parseFloat(proposedPrice),
           estimatedDuration: estimatedDuration ? parseInt(estimatedDuration, 10) : null,
           message: message || null,

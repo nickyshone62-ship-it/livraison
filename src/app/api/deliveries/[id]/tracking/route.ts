@@ -67,10 +67,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Coordonnées latitude et longitude requises.' }, { status: 400 });
     }
 
+    const driverProfile = await db.driverProfile.findUnique({
+      where: { userId: session.userId },
+    });
+
+    if (!driverProfile) {
+      return NextResponse.json({ error: 'Profil livreur introuvable' }, { status: 404 });
+    }
+
     const trackingLog = await db.deliveryTracking.create({
       data: {
         deliveryId: params.id,
-        driverId: session.userId,
+        driverId: driverProfile.id,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         accuracy: accuracy ? parseFloat(accuracy) : null,
