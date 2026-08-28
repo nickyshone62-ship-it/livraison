@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Truck, User, Bike, ArrowRight, Upload, CheckCircle2, Image as ImageIcon, Trash2, Camera, Eye, EyeOff } from 'lucide-react';
+import { Truck, User, Bike, ArrowRight, Upload, CheckCircle2, Image as ImageIcon, Trash2, Camera, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { AdminSecretModal } from '@/components/AdminSecretModal';
 
 export default function InscriptionPage() {
@@ -19,6 +19,10 @@ export default function InscriptionPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Rejection Correction Mode State
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [isRejectedFixMode, setIsRejectedFixMode] = useState(false);
 
   // Driver fields (Immatriculation retirée)
   const [vehicleType, setVehicleType] = useState('motorcycle');
@@ -40,6 +44,75 @@ export default function InscriptionPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pré-remplissage automatique des informations existantes si dossier rejeté ou session active
+  React.useEffect(() => {
+    const checkExistingProfile = async () => {
+      try {
+        const res = await fetch('/api/auth/rejected-info');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.exists) {
+            if (data.isApproved) {
+              setError('Ce numéro est déjà associé à un compte actif ou validé.');
+              return;
+            }
+            if (data.user) {
+              if (data.user.fullName) setFullName(data.user.fullName);
+              if (data.user.phone) setPhone(data.user.phone);
+              if (data.user.email) setEmail(data.user.email);
+              if (data.user.city) setCity(data.user.city);
+              if (data.user.address) setAddress(data.user.address);
+              if (data.user.role) setRole(data.user.role);
+              if (data.user.cniRectoUrl) setIdCardRectoUrl(data.user.cniRectoUrl);
+              if (data.user.cniVersoUrl) setIdCardVersoUrl(data.user.cniVersoUrl);
+              if (data.user.avatarUrl) setPhotoUrl(data.user.avatarUrl);
+              setHasPaid(true);
+
+              if (data.isRejected) {
+                setRejectionReason(data.user.rejectionReason || 'Document non conforme ou informations incomplètes.');
+                setIsRejectedFixMode(true);
+              }
+            }
+          }
+        }
+      } catch (err) {}
+    };
+    checkExistingProfile();
+  }, []);
+
+  const handlePhoneBlur = async () => {
+    if (!phone || phone.trim().length < 8) return;
+    try {
+      const res = await fetch(`/api/auth/rejected-info?phone=${encodeURIComponent(phone.trim())}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.exists) {
+          if (data.isApproved) {
+            setError('Ce numéro de téléphone appartient déjà à un compte validé ou actif. Vous ne pouvez pas créer un nouveau compte avec ce numéro.');
+            return;
+          }
+          if (data.user) {
+            if (data.user.fullName) setFullName(data.user.fullName);
+            if (data.user.email) setEmail(data.user.email);
+            if (data.user.city) setCity(data.user.city);
+            if (data.user.address) setAddress(data.user.address);
+            if (data.user.role) setRole(data.user.role);
+            if (data.user.cniRectoUrl) setIdCardRectoUrl(data.user.cniRectoUrl);
+            if (data.user.cniVersoUrl) setIdCardVersoUrl(data.user.cniVersoUrl);
+            if (data.user.avatarUrl) setPhotoUrl(data.user.avatarUrl);
+            setHasPaid(true);
+
+            if (data.isRejected) {
+              setRejectionReason(data.user.rejectionReason || 'Document non conforme ou informations incomplètes.');
+              setIsRejectedFixMode(true);
+              setError(null);
+            }
+          }
+        }
+      }
+    } catch (e) {}
+  };
 
   // Helper file upload -> Base64 Data URL
   const handleFileChange = (
@@ -197,6 +270,24 @@ export default function InscriptionPage() {
 
         {/* Form Container */}
         <form onSubmit={handleSubmit} className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
+          {isRejectedFixMode && (
+            <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 space-y-2.5 animate-fadeIn">
+              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <span>Correction de votre dossier rejeté</span>
+              </div>
+              <div className="text-xs space-y-1">
+                <strong className="text-amber-300">Motif du refus précédent :</strong>
+                <div className="p-3 rounded-xl bg-slate-950 border border-amber-900/50 text-white font-bold text-xs">
+                  "{rejectionReason || 'Document non conforme ou informations incomplètes.'}"
+                </div>
+              </div>
+              <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                💡 <strong>Toutes vos informations enregistrées ont été conservées.</strong> Corrigez simplement les pièces ou informations erronées ci-dessous, puis validez.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
               {error}
@@ -227,6 +318,7 @@ export default function InscriptionPage() {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onBlur={handlePhoneBlur}
                 placeholder="ex: 70000000"
                 className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
               />
@@ -679,7 +771,7 @@ export default function InscriptionPage() {
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>Créer mon compte</span>
+                <span>{isRejectedFixMode ? 'Soumettre à nouveau mon dossier corrigé' : 'Créer mon compte'}</span>
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
