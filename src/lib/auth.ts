@@ -101,6 +101,26 @@ export async function validateActiveSubscription(userId: string, role: string): 
     return { active: true };
   }
 
+  // Si aucun abonnement actif n'existe mais que le compte est approuvé, accorder automatiquement le 1er mois offert (30 jours) si pas encore consommé ou créer la fiche
+  const existingSubs = await db.subscription.findMany({ where: { userId } });
+  if (existingSubs.length === 0) {
+    const startsAt = new Date();
+    const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await db.subscription.create({
+      data: {
+        userId,
+        amount: 1000,
+        currency: 'XOF',
+        status: 'active',
+        startsAt,
+        expiresAt,
+        approvedAt: startsAt,
+      },
+    }).catch(console.error);
+
+    return { active: true };
+  }
+
   return {
     active: false,
     code: 'SUBSCRIPTION_EXPIRED',
