@@ -119,6 +119,27 @@ export async function POST(req: Request) {
     const profileId = targetProfileId || crypto.randomUUID();
     const userEmail = cleanEmail || `${cleanPhone}@livraisonouaga.bf`;
 
+    // Ensure columns exist on profiles table
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS document_updated_at timestamp with time zone;`.catch(() => {});
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS previous_rejection_reason text;`.catch(() => {});
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_resubmitted boolean DEFAULT false;`.catch(() => {});
+
+    // Check if previous account was rejected
+    let previousRejectionReason: string | null = null;
+    let wasRejected = false;
+    if (targetProfileId) {
+      const prevRows = (await db.$queryRaw`
+        SELECT account_status::text as "accountStatus", rejection_reason as "rejectionReason"
+        FROM public.profiles
+        WHERE id = ${targetProfileId}::uuid
+        LIMIT 1
+      `) as any[];
+      if (prevRows && prevRows.length > 0 && prevRows[0].accountStatus === 'rejected') {
+        wasRejected = true;
+        previousRejectionReason = prevRows[0].rejectionReason || 'Non conforme';
+      }
+    }
+
     // 1. Upsert into auth.users (Met à jour le mot de passe si réutilisation d'un compte rejeté)
     await db.$executeRaw`
       INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, created_at, updated_at)
@@ -128,24 +149,63 @@ export async function POST(req: Request) {
         updated_at = NOW();
     `;
 
-    // 2. Upsert into public.profiles (Réinitialise account_status à 'pending' et réinitialise rejection_reason à NULL)
-    await db.$executeRaw`
-      INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, cni_recto_url, cni_verso_url, account_status, rejection_reason, created_at, updated_at)
-      VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, ${rectoPhoto || null}, ${versoPhoto || null}, 'pending'::account_status, NULL, NOW(), NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        role = EXCLUDED.role,
-        full_name = EXCLUDED.full_name,
-        phone = EXCLUDED.phone,
-        email = EXCLUDED.email,
-        avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
-        city = EXCLUDED.city,
-        address = EXCLUDED.address,
-        cni_recto_url = COALESCE(EXCLUDED.cni_recto_url, public.profiles.cni_recto_url),
-        cni_verso_url = COALESCE(EXCLUDED.cni_verso_url, public.profiles.cni_verso_url),
-        account_status = 'pending'::account_status,
-        rejection_reason = NULL,
-        updated_at = NOW();
-    `;
+    // 2. Upsert into public.profiles (Réinitialise account_status à 'pending', enregistre la ré-soumission)
+    if (wasRejected) {
+      await db.$executeRaw`
+        INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, cni_recto_url, cni_verso_url, account_status, rejection_reason, previous_rejection_reason, is_resubmitted, document_updated_at, created_at, updated_at)
+        VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, ${rectoPhoto || null}, ${versoPhoto || null}, 'pending'::account_status, NULL, ${previousRejectionReason}, true, NOW(), NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          role = EXCLUDED.role,
+          full_name = EXCLUDED.full_name,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
+          avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
+          city = EXCLUDED.city,
+          address = EXCLUDED.address,
+          cni_recto_url = COALESCE(EXCLUDED.cni_recto_url, public.profiles.cni_recto_url),
+          cni_verso_url = COALESCE(EXCLUDED.cni_verso_url, public.profiles.cni_verso_url),
+          account_status = 'pending'::account_status,
+          previous_rejection_reason = ${previousRejectionReason},
+          rejection_reason = NULL,
+          is_resubmitted = true,
+          document_updated_at = NOW(),
+          updated_at = NOW();
+      `;
+
+      // Notify Admins about resubmitted documents
+      try {
+        const admins = await db.profile.findMany({ where: { role: 'admin' } });
+        for (const admin of admins) {
+          await db.notification.create({
+            data: {
+              userId: admin.id,
+              title: '📄 Pièce mise à jour (Re-soumission)',
+              message: `L'utilisateur ${fullName.trim()} (${cleanPhone}) a mis à jour ses pièces justificatives suite au rejet de son compte ("${previousRejectionReason}"). À vérifier par l'admin.`,
+              type: 'system',
+              relatedId: profileId,
+            },
+          }).catch(() => {});
+        }
+      } catch (errNotif) {}
+    } else {
+      await db.$executeRaw`
+        INSERT INTO public.profiles (id, role, full_name, phone, email, avatar_url, city, address, cni_recto_url, cni_verso_url, account_status, rejection_reason, created_at, updated_at)
+        VALUES (${profileId}::uuid, ${role}::user_role, ${fullName.trim()}, ${cleanPhone}, ${cleanEmail}, ${profilePhoto || null}, ${city || 'Ouagadougou'}, ${address || null}, ${rectoPhoto || null}, ${versoPhoto || null}, 'pending'::account_status, NULL, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          role = EXCLUDED.role,
+          full_name = EXCLUDED.full_name,
+          phone = EXCLUDED.phone,
+          email = EXCLUDED.email,
+          avatar_url = COALESCE(EXCLUDED.avatar_url, public.profiles.avatar_url),
+          city = EXCLUDED.city,
+          address = EXCLUDED.address,
+          cni_recto_url = COALESCE(EXCLUDED.cni_recto_url, public.profiles.cni_recto_url),
+          cni_verso_url = COALESCE(EXCLUDED.cni_verso_url, public.profiles.cni_verso_url),
+          account_status = 'pending'::account_status,
+          rejection_reason = NULL,
+          updated_at = NOW();
+      `;
+    }
 
     const profile = {
       id: profileId,

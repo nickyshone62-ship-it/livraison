@@ -12,6 +12,21 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const roleFilter = searchParams.get('role'); // 'client', 'driver', 'admin'
 
+    // Fetch raw profile fields to ensure new columns (is_resubmitted, previous_rejection_reason, etc.) are included
+    const profilesRaw = ((await db.$queryRaw`
+      SELECT id, 
+             is_resubmitted as "isResubmitted", 
+             document_updated_at as "documentUpdatedAt", 
+             previous_rejection_reason as "previousRejectionReason",
+             rejection_reason as "rejectionReason"
+      FROM public.profiles
+    `.catch(() => [])) || []) as any[];
+
+    const resubmittedMap = new Map();
+    (profilesRaw || []).forEach((p) => {
+      resubmittedMap.set(p.id, p);
+    });
+
     const users = await db.profile.findMany({
       where: roleFilter ? { role: roleFilter as any } : undefined,
       include: {
@@ -31,7 +46,18 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ users });
+    const enhancedUsers = users.map((u: any) => {
+      const extra = resubmittedMap.get(u.id) || {};
+      return {
+        ...u,
+        isResubmitted: Boolean(extra.isResubmitted),
+        documentUpdatedAt: extra.documentUpdatedAt || null,
+        previousRejectionReason: extra.previousRejectionReason || u.rejectionReason || null,
+        rejectionReason: u.rejectionReason || extra.rejectionReason || null,
+      };
+    });
+
+    return NextResponse.json({ users: enhancedUsers });
   } catch (error: any) {
     console.error('Erreur admin users GET:', error);
     return NextResponse.json({ error: 'Erreur lors du chargement des utilisateurs' }, { status: 500 });
@@ -67,6 +93,9 @@ export async function PATCH(req: Request) {
 
     // Ensure rejection_reason column exists in profiles table
     await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rejection_reason text;`.catch(() => {});
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS previous_rejection_reason text;`.catch(() => {});
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_resubmitted boolean DEFAULT false;`.catch(() => {});
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS document_updated_at timestamp with time zone;`.catch(() => {});
 
     if (action === 'approve') {
       newAccountStatus = 'active';
@@ -100,6 +129,7 @@ export async function PATCH(req: Request) {
         UPDATE public.profiles
         SET account_status = 'rejected'::account_status,
             rejection_reason = ${rejectionReasonText},
+            is_resubmitted = false,
             updated_at = NOW()
         WHERE id = ${userId}::uuid
       `;
@@ -108,6 +138,7 @@ export async function PATCH(req: Request) {
         UPDATE public.profiles
         SET account_status = ${newAccountStatus}::account_status,
             rejection_reason = NULL,
+            is_resubmitted = false,
             updated_at = NOW()
         WHERE id = ${userId}::uuid
       `;

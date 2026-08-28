@@ -31,7 +31,7 @@ export default function AdminClientsPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'active' | 'suspended'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'resubmitted' | 'active' | 'suspended'>('all');
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string; clientName: string } | null>(null);
 
   // Modal de Rejet avec Motif
@@ -152,6 +152,7 @@ export default function AdminClientsPage() {
 
     if (!matchesSearch) return false;
 
+    if (filterTab === 'resubmitted') return Boolean(c.isResubmitted);
     if (filterTab === 'pending') return c.accountStatus === 'pending';
     if (filterTab === 'active') return c.accountStatus === 'active' || c.accountStatus === 'approved';
     if (filterTab === 'suspended') return c.accountStatus === 'suspended' || c.accountStatus === 'rejected';
@@ -162,6 +163,7 @@ export default function AdminClientsPage() {
   const stats = {
     total: clients.length,
     pending: clients.filter((c) => c.accountStatus === 'pending').length,
+    resubmitted: clients.filter((c) => Boolean(c.isResubmitted)).length,
     active: clients.filter((c) => c.accountStatus === 'active' || c.accountStatus === 'approved').length,
     suspended: clients.filter((c) => c.accountStatus === 'suspended' || c.accountStatus === 'rejected').length,
   };
@@ -199,7 +201,7 @@ export default function AdminClientsPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* STATS CARDS */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <button
             onClick={() => setFilterTab('all')}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
@@ -208,7 +210,7 @@ export default function AdminClientsPage() {
           >
             <div className="text-xs text-slate-400 font-medium">Total Clients</div>
             <div className="text-2xl font-black text-white mt-1">{stats.total}</div>
-            <div className="text-[10px] text-slate-500 mt-1">Tous les comptes inscrits</div>
+            <div className="text-[10px] text-slate-500 mt-1">Tous les comptes</div>
           </button>
 
           <button
@@ -218,11 +220,25 @@ export default function AdminClientsPage() {
             }`}
           >
             <div className="text-xs text-amber-400 font-bold flex items-center justify-between">
-              <span>En attente validation</span>
+              <span>En attente</span>
               {stats.pending > 0 && <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />}
             </div>
             <div className="text-2xl font-black text-amber-400 mt-1">{stats.pending}</div>
             <div className="text-[10px] text-slate-400 mt-1">CNI & Paiement à vérifier</div>
+          </button>
+
+          <button
+            onClick={() => setFilterTab('resubmitted')}
+            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+              filterTab === 'resubmitted' ? 'bg-purple-500/20 border-purple-500 shadow-lg shadow-purple-500/10' : 'bg-slate-900/60 border-purple-900/40 hover:bg-slate-900'
+            }`}
+          >
+            <div className="text-xs text-purple-400 font-bold flex items-center justify-between">
+              <span>Pièces Modifiées</span>
+              {stats.resubmitted > 0 && <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-ping" />}
+            </div>
+            <div className="text-2xl font-black text-purple-300 mt-1">{stats.resubmitted}</div>
+            <div className="text-[10px] text-purple-400/80 mt-1">Re-soumis suite au rejet</div>
           </button>
 
           <button
@@ -242,7 +258,7 @@ export default function AdminClientsPage() {
               filterTab === 'suspended' ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/5' : 'bg-slate-900/60 border-slate-800 hover:bg-slate-900'
             }`}
           >
-            <div className="text-xs text-red-400 font-bold">Suspendus / Rejetés</div>
+            <div className="text-xs text-red-400 font-bold">Suspendus</div>
             <div className="text-2xl font-black text-red-400 mt-1">{stats.suspended}</div>
             <div className="text-[10px] text-slate-400 mt-1">Accès restreint</div>
           </button>
@@ -264,21 +280,22 @@ export default function AdminClientsPage() {
                 onClick={() => setSearchTerm('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* TAB BUTTONS */}
-          <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto text-xs font-bold scrollbar-none">
+          {/* FILTER TABS */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto text-xs font-semibold">
             <button
               onClick={() => setFilterTab('all')}
               className={`px-3 py-2 rounded-xl transition-colors cursor-pointer ${
-                filterTab === 'all' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-400 hover:text-white'
+                filterTab === 'all' ? 'bg-amber-500 text-slate-950 font-black' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
               }`}
             >
               Tous ({stats.total})
             </button>
+
             <button
               onClick={() => setFilterTab('pending')}
               className={`px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
@@ -288,6 +305,17 @@ export default function AdminClientsPage() {
               <Clock className="w-3.5 h-3.5" />
               <span>En attente ({stats.pending})</span>
             </button>
+
+            <button
+              onClick={() => setFilterTab('resubmitted')}
+              className={`px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
+                filterTab === 'resubmitted' ? 'bg-purple-600 text-white font-black shadow-lg shadow-purple-600/30' : 'bg-purple-950/60 border border-purple-500/30 text-purple-300 hover:bg-purple-900/60'
+              }`}
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-purple-400" />
+              <span>Pièces Modifiées ({stats.resubmitted})</span>
+            </button>
+
             <button
               onClick={() => setFilterTab('active')}
               className={`px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
@@ -297,6 +325,7 @@ export default function AdminClientsPage() {
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Actifs ({stats.active})</span>
             </button>
+
             <button
               onClick={() => setFilterTab('suspended')}
               className={`px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 ${
@@ -438,6 +467,26 @@ export default function AdminClientsPage() {
                             <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-amber-400">
                               Ref: {regPayment.transactionReference}
                             </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ALERTE PIÈCE MIS À JOUR / RE-SOUMIS APRÈS REJET */}
+                      {c.isResubmitted && (
+                        <div className="p-3 rounded-xl bg-purple-950/60 border border-purple-500/50 text-purple-200 text-xs space-y-1 shadow-lg shadow-purple-500/10">
+                          <div className="font-extrabold text-purple-300 flex items-center gap-1.5">
+                            <RefreshCw className="w-4 h-4 text-purple-400 animate-spin" />
+                            <span>🔄 PIÈCE MIS À JOUR (DOSSIER RE-SOUMIS)</span>
+                          </div>
+                          {c.previousRejectionReason && (
+                            <div className="text-[11px] text-slate-300">
+                              Précédent motif du rejet : <strong className="text-amber-300 font-semibold">"{c.previousRejectionReason}"</strong>
+                            </div>
+                          )}
+                          {c.documentUpdatedAt && (
+                            <div className="text-[10px] text-purple-400">
+                              Mise à jour le {new Date(c.documentUpdatedAt).toLocaleString('fr-FR')}
+                            </div>
                           )}
                         </div>
                       )}

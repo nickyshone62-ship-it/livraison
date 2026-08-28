@@ -143,12 +143,13 @@ export default function AdminUtilisateursPage() {
                         <div className="font-bold text-white text-lg flex items-center space-x-2">
                           <span>{u.fullName || 'Utilisateur'}</span>
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                            u.isResubmitted ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 animate-pulse' :
                             u.accountStatus === 'approved' || u.accountStatus === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                             u.accountStatus === 'suspended' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
                             u.accountStatus === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                             'bg-amber-500/10 border-amber-500/20 text-amber-400'
                           }`}>
-                            {u.accountStatus}
+                            {u.isResubmitted ? '🔄 Pièce modifiée (Re-soumis)' : u.accountStatus}
                           </span>
                         </div>
                         <div className="text-xs text-slate-400">Tél: <strong className="text-white">{u.phone || 'N/A'}</strong> | Email: {u.email || 'N/A'} | Ville: {u.city || 'Ouagadougou'}</div>

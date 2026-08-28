@@ -16,7 +16,8 @@ import {
   X,
   FileImage,
   ZoomIn,
-  FolderDown
+  FolderDown,
+  RefreshCw
 } from 'lucide-react';
 
 export default function AdminLivreursPage() {
@@ -147,11 +148,12 @@ export default function AdminLivreursPage() {
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${
+                          d.isResubmitted ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 animate-pulse' :
                           verificationStatus === 'approved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
                           verificationStatus === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                           'bg-amber-500/10 border-amber-500/20 text-amber-400'
                         }`}>
-                          Statut: {verificationStatus}
+                          {d.isResubmitted ? '🔄 Pièce modifiée (Re-soumis)' : `Statut: ${verificationStatus}`}
                         </span>
                         <span className="text-xs text-slate-400 font-semibold">Note: {driverProfile?.averageRating || '5.0'} ★</span>
                       </div>
@@ -200,6 +202,21 @@ export default function AdminLivreursPage() {
                         </div>
                       ) : (
                         <div className="text-slate-500 italic">Aucun véhicule enregistré.</div>
+                      )}
+
+                      {d.isResubmitted && (
+                        <div className="pt-2 border-t border-slate-900 text-purple-200 text-xs space-y-1 bg-purple-950/40 p-2.5 rounded-xl border border-purple-500/40">
+                          <div className="font-extrabold text-purple-300 flex items-center gap-1.5">
+                            <RefreshCw className="w-3.5 h-3.5 text-purple-400 animate-spin" />
+                            <span>🔄 PIÈCE MISE À JOUR (DOSSIER RE-SOUMIS)</span>
+                          </div>
+                          {d.previousRejectionReason && (
+                            <div>Précédent motif : <strong className="text-amber-300 font-semibold">"{d.previousRejectionReason}"</strong></div>
+                          )}
+                          {d.documentUpdatedAt && (
+                            <div className="text-[10px] text-purple-400">Modifié le {new Date(d.documentUpdatedAt).toLocaleString('fr-FR')}</div>
+                          )}
+                        </div>
                       )}
 
                       {verificationStatus === 'rejected' && (

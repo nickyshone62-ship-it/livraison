@@ -343,12 +343,26 @@ export default function AdminDashboardPage() {
                 {pendingClients.map((c) => (
                   <div key={c.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
                     <div>
-                      <div className="font-bold text-slate-900">{c.fullName || 'Client'}</div>
-                      <div className="text-slate-500">Tél: {c.phone || 'N/A'} | CNI: {c.cniRectoUrl ? 'Oui' : 'Non'}</div>
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>{c.fullName || 'Client'}</span>
+                        {c.isResubmitted && (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-100 border border-purple-300 text-purple-700 font-extrabold text-[10px]">
+                            🔄 Pièce modifiée
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-slate-500">
+                        Tél: {c.phone || 'N/A'} | CNI: {c.cniRectoUrl ? 'Oui' : 'Non'}
+                        {c.previousRejectionReason && (
+                          <span className="text-purple-600 font-semibold block text-[10px]">
+                            Ex-motif: "{c.previousRejectionReason}"
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <Link
                       href="/admin/clients"
-                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded text-[11px] flex items-center gap-1 shadow-sm"
+                      className="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded text-[11px] flex items-center gap-1 shadow-sm shrink-0"
                     >
                       <span>Inspecter CNI</span>
                     </Link>
@@ -365,6 +379,9 @@ export default function AdminDashboardPage() {
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span>Livreurs KYC ({pendingDrivers.length})</span>
               </h3>
+              <Link href="/admin/livreurs" className="text-xs text-emerald-600 hover:underline font-bold">
+                Voir tout →
+              </Link>
             </div>
 
             {pendingDrivers.length === 0 ? (
@@ -374,8 +391,22 @@ export default function AdminDashboardPage() {
                 {pendingDrivers.map((d) => (
                   <div key={d.id} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
                     <div>
-                      <div className="font-bold text-slate-900">{d.fullName} ({d.phone})</div>
-                      <div className="text-slate-500">CNIB / Permis soumis</div>
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>{d.fullName} ({d.phone})</span>
+                        {d.isResubmitted && (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-100 border border-purple-300 text-purple-700 font-extrabold text-[10px]">
+                            🔄 Pièce modifiée
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-slate-500">
+                        CNIB / Permis soumis
+                        {d.previousRejectionReason && (
+                          <span className="text-purple-600 font-semibold block text-[10px]">
+                            Ex-motif: "{d.previousRejectionReason}"
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
