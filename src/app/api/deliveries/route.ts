@@ -30,9 +30,30 @@ export async function GET(req: Request) {
     }
 
     if (role === 'driver') {
-      const driverProfile = await db.driverProfile.findUnique({
+      let driverProfile = await db.driverProfile.findUnique({
         where: { userId },
       });
+
+      if (!driverProfile) {
+        try {
+          // Fetch main profile to check status
+          const userProfiles: any[] = await db.$queryRaw`
+            SELECT account_status::text as "accountStatus" FROM public.profiles WHERE id = ${userId}::uuid LIMIT 1
+          `;
+          const accountStatus = userProfiles && userProfiles.length > 0 ? userProfiles[0].accountStatus : 'active';
+          const verificationStatus = accountStatus === 'active' || accountStatus === 'approved' ? 'approved' : 'pending';
+
+          driverProfile = await db.driverProfile.create({
+            data: {
+              userId,
+              verificationStatus: verificationStatus as any,
+              isAvailable: true,
+            },
+          });
+        } catch (errProfile) {
+          console.warn('Création automatique du DriverProfile:', errProfile);
+        }
+      }
 
       const driverProfileId = driverProfile ? driverProfile.id : userId;
 
@@ -66,7 +87,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ assignments: sanitizedAssignments });
       }
 
-      // Default for driver: available open requests with status 'searching_driver' or 'pending'
+      // Tout nouveau livreur inscrit doit pouvoir voir TOUTES les demandes de livraison ouvertes
       const openRequests = await db.deliveryRequest.findMany({
         where: {
           status: { in: ['searching_driver', 'pending'] },

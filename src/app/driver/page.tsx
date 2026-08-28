@@ -57,7 +57,7 @@ export default function DriverDashboard() {
       if (resReq.ok) {
         const dataReq = await resReq.json();
         const allReqs = dataReq.requests || [];
-        setOpenRequests(allReqs.filter((r: any) => r.status === 'searching_driver'));
+        setOpenRequests(allReqs.filter((r: any) => ['searching_driver', 'pending'].includes(r.status)));
         
         // Find if driver has an active delivery assigned to them
         const driverId = dataMe.user?.id;

@@ -15,15 +15,45 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     // Check driver verification status
-    const driverProfile = await db.driverProfile.findUnique({
+    let driverProfile = await db.driverProfile.findUnique({
       where: { userId: session.userId },
     });
 
-    if (!driverProfile || driverProfile.verificationStatus !== 'approved') {
-      return NextResponse.json(
-        { error: 'Votre compte livreur doit être approuvé par l\'administration pour émettre des propositions.' },
-        { status: 403 }
-      );
+    if (!driverProfile) {
+      try {
+        const userProfiles: any[] = await db.$queryRaw`
+          SELECT account_status::text as "accountStatus" FROM public.profiles WHERE id = ${session.userId}::uuid LIMIT 1
+        `;
+        const accountStatus = userProfiles && userProfiles.length > 0 ? userProfiles[0].accountStatus : 'active';
+        const verificationStatus = accountStatus === 'active' || accountStatus === 'approved' ? 'approved' : 'pending';
+
+        driverProfile = await db.driverProfile.create({
+          data: {
+            userId: session.userId,
+            verificationStatus: verificationStatus as any,
+            isAvailable: true,
+          },
+        });
+      } catch (errProfile) {
+        console.warn('Création automatique DriverProfile dans propose route:', errProfile);
+      }
+    }
+
+    if (!driverProfile || (driverProfile.verificationStatus !== 'approved' && (driverProfile.verificationStatus as any) !== 'active')) {
+      const userProfiles: any[] = await db.$queryRaw`
+        SELECT account_status::text as "accountStatus" FROM public.profiles WHERE id = ${session.userId}::uuid LIMIT 1
+      `;
+      if (userProfiles && userProfiles.length > 0 && (userProfiles[0].accountStatus === 'active' || userProfiles[0].accountStatus === 'approved')) {
+        await db.$executeRaw`
+          UPDATE public.driver_profiles SET verification_status = 'approved'::driver_verification_status WHERE user_id = ${session.userId}::uuid
+        `;
+        if (driverProfile) driverProfile.verificationStatus = 'approved' as any;
+      } else {
+        return NextResponse.json(
+          { error: 'Votre compte livreur doit être approuvé par l\'administration pour émettre des propositions.' },
+          { status: 403 }
+        );
+      }
     }
 
     const body = await req.json();
@@ -38,11 +68,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 });
     }
 
+    const dpId = driverProfile?.id || session.userId;
+
     // Check one proposal per driver per request
     const existingOffer = await db.deliveryOffer.findFirst({
       where: {
         deliveryId: params.id,
-        driverId: driverProfile.id,
+        driverId: dpId,
       },
     });
 
@@ -61,7 +93,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       offer = await db.deliveryOffer.create({
         data: {
           deliveryId: params.id,
-          driverId: driverProfile.id,
+          driverId: dpId,
           proposedPrice: parseFloat(proposedPrice),
           estimatedDuration: estimatedDuration ? parseInt(estimatedDuration, 10) : null,
           message: message || null,
