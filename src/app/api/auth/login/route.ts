@@ -30,6 +30,7 @@ export async function POST(req: Request) {
           p.city, 
           p.address, 
           p.account_status::text as "accountStatus", 
+          COALESCE(p.rejection_reason, dp.rejection_reason) as "rejectionReason",
           p.created_at as "createdAt", 
           p.updated_at as "updatedAt",
           u.encrypted_password as "encryptedPassword",
@@ -91,8 +92,13 @@ export async function POST(req: Request) {
         );
       }
       if (accountStatus === 'rejected') {
+        const reasonText = userRow.rejectionReason ? ` Motif : "${userRow.rejectionReason}"` : '';
         return NextResponse.json(
-          { error: 'Votre demande d\'inscription a été rejetée par l\'administration.', accountStatus: 'rejected' },
+          {
+            error: `Votre demande d'inscription a été rejetée par l'administration.${reasonText}`,
+            accountStatus: 'rejected',
+            rejectionReason: userRow.rejectionReason || null,
+          },
           { status: 403 }
         );
       }

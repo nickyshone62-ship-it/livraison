@@ -63,6 +63,10 @@ export async function PATCH(req: Request) {
 
     const profile = profiles[0];
     let newAccountStatus = profile.accountStatus;
+    const rejectionReasonText = reason && String(reason).trim() ? String(reason).trim() : 'Document non conforme ou informations incomplètes.';
+
+    // Ensure rejection_reason column exists in profiles table
+    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rejection_reason text;`.catch(() => {});
 
     if (action === 'approve') {
       newAccountStatus = 'active';
@@ -91,20 +95,47 @@ export async function PATCH(req: Request) {
       newAccountStatus = 'active';
     }
 
-    await db.$executeRaw`
-      UPDATE public.profiles
-      SET account_status = ${newAccountStatus}::account_status, updated_at = NOW()
-      WHERE id = ${userId}::uuid
-    `;
+    if (action === 'reject') {
+      await db.$executeRaw`
+        UPDATE public.profiles
+        SET account_status = 'rejected'::account_status,
+            rejection_reason = ${rejectionReasonText},
+            updated_at = NOW()
+        WHERE id = ${userId}::uuid
+      `;
+    } else {
+      await db.$executeRaw`
+        UPDATE public.profiles
+        SET account_status = ${newAccountStatus}::account_status,
+            rejection_reason = NULL,
+            updated_at = NOW()
+        WHERE id = ${userId}::uuid
+      `;
+    }
 
     // Also update driver profile if driver
     if (profile.role === 'driver') {
       const driverVerificationStatus = newAccountStatus === 'active' ? 'approved' : newAccountStatus === 'suspended' ? 'suspended' : 'rejected';
       await db.$executeRaw`
         UPDATE public.driver_profiles
-        SET verification_status = ${driverVerificationStatus}::driver_verification_status, updated_at = NOW()
+        SET verification_status = ${driverVerificationStatus}::driver_verification_status,
+            rejection_reason = ${action === 'reject' ? rejectionReasonText : null},
+            updated_at = NOW()
         WHERE user_id = ${userId}::uuid
       `;
+    }
+
+    // If rejected, create user notification
+    if (action === 'reject') {
+      await db.notification.create({
+        data: {
+          userId: userId,
+          title: '❌ Demande d\'inscription rejetée',
+          message: `Votre demande d'inscription a été rejetée par l'administration. Motif : ${rejectionReasonText}`,
+          type: 'system',
+          relatedId: userId,
+        },
+      }).catch(console.error);
     }
 
     // Log admin action in admin_actions
@@ -115,13 +146,15 @@ export async function PATCH(req: Request) {
         targetTable: 'profiles',
         targetId: userId,
         oldData: { accountStatus: profile.accountStatus },
-        newData: { accountStatus: newAccountStatus, reason: reason || null },
+        newData: { accountStatus: newAccountStatus, reason: rejectionReasonText },
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Action ${action} effectuée avec succès sur l'utilisateur.`,
+      message: action === 'reject' 
+        ? `L'utilisateur a été rejeté avec le motif: "${rejectionReasonText}"` 
+        : `Action ${action} effectuée avec succès sur l'utilisateur.`,
     });
   } catch (error: any) {
     console.error('Erreur admin users PATCH:', error);

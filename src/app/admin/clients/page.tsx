@@ -34,6 +34,18 @@ export default function AdminClientsPage() {
   const [filterTab, setFilterTab] = useState<'all' | 'pending' | 'active' | 'suspended'>('all');
   const [selectedPhoto, setSelectedPhoto] = useState<{ url: string; title: string; clientName: string } | null>(null);
 
+  // Modal de Rejet avec Motif
+  const [rejectModalUser, setRejectModalUser] = useState<{ id: string; name: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+
+  const PRESET_REASONS = [
+    "Pièce d'identité (CNI) floue, illisible ou expirée",
+    "Paiement d'inscription non reçu ou référence de transaction invalide",
+    "Photo du document d'identité non conforme",
+    "Informations du profil incomplètes ou inexactes",
+  ];
+
   useEffect(() => {
     fetchClients();
   }, []);
@@ -54,13 +66,13 @@ export default function AdminClientsPage() {
     }
   };
 
-  const handleClientAction = async (userId: string, action: 'approve' | 'reject' | 'suspend' | 'reactivate') => {
+  const handleClientAction = async (userId: string, action: 'approve' | 'reject' | 'suspend' | 'reactivate', reason?: string) => {
     setActionLoading(true);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action }),
+        body: JSON.stringify({ userId, action, reason }),
       });
 
       const data = await res.json();
@@ -429,6 +441,17 @@ export default function AdminClientsPage() {
                           )}
                         </div>
                       )}
+
+                      {/* AFFICHAGE DU MOTIF DE REFUS SI COMPTE REJETÉ */}
+                      {c.accountStatus === 'rejected' && (
+                        <div className="pt-2 border-t border-slate-900 text-[11px] text-red-300 space-y-0.5">
+                          <div className="font-bold text-red-400 flex items-center gap-1">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Compte Rejeté par l'Admin</span>
+                          </div>
+                          <div>Motif : <strong className="text-white">"{c.rejectionReason || 'Document non conforme ou incomplet.'}"</strong></div>
+                        </div>
+                      )}
                     </div>
 
                     {/* SECTION CNI (PIÈCES D'IDENTITÉ RECTO ET VERSO) */}
@@ -660,12 +683,12 @@ export default function AdminClientsPage() {
                     {c.accountStatus !== 'rejected' && c.accountStatus !== 'active' && (
                       <button
                         type="button"
-                        onClick={() => handleClientAction(c.id, 'reject')}
+                        onClick={() => setRejectModalUser({ id: c.id, name: c.fullName || 'Client' })}
                         disabled={actionLoading}
                         className="py-2.5 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold text-xs flex items-center justify-center gap-1.5 border border-red-500/20 cursor-pointer"
                       >
                         <XCircle className="w-4 h-4" />
-                        <span>Rejeter</span>
+                        <span>Rejeter avec Motif</span>
                       </button>
                     )}
 
@@ -687,6 +710,102 @@ export default function AdminClientsPage() {
           </div>
         )}
       </main>
+
+      {/* MODALE REJET AVEC MOTIF */}
+      {rejectModalUser && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2 text-red-400">
+                <XCircle className="w-5 h-5" />
+                <h3 className="font-extrabold text-white text-base">Rejeter l'inscription du client</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Veuillez indiquer à <strong className="text-amber-400">{rejectModalUser.name}</strong> le motif exact du refus de son compte :
+            </p>
+
+            {/* CHOIX MOTIFS PRÉDÉFINIS */}
+            <div className="space-y-2 text-xs">
+              {PRESET_REASONS.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setRejectReason(r);
+                    setCustomReason('');
+                  }}
+                  className={`w-full p-3 rounded-2xl border text-left transition-all flex items-start gap-2 cursor-pointer ${
+                    rejectReason === r
+                      ? 'bg-red-500/20 border-red-500 text-white font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <span>{r}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* CHAMP MOTIF PERSONNALISÉ */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-400">Ou saisissez un motif personnalisé :</label>
+              <textarea
+                rows={3}
+                value={customReason}
+                onChange={(e) => {
+                  setCustomReason(e.target.value);
+                  setRejectReason('');
+                }}
+                placeholder="ex: Merci de télécharger une photo bien lisible de votre CNIB (Recto & Verso)..."
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const finalReason = customReason.trim() || rejectReason || "Document non conforme ou informations incomplètes.";
+                  handleClientAction(rejectModalUser.id, 'reject', finalReason);
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                disabled={actionLoading}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Confirmer le Rejet avec Motif</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                className="py-3 px-4 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-bold text-xs cursor-pointer border border-slate-700"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODALE LIGHTBOX PHOTO CLIENT */}
       {selectedPhoto && (

@@ -102,23 +102,48 @@ export default function AttenteValidationPage() {
             </Link>
           </div>
         ) : status === 'rejected' ? (
-          /* COMPTE REJETÉ */
-          <div className="space-y-6">
+          /* COMPTE REJETÉ AVEC MOTIF CLAIR */
+          <div className="space-y-6 animate-fadeIn">
             <div className="w-20 h-20 mx-auto rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-              <AlertTriangle className="w-10 h-10" />
+              <AlertTriangle className="w-10 h-10 text-red-400" />
             </div>
 
-            <h1 className="text-2xl font-black text-white">Inscription Non Validée</h1>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Votre demande d'inscription n'a pas été retenue par l'administration. Veuillez contacter le support client pour plus d'informations.
-            </p>
+            <div className="space-y-1">
+              <h1 className="text-2xl font-black text-white">Inscription Non Validée</h1>
+              <p className="text-xs text-red-400 font-bold uppercase tracking-wider">Demande refusée par l'administration</p>
+            </div>
 
-            <Link
-              href="/connexion"
-              className="block w-full py-3.5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition-all text-sm border border-slate-700"
-            >
-              Retour à l'accueil
-            </Link>
+            {/* BLOC MOTIF DU REFUS EXPLICITE */}
+            <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/30 text-left space-y-2">
+              <div className="text-xs font-black text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>Motif du refus de votre compte :</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-950 border border-red-900/50 text-white font-bold text-sm">
+                "{user?.rejectionReason || 'Document non conforme ou informations incomplètes.'}"
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Vous pouvez soumettre un nouveau dossier ou corriger vos pièces justificatives.
+              </p>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <Link
+                href="/inscription"
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 text-slate-950 font-black transition-all flex items-center justify-center space-x-2 text-sm shadow-lg shadow-amber-500/20 block text-center"
+              >
+                <span>S'inscrire à nouveau / Corriger mon dossier</span>
+              </Link>
+
+              <a
+                href="https://wa.me/22606887330?text=Bonjour,%20mon%20compte%20a%20%C3%A9t%C3%A9%20refus%C3%A9."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-3 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all text-xs border border-slate-700 text-center"
+              >
+                💬 Contacter le support d'administration
+              </a>
+            </div>
           </div>
         ) : status === 'suspended' ? (
           /* COMPTE SUSPENDU */

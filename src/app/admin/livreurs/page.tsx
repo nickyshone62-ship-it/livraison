@@ -9,6 +9,7 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
+  AlertCircle,
   ExternalLink,
   Download,
   Eye,
@@ -23,6 +24,18 @@ export default function AdminLivreursPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; url: string; title: string; driverName: string } | null>(null);
+
+  // Modal de Rejet avec Motif
+  const [rejectModalUser, setRejectModalUser] = useState<{ id: string; name: string } | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
+
+  const PRESET_REASONS = [
+    "Pièce d'identité (CNIB/Permis) floue, illisible ou expirée",
+    "Photo de l'engin / véhicule non conforme ou illisible",
+    "Paiement d'inscription non reçu ou référence invalide",
+    "Photo de profil non conforme",
+  ];
 
   useEffect(() => {
     fetchDrivers();
@@ -43,13 +56,13 @@ export default function AdminLivreursPage() {
     }
   };
 
-  const handleVerifyDriver = async (userId: string, action: 'approve' | 'reject') => {
+  const handleVerifyDriver = async (userId: string, action: 'approve' | 'reject', reason?: string) => {
     setActionLoading(true);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action }),
+        body: JSON.stringify({ userId, action, reason }),
       });
 
       const data = await res.json();
@@ -161,19 +174,18 @@ export default function AdminLivreursPage() {
 
                       {verificationStatus !== 'rejected' && (
                         <button
-                          onClick={() => handleVerifyDriver(d.id, 'reject')}
+                          onClick={() => setRejectModalUser({ id: d.id, name: d.fullName })}
                           disabled={actionLoading}
                           className="px-5 py-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-xs flex items-center space-x-2 cursor-pointer hover:bg-red-500/20"
                         >
                           <XCircle className="w-4 h-4" />
-                          <span>Rejeter</span>
+                          <span>Rejeter avec Motif</span>
                         </button>
                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* DÉTAILS VÉHICULE */}
                     <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
                       <div className="font-bold text-amber-400 text-sm flex items-center gap-2">
                         <Bike className="w-4 h-4" />
@@ -189,9 +201,18 @@ export default function AdminLivreursPage() {
                       ) : (
                         <div className="text-slate-500 italic">Aucun véhicule enregistré.</div>
                       )}
+
+                      {verificationStatus === 'rejected' && (
+                        <div className="pt-2 border-t border-slate-900 text-red-300 space-y-0.5">
+                          <div className="font-bold text-red-400 flex items-center gap-1">
+                            <XCircle className="w-3.5 h-3.5" />
+                            <span>Dossier Rejeté</span>
+                          </div>
+                          <div>Motif : <strong className="text-white">"{d.driverProfile?.rejectionReason || d.rejectionReason || 'Document non conforme ou incomplet.'}"</strong></div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* GALERIE DE PHOTOS ET PIÈCES KYC DES LIVREURS (TÉLÉCHARGEABLES EN LOCAL VIA SERVEUR) */}
                     <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
                         <span className="flex items-center gap-2 font-bold text-cyan-400 text-sm">
@@ -217,14 +238,14 @@ export default function AdminLivreursPage() {
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-1">
-                          {docs.map((doc: any) => {
+                          {docs.map((doc: any, idx: number) => {
                             const labelMap: Record<string, string> = {
-                              identity_card_recto: "CNI (Face RECTO)",
-                              identity_card_verso: "CNI (Face VERSO)",
+                              identity_card_recto: "CNI / CNIB (Face RECTO)",
+                              identity_card_verso: "CNI / CNIB (Face VERSO)",
                               vehicle_photo: "Photo Engin / Véhicule",
-                              photo: "Photo de Profil",
+                              photo: "Photo de Profil Livreur",
                               identity_card: "Pièce d'identité",
-                              driver_license: "Permis de conduire",
+                              driver_license: "Permis de Conduire",
                               vehicle_document: "Document véhicule",
                             };
                             const title = labelMap[doc.documentType] || doc.documentType;
@@ -232,65 +253,54 @@ export default function AdminLivreursPage() {
                             const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
 
                             return (
-                              <div
-                                key={doc.id}
-                                className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between"
-                              >
-                                <div className="space-y-2">
-                                  <div className="text-[11px] font-bold text-slate-300 truncate" title={title}>
-                                    {title}
-                                  </div>
-
-                                  {/* APERÇU DE LA PHOTO / MINIATURE */}
-                                  {fileUrl ? (
-                                    <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-32 flex items-center justify-center">
-                                      <img
-                                        src={viewUrl}
-                                        alt={title}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform cursor-pointer"
+                              <div key={doc.id || idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5 flex flex-col justify-between">
+                                <div className="text-xs font-bold text-slate-200 truncate">{title}</div>
+                                {fileUrl ? (
+                                  <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-32 flex items-center justify-center">
+                                    <img
+                                      src={viewUrl}
+                                      alt={title}
+                                      className="w-full h-full object-cover cursor-pointer"
+                                      onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
+                                    />
+                                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                      <button
                                         onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
-                                      />
-                                      <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        <button
-                                          onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
-                                          className="p-2 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md cursor-pointer"
-                                          title="Agrandir"
-                                        >
-                                          <ZoomIn className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                          onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
-                                          className="p-2 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md hover:bg-emerald-400 cursor-pointer"
-                                          title="Télécharger directement en local"
-                                        >
-                                          <Download className="w-4 h-4" />
-                                        </button>
-                                      </div>
+                                        className="p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg cursor-pointer"
+                                        title="Agrandir la photo"
+                                      >
+                                        <ZoomIn className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
+                                        className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg cursor-pointer"
+                                        title="Télécharger directement en local"
+                                      >
+                                        <Download className="w-4 h-4" />
+                                      </button>
                                     </div>
-                                  ) : (
-                                    <div className="h-32 rounded-lg border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
-                                      Photo indisponible
-                                    </div>
-                                  )}
-                                </div>
+                                  </div>
+                                ) : (
+                                  <div className="h-32 rounded-lg border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
+                                    Sans photo
+                                  </div>
+                                )}
 
-                                {/* BOUTONS D'ACTION DIRECTS */}
                                 {fileUrl && (
                                   <div className="flex items-center gap-2 pt-1">
                                     <button
                                       onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
-                                      className="flex-1 py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-slate-700 cursor-pointer"
+                                      className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer transition-colors"
                                     >
-                                      <Eye className="w-3 h-3 text-amber-400" />
+                                      <Eye className="w-3.5 h-3.5 text-amber-400" />
                                       <span>Agrandir</span>
                                     </button>
-
                                     <button
                                       onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
-                                      className="flex-1 py-1.5 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-emerald-500/30 cursor-pointer"
+                                      className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 flex items-center justify-center gap-1 cursor-pointer transition-colors border border-emerald-500/20"
                                     >
-                                      <Download className="w-3 h-3" />
-                                      <span>Télécharger</span>
+                                      <Download className="w-3.5 h-3.5" />
+                                      <span>Enregistrer</span>
                                     </button>
                                   </div>
                                 )}
@@ -307,6 +317,102 @@ export default function AdminLivreursPage() {
           </div>
         )}
       </main>
+
+      {/* MODALE REJET LIVREUR AVEC MOTIF */}
+      {rejectModalUser && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2 text-red-400">
+                <XCircle className="w-5 h-5" />
+                <h3 className="font-extrabold text-white text-base">Rejeter l'inscription du livreur</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Veuillez indiquer au livreur <strong className="text-amber-400">{rejectModalUser.name}</strong> le motif exact du refus de sa candidature :
+            </p>
+
+            {/* CHOIX MOTIFS PRÉDÉFINIS */}
+            <div className="space-y-2 text-xs">
+              {PRESET_REASONS.map((r, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    setRejectReason(r);
+                    setCustomReason('');
+                  }}
+                  className={`w-full p-3 rounded-2xl border text-left transition-all flex items-start gap-2 cursor-pointer ${
+                    rejectReason === r
+                      ? 'bg-red-500/20 border-red-500 text-white font-bold'
+                      : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                  }`}
+                >
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <span>{r}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* CHAMP MOTIF PERSONNALISÉ */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-400">Ou saisissez un motif personnalisé :</label>
+              <textarea
+                rows={3}
+                value={customReason}
+                onChange={(e) => {
+                  setCustomReason(e.target.value);
+                  setRejectReason('');
+                }}
+                placeholder="ex: Merci d'ajouter une photo claire de votre carte grise / engin..."
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const finalReason = customReason.trim() || rejectReason || "Document non conforme ou informations incomplètes.";
+                  handleVerifyDriver(rejectModalUser.id, 'reject', finalReason);
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                disabled={actionLoading}
+                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 cursor-pointer"
+              >
+                <XCircle className="w-4 h-4" />
+                <span>Confirmer le Rejet du Livreur</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectModalUser(null);
+                  setRejectReason('');
+                  setCustomReason('');
+                }}
+                className="py-3 px-4 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-bold text-xs cursor-pointer border border-slate-700"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODALE LIGHTBOX POUR VISUALISATION HIGH-RES ET ENREGISTREMENT LOCAL DIRECT */}
       {selectedPhoto && (
@@ -336,7 +442,6 @@ export default function AdminLivreursPage() {
               </div>
             </div>
 
-            {/* CONTENEUR DE L'IMAGE FULL RESOLUTION */}
             <div className="flex-1 overflow-auto flex items-center justify-center p-2 rounded-2xl bg-slate-950 border border-slate-800 min-h-[300px]">
               <img
                 src={selectedPhoto.url}
