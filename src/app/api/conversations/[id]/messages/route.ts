@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthSession } from '@/lib/auth';
+import { getAuthSession, validateActiveSubscription } from '@/lib/auth';
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -49,6 +49,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const session = await getAuthSession();
     if (!session) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+    }
+
+    const subCheck = await validateActiveSubscription(session.userId, session.role);
+    if (!subCheck.active) {
+      return NextResponse.json({ error: subCheck.message, code: subCheck.code }, { status: 403 });
     }
 
     const { content } = await req.json();

@@ -25,6 +25,8 @@ export async function GET() {
             p.phone, 
             p.email, 
             p.avatar_url as "avatarUrl", 
+            p.cni_recto_url as "cniRectoUrl", 
+            p.cni_verso_url as "cniVersoUrl", 
             p.city, 
             p.address, 
             p.account_status::text as "accountStatus", 
@@ -41,6 +43,21 @@ export async function GET() {
         `;
         if (rows && rows.length > 0) {
           const r = rows[0];
+          
+          let driverDocs: any[] = [];
+          let vehiclePhotoUrl: string | null = null;
+
+          if (r.driverProfileId) {
+            try {
+              driverDocs = await db.driverDocument.findMany({
+                where: { driverId: r.driverProfileId },
+                orderBy: { createdAt: 'desc' },
+              });
+              const vehDoc = driverDocs.find(d => d.documentType === 'vehicle_photo');
+              if (vehDoc) vehiclePhotoUrl = vehDoc.fileUrl;
+            } catch (eDoc) {}
+          }
+
           profile = {
             id: r.id,
             role: r.role,
@@ -48,6 +65,9 @@ export async function GET() {
             phone: r.phone,
             email: r.email,
             avatarUrl: r.avatarUrl,
+            cniRectoUrl: r.cniRectoUrl,
+            cniVersoUrl: r.cniVersoUrl,
+            vehiclePhotoUrl,
             city: r.city,
             address: r.address,
             accountStatus: r.accountStatus,
@@ -59,10 +79,18 @@ export async function GET() {
               verificationStatus: r.driverVerificationStatus,
               isAvailable: r.driverIsAvailable,
               rejectionReason: r.rejectionReason || null,
+              documents: driverDocs,
             } : null,
             subscriptions: [],
             payments: [],
           };
+
+          // Fetch user subscriptions
+          const userSubs = await db.subscription.findMany({
+            where: { userId: profile.id },
+            orderBy: { createdAt: 'desc' },
+          });
+          profile.subscriptions = userSubs;
         }
       } catch (e) {
         console.warn('Profile findUnique failed:', e);
@@ -81,16 +109,23 @@ export async function GET() {
             fullName: session.fullName || 'Super Administrateur Nick',
             driverProfile: null,
             activeSubscription: null,
+            isPaymentApproved: true,
             isSubscriptionActive: true,
+            canUsePlatform: true,
           },
         });
       }
       return NextResponse.json({ user: null }, { status: 404 });
     }
 
-    const latestSub = profile.subscriptions[0] || null;
-    const now = new Date();
-    const isSubActive = latestSub && latestSub.status === 'active' && latestSub.expiresAt ? new Date(latestSub.expiresAt) > now : true;
+    const activeSub = profile.subscriptions.find(
+      (s: any) => s.status === 'active' && s.expiresAt && new Date(s.expiresAt) > new Date()
+    ) || null;
+
+    const isAdmin = (profile.role || '').toLowerCase() === 'admin';
+    const isPaymentApproved = isAdmin || profile.accountStatus === 'active' || profile.accountStatus === 'approved';
+    const isSubscriptionActive = isAdmin || !!activeSub;
+    const canUsePlatform = isAdmin || (isPaymentApproved && isSubscriptionActive);
 
     const res = NextResponse.json({
       user: {
@@ -102,11 +137,16 @@ export async function GET() {
         city: profile.city,
         address: profile.address,
         avatarUrl: profile.avatarUrl,
+        cniRectoUrl: profile.cniRectoUrl,
+        cniVersoUrl: profile.cniVersoUrl,
+        vehiclePhotoUrl: profile.vehiclePhotoUrl,
         accountStatus: profile.accountStatus,
         rejectionReason: profile.rejectionReason || null,
         driverProfile: profile.driverProfile,
-        activeSubscription: latestSub,
-        isSubscriptionActive: isSubActive,
+        activeSubscription: activeSub || profile.subscriptions[0] || null,
+        isPaymentApproved,
+        isSubscriptionActive,
+        canUsePlatform,
         payments: profile.payments,
       },
     });
@@ -127,7 +167,7 @@ export async function PATCH(req: Request) {
     }
 
     const body = await req.json();
-    const { isAvailable, fullName, phone, city, address } = body;
+    const { isAvailable, fullName, phone, city, address, avatarUrl, cniRectoUrl, cniVersoUrl, vehiclePhotoUrl } = body;
 
     if (isAvailable !== undefined) {
       await db.$executeRaw`
@@ -135,6 +175,39 @@ export async function PATCH(req: Request) {
         SET is_available = ${Boolean(isAvailable)}, updated_at = NOW()
         WHERE user_id = ${session.userId}::uuid
       `;
+    }
+
+    const updates: string[] = [];
+    if (fullName !== undefined) updates.push(`full_name = ${fullName ? `'${fullName.replace(/'/g, "''")}'` : 'NULL'}`);
+    if (phone !== undefined) updates.push(`phone = ${phone ? `'${phone.replace(/'/g, "''")}'` : 'NULL'}`);
+    if (city !== undefined) updates.push(`city = ${city ? `'${city.replace(/'/g, "''")}'` : 'NULL'}`);
+    if (address !== undefined) updates.push(`address = ${address ? `'${address.replace(/'/g, "''")}'` : 'NULL'}`);
+
+    if (avatarUrl !== undefined) {
+      await db.profile.update({
+        where: { id: session.userId },
+        data: { avatarUrl: avatarUrl || null },
+      }).catch(async () => {
+        await db.$executeRaw`UPDATE public.profiles SET avatar_url = ${avatarUrl || null} WHERE id = ${session.userId}::uuid`;
+      });
+    }
+
+    if (cniRectoUrl !== undefined) {
+      await db.profile.update({
+        where: { id: session.userId },
+        data: { cniRectoUrl: cniRectoUrl || null },
+      }).catch(async () => {
+        await db.$executeRaw`UPDATE public.profiles SET cni_recto_url = ${cniRectoUrl || null} WHERE id = ${session.userId}::uuid`;
+      });
+    }
+
+    if (cniVersoUrl !== undefined) {
+      await db.profile.update({
+        where: { id: session.userId },
+        data: { cniVersoUrl: cniVersoUrl || null },
+      }).catch(async () => {
+        await db.$executeRaw`UPDATE public.profiles SET cni_verso_url = ${cniVersoUrl || null} WHERE id = ${session.userId}::uuid`;
+      });
     }
 
     if (fullName || phone || city || address) {
@@ -150,9 +223,53 @@ export async function PATCH(req: Request) {
       `;
     }
 
+    // Vehicle photo update for drivers
+    if (vehiclePhotoUrl !== undefined) {
+      let driverProfile = await db.driverProfile.findUnique({
+        where: { userId: session.userId },
+      });
+
+      if (!driverProfile) {
+        driverProfile = await db.driverProfile.create({
+          data: { userId: session.userId, isAvailable: true },
+        });
+      }
+
+      if (driverProfile) {
+        const existingDoc = await db.driverDocument.findFirst({
+          where: { driverId: driverProfile.id, documentType: 'vehicle_photo' },
+        });
+
+        if (existingDoc) {
+          await db.driverDocument.update({
+            where: { id: existingDoc.id },
+            data: { fileUrl: vehiclePhotoUrl, status: 'pending', updatedAt: new Date() },
+          });
+        } else {
+          await db.driverDocument.create({
+            data: {
+              driverId: driverProfile.id,
+              documentType: 'vehicle_photo',
+              fileUrl: vehiclePhotoUrl,
+              status: 'pending',
+            },
+          });
+        }
+      }
+    }
+
+    // Flag re-submitted documents for pending/rejected accounts
+    if (cniRectoUrl || cniVersoUrl || vehiclePhotoUrl || avatarUrl) {
+      await db.$executeRaw`
+        UPDATE public.profiles
+        SET is_resubmitted = true, document_updated_at = NOW(), updated_at = NOW()
+        WHERE id = ${session.userId}::uuid AND (account_status = 'pending'::account_status OR account_status = 'rejected'::account_status)
+      `.catch(() => {});
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Profil et statut mis à jour avec succès.',
+      message: 'Profil, photos et documents mis à jour avec succès.',
     });
   } catch (error: any) {
     console.error('Erreur PATCH me route:', error);

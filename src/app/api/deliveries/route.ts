@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthSession } from '@/lib/auth';
+import { getAuthSession, validateActiveSubscription } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +15,13 @@ export async function GET(req: Request) {
     const filter = searchParams.get('filter'); // 'open', 'my_requests', 'my_offers', 'my_deliveries'
     const role = (session.role || 'client').toLowerCase();
     const userId = session.userId;
+
+    if (role !== 'admin') {
+      const subCheck = await validateActiveSubscription(userId, role);
+      if (!subCheck.active) {
+        return NextResponse.json({ error: subCheck.message, code: subCheck.code }, { status: 403 });
+      }
+    }
 
     if (role === 'admin') {
       const requests = await db.deliveryRequest.findMany({
@@ -153,6 +160,11 @@ export async function POST(req: Request) {
     const role = (session.role || 'client').toLowerCase();
     if (role === 'driver') {
       return NextResponse.json({ error: 'Seuls les clients peuvent émettre des demandes de livraison.' }, { status: 403 });
+    }
+
+    const subCheck = await validateActiveSubscription(session.userId, role);
+    if (!subCheck.active) {
+      return NextResponse.json({ error: subCheck.message, code: subCheck.code }, { status: 403 });
     }
 
     const body = await req.json();

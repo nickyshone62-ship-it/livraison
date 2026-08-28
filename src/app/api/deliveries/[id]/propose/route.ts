@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { getAuthSession } from '@/lib/auth';
+import { getAuthSession, validateActiveSubscription } from '@/lib/auth';
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -12,6 +12,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const role = (session.role || 'client').toLowerCase();
     if (role !== 'driver') {
       return NextResponse.json({ error: 'Seuls les livreurs autorisés peuvent émettre une proposition.' }, { status: 403 });
+    }
+
+    const subCheck = await validateActiveSubscription(session.userId, role);
+    if (!subCheck.active) {
+      return NextResponse.json({ error: subCheck.message, code: subCheck.code }, { status: 403 });
     }
 
     // Check driver verification status

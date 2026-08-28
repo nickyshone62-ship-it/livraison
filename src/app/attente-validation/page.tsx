@@ -210,6 +210,13 @@ export default function AttenteValidationPage() {
               </button>
 
               <Link
+                href={(user?.role || '').toLowerCase() === 'driver' ? '/driver/documents' : '/client/profil'}
+                className="w-full py-3 px-6 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 transition-all text-xs font-bold flex items-center justify-center gap-2"
+              >
+                <span>📷 Modifier mes photos ou pièces justificatives</span>
+              </Link>
+
+              <Link
                 href="/connexion"
                 className="block w-full py-3 px-6 rounded-2xl text-slate-400 hover:text-white transition-all text-xs font-semibold"
               >

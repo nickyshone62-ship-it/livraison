@@ -65,10 +65,33 @@ export function generateDisputeNumber(): string {
   return `LIT-2026-${randomNum}`;
 }
 
-export async function validateActiveSubscription(userId: string, role: string): Promise<{ active: boolean; message?: string }> {
-  if (role === 'admin') return { active: true };
+export async function validateActiveSubscription(userId: string, role: string): Promise<{ active: boolean; code?: string; message?: string }> {
+  if ((role || '').toLowerCase() === 'admin') return { active: true };
 
-  // 1. Check active subscription record in DB
+  // 1. Vérification de l'approbation du compte / paiement par l'administrateur
+  const profile = await db.profile.findUnique({
+    where: { id: userId },
+    select: { accountStatus: true, createdAt: true },
+  });
+
+  if (!profile) {
+    return {
+      active: false,
+      code: 'USER_NOT_FOUND',
+      message: 'Utilisateur introuvable.',
+    };
+  }
+
+  const accountStatus = (profile.accountStatus || 'pending').toLowerCase();
+  if (accountStatus !== 'active' && accountStatus !== 'approved') {
+    return {
+      active: false,
+      code: 'PAYMENT_UNAPPROVED',
+      message: '⚠️ Votre paiement d\'inscription / compte n\'a pas encore été approuvé par l\'administrateur. Vous ne pouvez pas effectuer d\'actions sur la plateforme pour le moment.',
+    };
+  }
+
+  // 2. Vérification de l'abonnement actif en base de données
   const sub = await db.subscription.findFirst({
     where: { userId, status: 'active' },
     orderBy: { expiresAt: 'desc' },
@@ -78,22 +101,9 @@ export async function validateActiveSubscription(userId: string, role: string): 
     return { active: true };
   }
 
-  // 2. 1st Month (30 days) of usage is offered starting from registration/approval date
-  const profile = await db.profile.findUnique({
-    where: { id: userId },
-    select: { createdAt: true, updatedAt: true },
-  });
-
-  if (profile) {
-    const creationDate = new Date(profile.createdAt);
-    const oneMonthLater = new Date(creationDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-    if (new Date() <= oneMonthLater) {
-      return { active: true };
-    }
-  }
-
   return {
     active: false,
-    message: '⚠️ Votre période d\'utilisation (1er mois offert) est arrivée à terme. Veuillez contacter l\'administrateur ou renouveler votre abonnement mensuel (1 000 FCFA/mois) pour continuer.',
+    code: 'SUBSCRIPTION_EXPIRED',
+    message: '⚠️ Votre abonnement mensuel n\'est pas actif ou a expiré. Veuillez effectuer le paiement pour renouveler votre abonnement (1 000 FCFA/mois) et continuer d\'utiliser la plateforme.',
   };
 }

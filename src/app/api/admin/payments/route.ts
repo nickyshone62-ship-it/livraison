@@ -79,6 +79,23 @@ export async function PATCH(req: Request) {
             },
           });
         }
+
+        // Grant 30-day initial active subscription on registration approval
+        const startsAt = new Date();
+        const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+        await db.subscription.create({
+          data: {
+            userId: payment.userId,
+            paymentId: payment.id,
+            amount: payment.amount || 1000,
+            currency: payment.currency || 'XOF',
+            status: 'active',
+            startsAt,
+            expiresAt,
+            approvedBy: session.userId,
+            approvedAt: startsAt,
+          },
+        }).catch(console.error);
       }
 
       // 3. If approved monthly subscription payment -> create or renew subscription active for 30 days

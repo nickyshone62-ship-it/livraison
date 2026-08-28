@@ -27,6 +27,21 @@ export async function GET(req: Request) {
       data: { accountStatus: 'active' },
     });
 
+    // Create 30-day active subscription upon approval if not exists
+    const startsAt = new Date();
+    const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await db.subscription.create({
+      data: {
+        userId: profile.id,
+        amount: 1000,
+        currency: 'XOF',
+        status: 'active',
+        startsAt,
+        expiresAt,
+        approvedAt: startsAt,
+      },
+    }).catch(console.error);
+
     // If driver, update driver KYC verification status to approved
     if (profile.driverProfile) {
       await db.driverProfile.update({
