@@ -254,31 +254,14 @@ export async function POST(req: Request) {
 
       for (const entry of docEntries) {
         try {
-          const existing = await db.driverDocument.findFirst({
-            where: {
+          await db.driverDocument.create({
+            data: {
               driverId: dId,
               documentType: entry.documentType,
+              fileUrl: entry.fileUrl,
+              status: 'pending',
             },
           });
-
-          if (existing) {
-            await db.driverDocument.update({
-              where: { id: existing.id },
-              data: {
-                fileUrl: entry.fileUrl,
-                status: 'pending',
-              },
-            });
-          } else {
-            await db.driverDocument.create({
-              data: {
-                driverId: dId,
-                documentType: entry.documentType,
-                fileUrl: entry.fileUrl,
-                status: 'pending',
-              },
-            });
-          }
         } catch (eDoc) {}
       }
 
