@@ -33,7 +33,11 @@ export default function DriverDashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchData();
+      }
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -53,13 +57,16 @@ export default function DriverDashboard() {
         return;
       }
 
-      const resReq = await fetch('/api/deliveries');
+      const [resReq, resOffers] = await Promise.all([
+        fetch('/api/deliveries'),
+        fetch('/api/deliveries?filter=my_offers')
+      ]);
+
       if (resReq.ok) {
         const dataReq = await resReq.json();
         const allReqs = dataReq.requests || [];
         setOpenRequests(allReqs.filter((r: any) => ['searching_driver', 'pending'].includes(r.status)));
         
-        // Find if driver has an active delivery assigned to them
         const driverId = dataMe.user?.id;
         const currentActive = allReqs.find(
           (r: any) => (r.driverId === driverId || r.driver?.user?.id === driverId) && !['completed', 'cancelled', 'failed'].includes(r.status)
@@ -67,7 +74,6 @@ export default function DriverDashboard() {
         setActiveDelivery(currentActive || null);
       }
 
-      const resOffers = await fetch('/api/deliveries?filter=my_offers');
       if (resOffers.ok) {
         const dataOffers = await resOffers.json();
         setMyOffers(dataOffers.offers || []);

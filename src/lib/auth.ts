@@ -94,6 +94,7 @@ export async function validateActiveSubscription(userId: string, role: string): 
   // 2. Vérification de l'abonnement actif en base de données
   const sub = await db.subscription.findFirst({
     where: { userId, status: 'active' },
+    select: { expiresAt: true },
     orderBy: { expiresAt: 'desc' },
   });
 
@@ -102,8 +103,8 @@ export async function validateActiveSubscription(userId: string, role: string): 
   }
 
   // Si aucun abonnement actif n'existe mais que le compte est approuvé, accorder automatiquement le 1er mois offert (30 jours) si pas encore consommé ou créer la fiche
-  const existingSubs = await db.subscription.findMany({ where: { userId } });
-  if (existingSubs.length === 0) {
+  const existingSubsCount = await db.subscription.count({ where: { userId } });
+  if (existingSubsCount === 0) {
     const startsAt = new Date();
     const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
     await db.subscription.create({

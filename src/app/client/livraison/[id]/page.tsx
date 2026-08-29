@@ -52,19 +52,22 @@ export default function DetailLivraisonClientPage() {
 
 
   useEffect(() => {
+    if (!deliveryId) return;
     fetchDelivery();
-    // Rafraîchissement automatique toutes les 4s pour le suivi GPS temps réel
-    const interval = setInterval(fetchDelivery, 4000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchDelivery();
+      }
+    }, 5000);
     return () => clearInterval(interval);
   }, [deliveryId]);
 
   const fetchDelivery = async () => {
     try {
-      const res = await fetch('/api/deliveries');
+      const res = await fetch(`/api/deliveries/${deliveryId}`);
       if (res.ok) {
         const data = await res.json();
-        const found = (data.requests || []).find((r: any) => r.id === deliveryId);
-        setDelivery(found || null);
+        setDelivery(data.request || null);
       }
     } catch (err) {
       console.error(err);

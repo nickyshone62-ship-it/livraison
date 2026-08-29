@@ -42,16 +42,22 @@ export default function ExecutionLivraisonDriverPage() {
   const [otpSuccess, setOtpSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!deliveryId) return;
     fetchDelivery();
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchDelivery();
+      }
+    }, 5000);
+    return () => clearInterval(interval);
   }, [deliveryId]);
 
   const fetchDelivery = async () => {
     try {
-      const res = await fetch('/api/deliveries');
+      const res = await fetch(`/api/deliveries/${deliveryId}`);
       if (res.ok) {
         const data = await res.json();
-        const found = (data.requests || []).find((r: any) => r.id === deliveryId);
-        setDelivery(found || null);
+        setDelivery(data.request || null);
       }
     } catch (err) {
       console.error(err);

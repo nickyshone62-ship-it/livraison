@@ -160,6 +160,9 @@ model Profile {
   clientConversations  Conversation[]          @relation("ClientConversations")
   sentMessages         Message[]               @relation("SentMessages")
 
+  @@index([role, accountStatus])
+  @@index([phone])
+  @@index([email])
   @@map("profiles")
 }
 
@@ -186,6 +189,8 @@ model DriverProfile {
   reviews            Review[]                 @relation("ReviewedDriverProfile")
   conversations      Conversation[]           @relation("DriverConversations")
 
+  @@index([userId])
+  @@index([verificationStatus, isAvailable])
   @@map("driver_profiles")
 }
 
@@ -203,6 +208,7 @@ model Vehicle {
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @default(now()) @map("updated_at")
 
+  @@index([driverId])
   @@map("vehicles")
 }
 
@@ -221,6 +227,7 @@ model DriverDocument {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @default(now()) @map("updated_at")
 
+  @@index([driverId])
   @@map("driver_documents")
 }
 
@@ -244,6 +251,8 @@ model Payment {
 
   subscriptions        Subscription[]
 
+  @@index([userId, status])
+  @@index([createdAt])
   @@map("payments")
 }
 
@@ -264,6 +273,8 @@ model Subscription {
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @default(now()) @map("updated_at")
 
+  @@index([userId, status])
+  @@index([expiresAt])
   @@map("subscriptions")
 }
 
@@ -303,6 +314,8 @@ model DeliveryRequest {
   reviews                 Review[]
   reports                 Report[]
 
+  @@index([clientId, status])
+  @@index([status, createdAt])
   @@map("delivery_requests")
 }
 
@@ -321,6 +334,8 @@ model DeliveryOffer {
 
   assignments       DeliveryAssignment[]
 
+  @@index([deliveryId, status])
+  @@index([driverId])
   @@map("delivery_offers")
 }
 
@@ -347,6 +362,8 @@ model DeliveryAssignment {
   createdAt           DateTime        @default(now()) @map("created_at")
   updatedAt           DateTime        @default(now()) @map("updated_at")
 
+  @@index([deliveryId])
+  @@index([driverId])
   @@map("delivery_assignments")
 }
 
@@ -361,6 +378,8 @@ model DeliveryTracking {
   accuracy   Float?
   createdAt  DateTime        @default(now()) @map("created_at")
 
+  @@index([deliveryId, createdAt])
+  @@index([driverId])
   @@map("delivery_tracking")
 }
 
@@ -373,6 +392,7 @@ model DeliveryStatusHistory {
   note       String?
   createdAt  DateTime        @default(now()) @map("created_at")
 
+  @@index([deliveryId])
   @@map("delivery_status_history")
 }
 
@@ -388,6 +408,9 @@ model Conversation {
 
   messages   Message[]
 
+  @@index([clientId])
+  @@index([driverId])
+  @@index([deliveryId])
   @@map("conversations")
 }
 
@@ -401,6 +424,8 @@ model Message {
   isRead         Boolean      @default(false) @map("is_read")
   createdAt      DateTime     @default(now()) @map("created_at")
 
+  @@index([conversationId, createdAt])
+  @@index([senderId])
   @@map("messages")
 }
 
@@ -415,6 +440,8 @@ model Notification {
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
+  @@index([userId, isRead])
+  @@index([createdAt])
   @@map("notifications")
 }
 
@@ -430,6 +457,8 @@ model Review {
   comment          String?
   createdAt        DateTime        @default(now()) @map("created_at")
 
+  @@index([deliveryId])
+  @@index([reviewedDriverId])
   @@map("reviews")
 }
 
@@ -450,6 +479,8 @@ model Report {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @default(now()) @map("updated_at")
 
+  @@index([reporterId])
+  @@index([status])
   @@map("reports")
 }
 
@@ -464,6 +495,8 @@ model AdminAction {
   newData     Json?    @map("new_data")
   createdAt   DateTime @default(now()) @map("created_at")
 
+  @@index([adminId])
+  @@index([createdAt])
   @@map("admin_actions")
 }
 

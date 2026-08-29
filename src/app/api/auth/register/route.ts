@@ -119,11 +119,6 @@ export async function POST(req: Request) {
     const profileId = targetProfileId || crypto.randomUUID();
     const userEmail = cleanEmail || `${cleanPhone}@livraisonouaga.bf`;
 
-    // Ensure columns exist on profiles table
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS document_updated_at timestamp with time zone;`.catch(() => {});
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS previous_rejection_reason text;`.catch(() => {});
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_resubmitted boolean DEFAULT false;`.catch(() => {});
-
     // Check if previous account was rejected
     let previousRejectionReason: string | null = null;
     let wasRejected = false;

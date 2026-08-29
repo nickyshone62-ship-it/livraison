@@ -37,31 +37,35 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 6000);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchData();
+      }
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
     try {
-      const resUsers = await fetch('/api/admin/users');
+      const [resUsers, resPay, resDeliv, resReports] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/admin/payments'),
+        fetch('/api/deliveries'),
+        fetch('/api/reports')
+      ]);
+
       if (resUsers.ok) {
         const data = await resUsers.json();
         setUsers(data.users || []);
       }
-
-      const resPay = await fetch('/api/admin/payments');
       if (resPay.ok) {
         const data = await resPay.json();
         setPayments(data.payments || []);
       }
-
-      const resDeliv = await fetch('/api/deliveries');
       if (resDeliv.ok) {
         const data = await resDeliv.json();
         setDeliveries(data.requests || []);
       }
-
-      const resReports = await fetch('/api/reports');
       if (resReports.ok) {
         const data = await resReports.json();
         setReports(data.reports || []);

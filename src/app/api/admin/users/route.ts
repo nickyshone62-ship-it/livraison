@@ -91,12 +91,6 @@ export async function PATCH(req: Request) {
     let newAccountStatus = profile.accountStatus;
     const rejectionReasonText = reason && String(reason).trim() ? String(reason).trim() : 'Document non conforme ou informations incomplètes.';
 
-    // Ensure rejection_reason column exists in profiles table
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS rejection_reason text;`.catch(() => {});
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS previous_rejection_reason text;`.catch(() => {});
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_resubmitted boolean DEFAULT false;`.catch(() => {});
-    await db.$executeRaw`ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS document_updated_at timestamp with time zone;`.catch(() => {});
-
     if (action === 'approve') {
       newAccountStatus = 'active';
 

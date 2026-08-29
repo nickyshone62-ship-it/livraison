@@ -4,15 +4,15 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function getDirectDatabaseUrl(): string {
+function getDatabaseUrl(): string {
   let url =
-    process.env.DIRECT_URL ||
     process.env.DATABASE_URL ||
-    "postgresql://postgres.vofydpjgavyegluebhek:Nick%4020044005@aws-0-eu-west-1.pooler.supabase.com:5432/postgres";
+    process.env.DIRECT_URL ||
+    "postgresql://postgres.vofydpjgavyegluebhek:Nick%4020044005@aws-0-eu-west-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=10&pool_timeout=10";
 
-  // Force port 5432 (Direct Connection) to avoid PgBouncer 08P01 protocol errors in Prisma
-  if (url.includes(':6543')) {
-    url = url.replace(':6543', ':5432');
+  // If using PgBouncer pooler (port 6543), append pgbouncer=true if not present
+  if (url.includes(':6543') && !url.includes('pgbouncer=')) {
+    url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true&connection_limit=10&pool_timeout=10';
   }
   return url;
 }
@@ -22,12 +22,13 @@ export const db =
   new PrismaClient({
     datasources: {
       db: {
-        url: getDirectDatabaseUrl(),
+        url: getDatabaseUrl(),
       },
     },
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
+if (!globalForPrisma.prisma) {
   globalForPrisma.prisma = db;
 }
+

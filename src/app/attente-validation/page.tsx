@@ -53,7 +53,11 @@ export default function AttenteValidationPage() {
 
   useEffect(() => {
     checkAccountStatus();
-    const interval = setInterval(checkAccountStatus, 2500);
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        checkAccountStatus();
+      }
+    }, 6000);
     return () => clearInterval(interval);
   }, []);
 
