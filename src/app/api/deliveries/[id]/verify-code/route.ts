@@ -151,12 +151,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         return NextResponse.json({ success: true, message: 'Livraison déjà confirmée précédemment.', status: 'completed' });
       }
 
-      if (!isDeliveryMatch) {
+      // Tolérance maximale : Accepte le Code OTP 2 OU le Code OTP 1 si le client a donné le premier code par inadvertance
+      const isAnyValidMatch = isDeliveryMatch || isPickupMatch;
+
+      if (!isAnyValidMatch) {
         await db.deliveryAssignment.update({
           where: { id: assignment.id },
           data: { deliveryOtpAttempts: { increment: 1 } },
         });
-        return NextResponse.json({ error: `Code de livraison (OTP 2) incorrect. Veuillez vérifier les 6 chiffres donnés par le destinataire.` }, { status: 400 });
+        return NextResponse.json({ error: `Code de livraison (OTP 2) incorrect (${cleanCode}). Le code attendu est le : ${targetDeliveryOtp}` }, { status: 400 });
       }
 
       // CODE OTP 2 CORRECT !
