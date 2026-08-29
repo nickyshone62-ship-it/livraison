@@ -51,11 +51,24 @@ export async function GET(req: Request) {
       let driverProfile = u.driverProfile;
 
       if (driverProfile) {
-        const existingDocs = driverProfile.documents || [];
-        const synthesizedDocs = [...existingDocs];
+        const docMap = new Map<string, any>();
 
-        if (u.cniRectoUrl && !synthesizedDocs.some((d: any) => d.documentType === 'identity_card_recto')) {
-          synthesizedDocs.push({
+        // Trier les documents bruts du plus récent au plus ancien
+        const sortedDocs = [...(driverProfile.documents || [])].sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+          const dateB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+          return dateB - dateA;
+        });
+
+        for (const d of sortedDocs) {
+          if (d.documentType && !docMap.has(d.documentType)) {
+            docMap.set(d.documentType, d);
+          }
+        }
+
+        // Les URLs de niveau profil représentent les photos corrigées les plus récentes
+        if (u.cniRectoUrl) {
+          docMap.set('identity_card_recto', {
             id: `recto_${u.id}`,
             driverId: driverProfile.id,
             documentType: 'identity_card_recto',
@@ -65,8 +78,8 @@ export async function GET(req: Request) {
           });
         }
 
-        if (u.cniVersoUrl && !synthesizedDocs.some((d: any) => d.documentType === 'identity_card_verso')) {
-          synthesizedDocs.push({
+        if (u.cniVersoUrl) {
+          docMap.set('identity_card_verso', {
             id: `verso_${u.id}`,
             driverId: driverProfile.id,
             documentType: 'identity_card_verso',
@@ -76,8 +89,8 @@ export async function GET(req: Request) {
           });
         }
 
-        if (u.avatarUrl && !synthesizedDocs.some((d: any) => d.documentType === 'photo')) {
-          synthesizedDocs.push({
+        if (u.avatarUrl) {
+          docMap.set('photo', {
             id: `avatar_${u.id}`,
             driverId: driverProfile.id,
             documentType: 'photo',
@@ -89,7 +102,7 @@ export async function GET(req: Request) {
 
         driverProfile = {
           ...driverProfile,
-          documents: synthesizedDocs,
+          documents: Array.from(docMap.values()),
         };
       }
 
