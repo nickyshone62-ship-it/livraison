@@ -48,8 +48,54 @@ export async function GET(req: Request) {
 
     const enhancedUsers = users.map((u: any) => {
       const extra = resubmittedMap.get(u.id) || {};
+      let driverProfile = u.driverProfile;
+
+      if (driverProfile) {
+        const existingDocs = driverProfile.documents || [];
+        const synthesizedDocs = [...existingDocs];
+
+        if (u.cniRectoUrl && !synthesizedDocs.some((d: any) => d.documentType === 'identity_card_recto')) {
+          synthesizedDocs.push({
+            id: `recto_${u.id}`,
+            driverId: driverProfile.id,
+            documentType: 'identity_card_recto',
+            fileUrl: u.cniRectoUrl,
+            status: 'pending',
+            createdAt: u.createdAt,
+          });
+        }
+
+        if (u.cniVersoUrl && !synthesizedDocs.some((d: any) => d.documentType === 'identity_card_verso')) {
+          synthesizedDocs.push({
+            id: `verso_${u.id}`,
+            driverId: driverProfile.id,
+            documentType: 'identity_card_verso',
+            fileUrl: u.cniVersoUrl,
+            status: 'pending',
+            createdAt: u.createdAt,
+          });
+        }
+
+        if (u.avatarUrl && !synthesizedDocs.some((d: any) => d.documentType === 'photo')) {
+          synthesizedDocs.push({
+            id: `avatar_${u.id}`,
+            driverId: driverProfile.id,
+            documentType: 'photo',
+            fileUrl: u.avatarUrl,
+            status: 'pending',
+            createdAt: u.createdAt,
+          });
+        }
+
+        driverProfile = {
+          ...driverProfile,
+          documents: synthesizedDocs,
+        };
+      }
+
       return {
         ...u,
+        driverProfile,
         isResubmitted: Boolean(extra.isResubmitted),
         documentUpdatedAt: extra.documentUpdatedAt || null,
         previousRejectionReason: extra.previousRejectionReason || u.rejectionReason || null,

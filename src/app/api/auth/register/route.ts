@@ -228,10 +228,13 @@ export async function POST(req: Request) {
           updated_at = NOW();
       `;
 
+      const createdDriver = await db.driverProfile.findUnique({ where: { userId: profile.id } });
+      const dId = createdDriver?.id || profile.id;
+
       try {
         await db.vehicle.create({
           data: {
-            driverId: (await db.driverProfile.findUnique({ where: { userId: profile.id } }))?.id || profile.id,
+            driverId: dId,
             vehicleType: (vehicleType === 'moto' || !vehicleType) ? 'motorcycle' : (vehicleType as any),
             brand: brand || null,
             model: model || null,
@@ -241,6 +244,26 @@ export async function POST(req: Request) {
           },
         });
       } catch (eVeh) {}
+
+      // Enregistrer les pièces dans driver_documents
+      const docEntries: { documentType: string; fileUrl: string }[] = [];
+      if (rectoPhoto) docEntries.push({ documentType: 'identity_card_recto', fileUrl: rectoPhoto });
+      if (versoPhoto) docEntries.push({ documentType: 'identity_card_verso', fileUrl: versoPhoto });
+      if (profilePhoto) docEntries.push({ documentType: 'photo', fileUrl: profilePhoto });
+      if (enginPhoto) docEntries.push({ documentType: 'vehicle_photo', fileUrl: enginPhoto });
+
+      for (const entry of docEntries) {
+        try {
+          await db.driverDocument.create({
+            data: {
+              driverId: dId,
+              documentType: entry.documentType,
+              fileUrl: entry.fileUrl,
+              status: 'pending',
+            },
+          });
+        } catch (eDoc) {}
+      }
 
       driverProfile = { verificationStatus: 'pending' };
     }

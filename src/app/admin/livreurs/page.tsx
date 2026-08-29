@@ -139,7 +139,21 @@ export default function AdminLivreursPage() {
               const driverProfile = d.driverProfile;
               const verificationStatus = driverProfile?.verificationStatus || 'pending';
               const vehicles = driverProfile?.vehicles || [];
-              const docs = driverProfile?.documents || [];
+
+              const rawDocs = driverProfile?.documents || [];
+              const docsList = [...rawDocs];
+
+              if (d.cniRectoUrl && !docsList.some((doc: any) => doc.documentType === 'identity_card_recto')) {
+                docsList.push({ id: `recto_${d.id}`, documentType: 'identity_card_recto', fileUrl: d.cniRectoUrl });
+              }
+              if (d.cniVersoUrl && !docsList.some((doc: any) => doc.documentType === 'identity_card_verso')) {
+                docsList.push({ id: `verso_${d.id}`, documentType: 'identity_card_verso', fileUrl: d.cniVersoUrl });
+              }
+              if (d.avatarUrl && !docsList.some((doc: any) => doc.documentType === 'photo')) {
+                docsList.push({ id: `avatar_${d.id}`, documentType: 'photo', fileUrl: d.avatarUrl });
+              }
+
+              const docs = docsList;
 
               return (
                 <div key={d.id} className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
