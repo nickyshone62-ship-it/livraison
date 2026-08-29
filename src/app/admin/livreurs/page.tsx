@@ -38,17 +38,19 @@ export default function AdminLivreursPage() {
     "Photo de profil non conforme",
   ];
 
+  const [searchTerm, setSearchTerm] = useState('');
+
   useEffect(() => {
     fetchDrivers();
   }, []);
 
   const fetchDrivers = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users?role=driver');
       if (res.ok) {
         const data = await res.json();
-        const filtered = (data.users || []).filter((u: any) => u.role === 'driver');
-        setDrivers(filtered);
+        setDrivers(data.users || []);
       }
     } catch (err) {
       console.error(err);
@@ -56,6 +58,16 @@ export default function AdminLivreursPage() {
       setLoading(false);
     }
   };
+
+  const filteredDrivers = drivers.filter((d) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase().trim();
+    return (
+      (d.fullName || '').toLowerCase().includes(term) ||
+      (d.phone || '').includes(term) ||
+      (d.email || '').toLowerCase().includes(term)
+    );
+  });
 
   const handleVerifyDriver = async (userId: string, action: 'approve' | 'reject', reason?: string) => {
     setActionLoading(true);
@@ -111,7 +123,7 @@ export default function AdminLivreursPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white pb-16">
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
             <Link href="/admin" className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white">
               <ArrowLeft className="w-5 h-5" />
@@ -121,6 +133,23 @@ export default function AdminLivreursPage() {
               <p className="text-xs text-slate-400">Examinez les pièces KYC, prévisualisez et enregistrez toutes les photos en local</p>
             </div>
           </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="🔍 Rechercher (nom, tél...)"
+              className="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 w-full sm:w-64"
+            />
+            <button
+              onClick={fetchDrivers}
+              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg cursor-pointer shrink-0 transition-all"
+              title="Rafraîchir immédiatement depuis le serveur"
+            >
+              <span>🔄 Rafraîchir</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -129,13 +158,13 @@ export default function AdminLivreursPage() {
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
-        ) : drivers.length === 0 ? (
+        ) : filteredDrivers.length === 0 ? (
           <div className="p-12 rounded-3xl bg-slate-900/40 border border-slate-800 text-center text-slate-400 text-sm">
-            Aucun livreur enregistré.
+            {searchTerm ? `Aucun livreur ne correspond à "${searchTerm}"` : 'Aucun livreur enregistré.'}
           </div>
         ) : (
           <div className="space-y-6">
-            {drivers.map((d) => {
+            {filteredDrivers.map((d) => {
               const driverProfile = d.driverProfile;
               const verificationStatus = driverProfile?.verificationStatus || 'pending';
               const vehicles = driverProfile?.vehicles || [];
