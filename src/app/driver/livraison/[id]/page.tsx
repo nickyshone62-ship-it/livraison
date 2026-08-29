@@ -319,10 +319,11 @@ export default function ExecutionLivraisonDriverPage() {
         </div>
 
         {/* BOUTONS D'ACTION DU WORKFLOW D'ÉTAPES AVEC OTP 1 ET OTP 2 */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Action suivante de la course</div>
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Workflow Validation OTP Livreur</div>
 
-          {(delivery.status === 'driver_selected' || delivery.status === 'driver_accepted') && (
+          {/* ÉTAPE DÉPART / SE RENDRE AU POINT A */}
+          {(delivery.status === 'driver_selected' || delivery.status === 'driver_accepted') && !assignment?.pickupOtpVerified && (
             <button
               onClick={() => {
                 handleUpdateStatus('driver_arriving');
@@ -331,49 +332,72 @@ export default function ExecutionLivraisonDriverPage() {
                 }
               }}
               disabled={actionLoading}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 transition-colors"
+              className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2 transition-colors"
             >
               <Navigation className="w-5 h-5 shrink-0" />
-              <span>📍 Aller au Point de Ramassage & Ouvrir le GPS (Point A)</span>
+              <span>📍 Se Rendre au Point de Ramassage & GPS (Point A)</span>
             </button>
           )}
 
-          {/* ÉTAPE OTP 1 : RAMASSAGE AU POINT A */}
-          {(delivery.status === 'driver_arriving' || (delivery.status === 'driver_accepted' && !assignment?.pickupOtpVerified)) && (
-            <button
-              onClick={() => handleOpenOtpModal('PICKUP')}
-              disabled={actionLoading}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <KeyRound className="w-5 h-5" />
-              <span>Saisir le Code OTP 1 — Récupération du colis</span>
-            </button>
+          {/* ÉTAPE 1 : BOUTON VALIDER OTP 1 (RÉCUPÉRATION POINT A) */}
+          {!assignment?.pickupOtpVerified && delivery.status !== 'completed' && delivery.status !== 'cancelled' && (
+            <div className="space-y-2 pt-1">
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
+                🔑 <strong>Étape 1 :</strong> Demandez le <strong>Code OTP 1</strong> au client/expéditeur au Point A lors du ramassage.
+              </div>
+              <button
+                onClick={() => handleOpenOtpModal('PICKUP')}
+                disabled={actionLoading}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01]"
+              >
+                <KeyRound className="w-5 h-5" />
+                <span>Saisir le Code OTP 1 — Valider la Récupération</span>
+              </button>
+            </div>
           )}
 
-          {delivery.status === 'package_picked_up' && (
-            <button
-              onClick={() => handleUpdateStatus('in_transit')}
-              disabled={actionLoading}
-              className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm rounded-xl shadow-md cursor-pointer"
-            >
-              En cours de livraison vers le destinataire (Point B)
-            </button>
+          {/* ÉTAPE 2 : OTP 1 VALIDÉ -> BOUTON VALIDER OTP 2 (LIVRAISON POINT B) */}
+          {assignment?.pickupOtpVerified && !assignment?.deliveryOtpVerified && delivery.status !== 'completed' && delivery.status !== 'cancelled' && (
+            <div className="space-y-3 pt-1">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>✓ OTP 1 Validé : Colis en votre possession. Dirigez-vous vers le destinataire (Point B).</span>
+              </div>
+
+              {delivery.status === 'package_picked_up' && (
+                <button
+                  onClick={() => {
+                    handleUpdateStatus('in_transit');
+                    if (destinationNavUrl && destinationNavUrl !== '#') {
+                      window.open(destinationNavUrl, '_blank');
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-amber-400 font-bold text-xs rounded-xl shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  <span>Démarrer le trajet vers le destinataire (GPS Point B)</span>
+                </button>
+              )}
+
+              <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200 text-emerald-900 text-xs font-medium">
+                🔑 <strong>Étape 2 :</strong> À l'arrivée au Point B, demandez le <strong>Code OTP 2</strong> au destinataire pour clôturer la livraison.
+              </div>
+
+              <button
+                onClick={() => handleOpenOtpModal('DELIVERY')}
+                disabled={actionLoading}
+                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01]"
+              >
+                <KeyRound className="w-5 h-5" />
+                <span>Saisir le Code OTP 2 — Valider la Livraison Finale</span>
+              </button>
+            </div>
           )}
 
-          {/* ÉTAPE OTP 2 : CONFIRMATION FINALE AU POINT B */}
-          {(delivery.status === 'in_transit' || (delivery.status === 'package_picked_up' && assignment?.pickupOtpVerified)) && !assignment?.deliveryOtpVerified && (
-            <button
-              onClick={() => handleOpenOtpModal('DELIVERY')}
-              disabled={actionLoading}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-xl shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <KeyRound className="w-5 h-5" />
-              <span>Saisir le Code OTP 2 — Valider la livraison finale</span>
-            </button>
-          )}
-
+          {/* ÉTAPE FINALISÉE */}
           {(delivery.status === 'completed' || assignment?.deliveryOtpVerified) && (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center flex items-center justify-center gap-2">
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <span>Livraison confirmée et clôturée avec succès grâce aux deux OTP !</span>
             </div>

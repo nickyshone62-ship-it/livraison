@@ -38,7 +38,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     const role = (session.role || 'client').toLowerCase();
-    const isAssignedDriver = assignment.driverId === session.userId || session.userId === deliveryRequest.clientId;
+
+    // Résolution de l'ID de profil livreur (DriverProfile.id vs Profile.id)
+    const driverProfile = await db.driverProfile.findUnique({
+      where: { userId: session.userId },
+      select: { id: true },
+    });
+    const driverProfileId = driverProfile ? driverProfile.id : session.userId;
+
+    const isAssignedDriver =
+      assignment.driverId === driverProfileId ||
+      assignment.driverId === session.userId ||
+      session.userId === deliveryRequest.clientId;
+
     if (!isAssignedDriver && role !== 'admin') {
       return NextResponse.json({ error: 'Vous n\'êtes pas autorisé à valider ce code.' }, { status: 403 });
     }
