@@ -25,6 +25,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           orderBy: { proposedPrice: 'asc' },
         },
         assignments: {
+          orderBy: { createdAt: 'desc' },
           include: {
             driver: {
               include: {

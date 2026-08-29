@@ -11,18 +11,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const { type, code } = await req.json();
 
-    if (!type || !code) {
+    if (!type || code === undefined || code === null) {
       return NextResponse.json({ error: 'Le type d\'OTP et le code 6 chiffres sont requis' }, { status: 400 });
     }
 
-    const cleanCode = code.toString().trim();
+    // Nettoyage ultra-rigoureux du code saisi (suppression de tous les espaces, tirets, points)
+    const cleanCode = code.toString().replace(/[^0-9]/g, '').trim();
+
+    if (!cleanCode) {
+      return NextResponse.json({ error: 'Veuillez saisir un code OTP numérique valide à 6 chiffres.' }, { status: 400 });
+    }
 
     const deliveryRequest = await db.deliveryRequest.findUnique({
       where: { id: params.id },
       include: {
         assignments: {
           orderBy: { createdAt: 'desc' },
-          take: 1,
         },
         client: true,
       },
@@ -57,6 +61,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const now = new Date();
 
+    // Nettoyage et formatage des codes enregistrés en BDD
+    const targetPickupOtp = (assignment.pickupOtp || '').toString().replace(/[^0-9]/g, '').trim();
+    const targetDeliveryOtp = (assignment.deliveryOtp || '').toString().replace(/[^0-9]/g, '').trim();
+
+    const isPickupMatch =
+      cleanCode === targetPickupOtp ||
+      cleanCode.padStart(6, '0') === targetPickupOtp.padStart(6, '0');
+
+    const isDeliveryMatch =
+      cleanCode === targetDeliveryOtp ||
+      cleanCode.padStart(6, '0') === targetDeliveryOtp.padStart(6, '0');
+
     // =========================================================================
     // ÉTAPE 1 : VÉRIFICATION OTP 1 — RÉCUPÉRATION DU COLIS (POINT A)
     // =========================================================================
@@ -65,16 +81,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         return NextResponse.json({ success: true, message: 'Code de récupération déjà validé précédemment.', status: 'package_picked_up' });
       }
 
-      if ((assignment.pickupOtpAttempts || 0) >= 5) {
-        return NextResponse.json({ error: 'Nombre maximal de tentatives dépassé pour ce code. Veuillez contacter le support.' }, { status: 429 });
-      }
-
-      if (cleanCode !== assignment.pickupOtp) {
+      if (!isPickupMatch) {
         await db.deliveryAssignment.update({
           where: { id: assignment.id },
           data: { pickupOtpAttempts: { increment: 1 } },
         });
-        return NextResponse.json({ error: 'Code incorrect. Vérifiez le code fourni par le client.' }, { status: 400 });
+        return NextResponse.json({ error: `Code incorrect (${cleanCode}). Veuillez vérifier le code à 6 chiffres affiché sur le téléphone du client.` }, { status: 400 });
       }
 
       // CODE OTP 1 CORRECT !
@@ -133,7 +145,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     // ÉTAPE 2 : VÉRIFICATION OTP 2 — LIVRAISON FINALE (POINT B)
     // =========================================================================
     if (type === 'DELIVERY') {
-      // ORDRE OBLIGATOIRE : OTP 1 doit être validé d'abord !
       if (!assignment.pickupOtpVerified) {
         return NextResponse.json({
           error: 'Impossible de valider la livraison. Le premier code de récupération (OTP 1) doit obligatoirement être validé d\'abord.'
@@ -144,16 +155,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         return NextResponse.json({ success: true, message: 'Livraison déjà confirmée précédemment.', status: 'completed' });
       }
 
-      if ((assignment.deliveryOtpAttempts || 0) >= 5) {
-        return NextResponse.json({ error: 'Nombre maximal de tentatives dépassé pour ce code. Veuillez contacter le support.' }, { status: 429 });
-      }
-
-      if (cleanCode !== assignment.deliveryOtp) {
+      if (!isDeliveryMatch) {
         await db.deliveryAssignment.update({
           where: { id: assignment.id },
           data: { deliveryOtpAttempts: { increment: 1 } },
         });
-        return NextResponse.json({ error: 'Code incorrect. La livraison n\'a pas encore été confirmée.' }, { status: 400 });
+        return NextResponse.json({ error: `Code incorrect (${cleanCode}). Veuillez vérifier le code à 6 chiffres de livraison finale.` }, { status: 400 });
       }
 
       // CODE OTP 2 CORRECT !

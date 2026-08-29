@@ -34,7 +34,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
     const deliveryRequest = await db.deliveryRequest.findUnique({
       where: { id: params.id },
-      include: { assignments: true },
+      include: {
+        assignments: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
 
     if (!deliveryRequest) {

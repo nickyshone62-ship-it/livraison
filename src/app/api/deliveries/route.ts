@@ -127,6 +127,7 @@ export async function GET(req: Request) {
           },
         },
         assignments: {
+          orderBy: { createdAt: 'desc' },
           include: {
             driver: {
               include: {
