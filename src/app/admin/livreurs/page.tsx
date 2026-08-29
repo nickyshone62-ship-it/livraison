@@ -141,19 +141,32 @@ export default function AdminLivreursPage() {
               const vehicles = driverProfile?.vehicles || [];
 
               const rawDocs = driverProfile?.documents || [];
-              const docsList = [...rawDocs];
+              const docMap = new Map<string, any>();
 
-              if (d.cniRectoUrl && !docsList.some((doc: any) => doc.documentType === 'identity_card_recto')) {
-                docsList.push({ id: `recto_${d.id}`, documentType: 'identity_card_recto', fileUrl: d.cniRectoUrl });
-              }
-              if (d.cniVersoUrl && !docsList.some((doc: any) => doc.documentType === 'identity_card_verso')) {
-                docsList.push({ id: `verso_${d.id}`, documentType: 'identity_card_verso', fileUrl: d.cniVersoUrl });
-              }
-              if (d.avatarUrl && !docsList.some((doc: any) => doc.documentType === 'photo')) {
-                docsList.push({ id: `avatar_${d.id}`, documentType: 'photo', fileUrl: d.avatarUrl });
+              // Trier du plus récent au plus ancien
+              const sortedRawDocs = [...rawDocs].sort((a: any, b: any) => {
+                const dateA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+                const dateB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+                return dateB - dateA;
+              });
+
+              for (const doc of sortedRawDocs) {
+                if (doc.documentType && !docMap.has(doc.documentType)) {
+                  docMap.set(doc.documentType, doc);
+                }
               }
 
-              const docs = docsList;
+              if (d.cniRectoUrl) {
+                docMap.set('identity_card_recto', { id: `recto_${d.id}`, documentType: 'identity_card_recto', fileUrl: d.cniRectoUrl });
+              }
+              if (d.cniVersoUrl) {
+                docMap.set('identity_card_verso', { id: `verso_${d.id}`, documentType: 'identity_card_verso', fileUrl: d.cniVersoUrl });
+              }
+              if (d.avatarUrl) {
+                docMap.set('photo', { id: `avatar_${d.id}`, documentType: 'photo', fileUrl: d.avatarUrl });
+              }
+
+              const docs = Array.from(docMap.values());
 
               return (
                 <div key={d.id} className="p-6 rounded-3xl bg-slate-900 border border-slate-800 space-y-6">
