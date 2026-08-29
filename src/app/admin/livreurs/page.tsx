@@ -15,6 +15,7 @@ import {
   Eye,
   X,
   FileImage,
+  Image as ImageIcon,
   ZoomIn,
   FolderDown,
   RefreshCw
@@ -325,11 +326,12 @@ export default function AdminLivreursPage() {
                             const fileUrl = doc.fileUrl;
                             const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
                             const displayUrl = fileUrl || viewUrl;
+                            const isValidImage = displayUrl && displayUrl.length > 100 && (displayUrl.startsWith('data:image/') || displayUrl.startsWith('http'));
 
                             return (
                               <div key={doc.id || idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5 flex flex-col justify-between">
                                 <div className="text-xs font-bold text-slate-200 truncate">{title}</div>
-                                {displayUrl ? (
+                                {isValidImage ? (
                                   <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-32 flex items-center justify-center">
                                     <img
                                       src={displayUrl}
@@ -348,19 +350,20 @@ export default function AdminLivreursPage() {
                                       <button
                                         onClick={() => triggerServerDownload(doc.id, doc.fileUrl, title, d.fullName)}
                                         className="p-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-lg cursor-pointer"
-                                        title="Télécharger directement en local"
+                                        title="Télécharger localement"
                                       >
                                         <Download className="w-4 h-4" />
                                       </button>
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="h-32 rounded-lg border border-dashed border-slate-800 bg-slate-950 flex items-center justify-center text-slate-600 text-xs">
-                                    Sans photo
+                                  <div className="h-32 rounded-xl border border-dashed border-slate-800 bg-slate-950 flex flex-col items-center justify-center text-slate-500 text-xs p-3 text-center">
+                                    <ImageIcon className="w-6 h-6 mb-1 text-slate-700" />
+                                    <span>Non transmise lors de l'inscription</span>
                                   </div>
                                 )}
 
-                                {fileUrl && (
+                                {fileUrl && isValidImage && (
                                   <div className="flex items-center gap-2 pt-1">
                                     <button
                                       onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
