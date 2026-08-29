@@ -264,21 +264,22 @@ export default function AdminUtilisateursPage() {
                                     const title = labelMap[doc.documentType] || doc.documentType;
                                     const fileUrl = doc.fileUrl;
                                     const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
+                                    const displayUrl = fileUrl || viewUrl;
 
                                     return (
                                       <div key={doc.id || idx} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 space-y-2 flex flex-col justify-between">
                                         <div className="text-[11px] font-bold text-slate-300 truncate">{title}</div>
-                                        {fileUrl ? (
+                                        {displayUrl ? (
                                           <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-28 flex items-center justify-center">
                                             <img
-                                              src={viewUrl}
+                                              src={displayUrl}
                                               alt={title}
                                               className="w-full h-full object-cover cursor-pointer"
-                                              onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
+                                              onClick={() => setSelectedPhoto({ id: doc.id, url: displayUrl, title, userName: u.fullName })}
                                             />
                                             <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                                               <button
-                                                onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
+                                                onClick={() => setSelectedPhoto({ id: doc.id, url: displayUrl, title, userName: u.fullName })}
                                                 className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold"
                                               >
                                                 <ZoomIn className="w-3.5 h-3.5" />
@@ -297,10 +298,10 @@ export default function AdminUtilisateursPage() {
                                           </div>
                                         )}
 
-                                        {fileUrl && (
+                                        {displayUrl && (
                                           <div className="flex items-center gap-1 pt-1">
                                             <button
-                                              onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, userName: u.fullName })}
+                                              onClick={() => setSelectedPhoto({ id: doc.id, url: displayUrl, title, userName: u.fullName })}
                                               className="flex-1 py-1 text-[10px] font-bold rounded bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center gap-1 cursor-pointer"
                                             >
                                               <Eye className="w-3 h-3 text-amber-400" />

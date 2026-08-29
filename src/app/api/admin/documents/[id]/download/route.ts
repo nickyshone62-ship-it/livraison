@@ -19,36 +19,57 @@ export async function GET(
       return NextResponse.json({ error: 'Identifiant document requis' }, { status: 400 });
     }
 
-    const doc = await db.driverDocument.findUnique({
+    let doc = await db.driverDocument.findUnique({
       where: { id: docId },
     });
 
-    if (!doc || !doc.fileUrl) {
-      return NextResponse.json({ error: 'Document introuvable' }, { status: 404 });
+    let fileUrl = doc?.fileUrl;
+    let docType = doc?.documentType || 'document';
+    let driverName = 'livreur';
+
+    if (doc?.driverId) {
+      const profile = await db.profile.findUnique({ where: { id: doc.driverId } });
+      if (profile?.fullName) driverName = profile.fullName;
     }
 
-    let driverName = 'livreur';
-    if (doc.driverId) {
-      const profile = await db.profile.findUnique({ where: { id: doc.driverId } });
-      if (profile?.fullName) {
-        driverName = profile.fullName;
+    if (!fileUrl && (docId.startsWith('recto_') || docId.startsWith('verso_') || docId.startsWith('avatar_'))) {
+      const userId = docId.split('_')[1];
+      if (userId) {
+        const profile = await db.profile.findUnique({ where: { id: userId } });
+        if (profile) {
+          if (profile.fullName) driverName = profile.fullName;
+          if (docId.startsWith('recto_')) {
+            fileUrl = profile.cniRectoUrl || undefined;
+            docType = 'identity_card_recto';
+          } else if (docId.startsWith('verso_')) {
+            fileUrl = profile.cniVersoUrl || undefined;
+            docType = 'identity_card_verso';
+          } else if (docId.startsWith('avatar_')) {
+            fileUrl = profile.avatarUrl || undefined;
+            docType = 'photo';
+          }
+        }
       }
     }
 
+    if (!fileUrl) {
+      return NextResponse.json({ error: 'Document introuvable' }, { status: 404 });
+    }
+
     const cleanDriverName = driverName.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const cleanDocType = doc.documentType.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const cleanDocType = docType.toLowerCase().replace(/[^a-z0-9]/g, '_');
     const filename = `${cleanDriverName}_${cleanDocType}.jpg`;
 
     let imageBuffer: Buffer;
     let mimeType = 'image/jpeg';
 
-    if (doc.fileUrl.startsWith('data:')) {
-      const parts = doc.fileUrl.split(';base64,');
+    if (fileUrl.startsWith('data:')) {
+      const parts = fileUrl.split(';base64,');
       mimeType = parts[0].split(':')[1] || 'image/jpeg';
       const base64Data = parts[1] || '';
       imageBuffer = Buffer.from(base64Data, 'base64');
-    } else if (doc.fileUrl.startsWith('http')) {
-      const res = await fetch(doc.fileUrl);
+    } else if (fileUrl.startsWith('http')) {
+      const res = await fetch(fileUrl);
       const arrayBuffer = await res.arrayBuffer();
       imageBuffer = Buffer.from(arrayBuffer);
       mimeType = res.headers.get('content-type') || 'image/jpeg';

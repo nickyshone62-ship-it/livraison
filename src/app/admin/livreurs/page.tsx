@@ -295,21 +295,22 @@ export default function AdminLivreursPage() {
                             const title = labelMap[doc.documentType] || doc.documentType;
                             const fileUrl = doc.fileUrl;
                             const viewUrl = doc.id ? `/api/admin/documents/${doc.id}/view` : fileUrl;
+                            const displayUrl = fileUrl || viewUrl;
 
                             return (
                               <div key={doc.id || idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5 flex flex-col justify-between">
                                 <div className="text-xs font-bold text-slate-200 truncate">{title}</div>
-                                {fileUrl ? (
+                                {displayUrl ? (
                                   <div className="relative group rounded-lg overflow-hidden border border-slate-800 bg-slate-950 h-32 flex items-center justify-center">
                                     <img
-                                      src={viewUrl}
+                                      src={displayUrl}
                                       alt={title}
                                       className="w-full h-full object-cover cursor-pointer"
-                                      onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
+                                      onClick={() => setSelectedPhoto({ id: doc.id, url: displayUrl, title, driverName: d.fullName })}
                                     />
                                     <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                       <button
-                                        onClick={() => setSelectedPhoto({ id: doc.id, url: viewUrl, title, driverName: d.fullName })}
+                                        onClick={() => setSelectedPhoto({ id: doc.id, url: displayUrl, title, driverName: d.fullName })}
                                         className="p-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-lg cursor-pointer"
                                         title="Agrandir la photo"
                                       >
