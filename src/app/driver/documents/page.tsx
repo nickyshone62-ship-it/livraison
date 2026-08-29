@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FileText, Camera, CheckCircle2, RefreshCw, Bike, User, ShieldCheck } from 'lucide-react';
+import { fetchAuthMe } from '@/lib/sessionCache';
 
 export default function DriverDocumentsPage() {
   const [user, setUser] = useState<any>(null);
@@ -17,15 +18,13 @@ export default function DriverDocumentsPage() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        const me = data.user;
+      const me = await fetchAuthMe();
+      if (me) {
         setUser(me);
-        if (me?.avatarUrl) setAvatarUrl(me.avatarUrl);
-        if (me?.cniRectoUrl) setCniRectoUrl(me.cniRectoUrl);
-        if (me?.cniVersoUrl) setCniVersoUrl(me.cniVersoUrl);
-        if (me?.vehiclePhotoUrl) setVehiclePhotoUrl(me.vehiclePhotoUrl);
+        if (me.avatarUrl) setAvatarUrl(me.avatarUrl);
+        if (me.cniRectoUrl) setCniRectoUrl(me.cniRectoUrl);
+        if (me.cniVersoUrl) setCniVersoUrl(me.cniVersoUrl);
+        if (me.vehiclePhotoUrl) setVehiclePhotoUrl(me.vehiclePhotoUrl);
       }
     } catch (e) {
       console.error(e);

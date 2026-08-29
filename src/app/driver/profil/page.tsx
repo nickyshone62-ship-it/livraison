@@ -4,14 +4,15 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Bike, Phone, Mail, MapPin, ShieldCheck, Star } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export default function DriverProfilPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => setUser(data.user))
+    fetchAuthMe()
+      .then(u => setUser(u))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);

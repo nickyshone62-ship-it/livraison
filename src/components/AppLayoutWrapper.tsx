@@ -7,6 +7,8 @@ import { AdminModeBanner } from '@/components/AdminModeBanner';
 import { PWAInstaller } from '@/components/PWAInstaller';
 import { Truck, ShieldCheck, Phone, Heart, User, Store, MapPin } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [session, setSession] = useState<any>(null);
@@ -15,13 +17,8 @@ export function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function checkSession() {
       try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-          const data = await res.json();
-          setSession(data.user);
-        } else {
-          setSession(null);
-        }
+        const user = await fetchAuthMe();
+        setSession(user);
       } catch (e) {
         setSession(null);
       } finally {

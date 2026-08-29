@@ -20,6 +20,8 @@ import {
   MapPin,
 } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export default function WelcomeGuidePage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -27,10 +29,9 @@ export default function WelcomeGuidePage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.user) setCurrentUser(data.user);
+    fetchAuthMe()
+      .then((user) => {
+        if (user) setCurrentUser(user);
       })
       .catch((e) => console.error(e));
   }, []);

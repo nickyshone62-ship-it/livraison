@@ -21,16 +21,17 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export default function HomePage() {
   const router = useRouter();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.user) setCurrentUser(data.user);
+    fetchAuthMe()
+      .then((user) => {
+        if (user) setCurrentUser(user);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

@@ -7,6 +7,7 @@ import { Truck, Plus, Package, Clock, CheckCircle2, MapPin, ChevronRight, Naviga
 
 import { AdminModeBanner } from '@/components/AdminModeBanner';
 import { Navbar } from '@/components/Navbar';
+import { fetchAuthMe } from '@/lib/sessionCache';
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -20,20 +21,22 @@ export default function ClientDashboard() {
 
   const fetchData = async () => {
     try {
-      const resMe = await fetch('/api/auth/me');
-      if (!resMe.ok) {
+      const [currentUser, resDeliv] = await Promise.all([
+        fetchAuthMe(),
+        fetch('/api/deliveries')
+      ]);
+
+      if (!currentUser) {
         router.push('/connexion');
         return;
       }
-      const dataMe = await resMe.json();
-      setUser(dataMe.user);
+      setUser(currentUser);
 
-      if (dataMe.user?.accountStatus === 'pending') {
+      if (currentUser?.accountStatus === 'pending') {
         router.push('/attente-validation');
         return;
       }
 
-      const resDeliv = await fetch('/api/deliveries');
       if (resDeliv.ok) {
         const dataDeliv = await resDeliv.json();
         setRequests(dataDeliv.requests || []);

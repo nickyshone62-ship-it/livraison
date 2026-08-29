@@ -5,15 +5,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShieldCheck, ArrowLeft } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export function AdminModeBanner() {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.user) setCurrentUser(data.user);
+    fetchAuthMe()
+      .then((user) => {
+        if (user) setCurrentUser(user);
       })
       .catch(() => {});
   }, [pathname]);

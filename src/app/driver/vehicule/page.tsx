@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Bike, Save } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 export default function DriverVehiculePage() {
   const [user, setUser] = useState<any>(null);
   const [vehicleType, setVehicleType] = useState('motorcycle');
@@ -15,18 +17,19 @@ export default function DriverVehiculePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data.user);
-        const v = data.user?.driverProfile?.vehicles?.[0];
-        if (v) {
-          setVehicleType(v.vehicleType || 'motorcycle');
-          setBrand(v.brand || '');
-          setModel(v.model || '');
-          setRegistrationNumber(v.registrationNumber || '');
-          setColor(v.color || '');
-          if (v.year) setYear(v.year);
+    fetchAuthMe()
+      .then(u => {
+        if (u) {
+          setUser(u);
+          const v = u?.driverProfile?.vehicles?.[0];
+          if (v) {
+            setVehicleType(v.vehicleType || 'motorcycle');
+            setBrand(v.brand || '');
+            setModel(v.model || '');
+            setRegistrationNumber(v.registrationNumber || '');
+            setColor(v.color || '');
+            if (v.year) setYear(v.year);
+          }
         }
       })
       .catch(console.error)

@@ -23,6 +23,7 @@ import {
   Compass
 } from 'lucide-react';
 import { AdminSecretModal } from './AdminSecretModal';
+import { fetchAuthMe, clearAuthCache } from '@/lib/sessionCache';
 
 export function Navbar() {
   const router = useRouter();
@@ -36,12 +37,11 @@ export function Navbar() {
 
   const fetchUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentUser(data.user);
-        if (data.user?.driverProfile) {
-          setDriverAvailable(data.user.driverProfile.isAvailable ?? true);
+      const user = await fetchAuthMe();
+      if (user) {
+        setCurrentUser(user);
+        if (user.driverProfile) {
+          setDriverAvailable(user.driverProfile.isAvailable ?? true);
         }
       } else {
         setCurrentUser(null);
@@ -59,6 +59,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    clearAuthCache();
     setCurrentUser(null);
     router.push('/');
     router.refresh();

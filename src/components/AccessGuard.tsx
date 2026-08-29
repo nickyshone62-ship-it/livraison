@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { AlertTriangle, CreditCard, ShieldAlert, Lock, ArrowRight, RefreshCw } from 'lucide-react';
 
+import { fetchAuthMe } from '@/lib/sessionCache';
+
 interface AccessGuardProps {
   children: React.ReactNode;
   allowedRoles?: string[];
@@ -23,21 +25,14 @@ export function AccessGuard({ children, allowedRoles }: AccessGuardProps) {
 
   const checkUserAccess = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (!res.ok) {
+      const currentUser = await fetchAuthMe();
+      if (!currentUser) {
         router.push('/connexion');
         return;
       }
 
-      const data = await res.json();
-      if (!data.user) {
-        router.push('/connexion');
-        return;
-      }
-
-      setUser(data.user);
-
-      const role = (data.user.role || '').toLowerCase();
+      setUser(currentUser);
+      const role = (currentUser.role || '').toLowerCase();
 
       // Admin has full access
       if (role === 'admin') {
@@ -54,8 +49,8 @@ export function AccessGuard({ children, allowedRoles }: AccessGuardProps) {
       }
 
       // Condition 1: Registration payment / account approval
-      const accountStatus = (data.user.accountStatus || 'pending').toLowerCase();
-      const isPaymentApproved = data.user.isPaymentApproved ?? (accountStatus === 'active' || accountStatus === 'approved');
+      const accountStatus = (currentUser.accountStatus || 'pending').toLowerCase();
+      const isPaymentApproved = currentUser.isPaymentApproved ?? (accountStatus === 'active' || accountStatus === 'approved');
 
       if (!isPaymentApproved) {
         if (accountStatus === 'rejected') {

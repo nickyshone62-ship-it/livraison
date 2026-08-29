@@ -21,6 +21,7 @@ import {
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
 import { buildNavigationUrl } from '@/lib/mapUtils';
+import { fetchAuthMe } from '@/lib/sessionCache';
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -43,31 +44,31 @@ export default function DriverDashboard() {
 
   const fetchData = async () => {
     try {
-      const resMe = await fetch('/api/auth/me');
-      if (!resMe.ok) {
-        router.push('/connexion');
-        return;
-      }
-      const dataMe = await resMe.json();
-      setUser(dataMe.user);
-      setIsAvailable(dataMe.user?.driverProfile?.isAvailable ?? true);
-
-      if (dataMe.user?.accountStatus === 'pending') {
-        router.push('/attente-validation');
-        return;
-      }
-
-      const [resReq, resOffers] = await Promise.all([
+      const [currentUser, resReq, resOffers] = await Promise.all([
+        fetchAuthMe(),
         fetch('/api/deliveries'),
         fetch('/api/deliveries?filter=my_offers')
       ]);
+
+      if (!currentUser) {
+        router.push('/connexion');
+        return;
+      }
+
+      setUser(currentUser);
+      setIsAvailable(currentUser?.driverProfile?.isAvailable ?? true);
+
+      if (currentUser?.accountStatus === 'pending') {
+        router.push('/attente-validation');
+        return;
+      }
 
       if (resReq.ok) {
         const dataReq = await resReq.json();
         const allReqs = dataReq.requests || [];
         setOpenRequests(allReqs.filter((r: any) => ['searching_driver', 'pending'].includes(r.status)));
         
-        const driverId = dataMe.user?.id;
+        const driverId = currentUser?.id;
         const currentActive = allReqs.find(
           (r: any) => (r.driverId === driverId || r.driver?.user?.id === driverId) && !['completed', 'cancelled', 'failed'].includes(r.status)
         );

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, User, Phone, Mail, MapPin, ShieldCheck, Camera, FileText, CheckCircle2, RefreshCw } from 'lucide-react';
+import { fetchAuthMe } from '@/lib/sessionCache';
 
 export default function ClientProfilPage() {
   const [user, setUser] = useState<any>(null);
@@ -16,13 +17,12 @@ export default function ClientProfilPage() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-        if (data.user?.avatarUrl) setAvatarUrl(data.user.avatarUrl);
-        if (data.user?.cniRectoUrl) setCniRectoUrl(data.user.cniRectoUrl);
-        if (data.user?.cniVersoUrl) setCniVersoUrl(data.user.cniVersoUrl);
+      const u = await fetchAuthMe();
+      if (u) {
+        setUser(u);
+        if (u.avatarUrl) setAvatarUrl(u.avatarUrl);
+        if (u.cniRectoUrl) setCniRectoUrl(u.cniRectoUrl);
+        if (u.cniVersoUrl) setCniVersoUrl(u.cniVersoUrl);
       }
     } catch (e) {
       console.error(e);
