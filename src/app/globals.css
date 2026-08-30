@@ -56,3 +56,24 @@ h1, h2, h3, h4, h5, h6 {
   animation: pulse-slow 3s infinite ease-in-out;
 }
 
+/* Suppression définitive du zoom automatique mobile (iOS Safari / Android) au clic sur les champs de saisie */
+@media screen and (max-width: 768px) {
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+    touch-action: manipulation;
+  }
+}
+
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
