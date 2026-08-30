@@ -18,7 +18,9 @@ import {
   ZoomIn,
   X,
   FileImage,
-  FolderDown
+  FolderDown,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 
 export default function AdminUtilisateursPage() {
@@ -27,6 +29,12 @@ export default function AdminUtilisateursPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<{ id: string; url: string; title: string; userName: string } | null>(null);
+
+  // Modal de Message Administrateur -> Utilisateur
+  const [messageModalUser, setMessageModalUser] = useState<{ id: string; name: string; phone?: string } | null>(null);
+  const [messageTitle, setMessageTitle] = useState('💬 Message de l\'Administration');
+  const [messageContent, setMessageContent] = useState('');
+  const [sendMessageLoading, setSendMessageLoading] = useState(false);
 
   // Modal de Rejet avec Motif
   const [rejectModalUser, setRejectModalUser] = useState<{ id: string; name: string } | null>(null);
@@ -55,6 +63,35 @@ export default function AdminUtilisateursPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendAdminMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageModalUser || !messageContent.trim()) return;
+
+    setSendMessageLoading(true);
+    try {
+      const res = await fetch('/api/admin/message-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: messageModalUser.id,
+          title: messageTitle,
+          message: messageContent,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur lors de l\'envoi du message');
+
+      alert(data.message || 'Message envoyé avec succès !');
+      setMessageModalUser(null);
+      setMessageContent('');
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l\'envoi');
+    } finally {
+      setSendMessageLoading(false);
     }
   };
 
@@ -164,6 +201,15 @@ export default function AdminUtilisateursPage() {
                         <Eye className="w-4 h-4 text-amber-400" />
                         <span>{isExpanded ? 'Masquer détails' : 'Voir tout le dossier'}</span>
                         {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+
+                      <button
+                        onClick={() => setMessageModalUser({ id: u.id, name: u.fullName || 'Utilisateur', phone: u.phone })}
+                        className="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-bold text-xs border border-cyan-500/20 cursor-pointer flex items-center gap-1.5"
+                        title="Envoyer un message à cet utilisateur"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span>💬 Message</span>
                       </button>
 
                       {u.accountStatus !== 'approved' && u.accountStatus !== 'active' && (
@@ -477,6 +523,78 @@ export default function AdminUtilisateursPage() {
                 Annuler
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODALE ENVOI DE MESSAGE DE L'ADMINISTRATEUR */}
+      {messageModalUser && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="max-w-lg w-full bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-white text-base">Envoyer un Message à l'Utilisateur</h3>
+                  <p className="text-xs text-cyan-400">
+                    Destinataire : <strong>{messageModalUser.name}</strong> {messageModalUser.phone ? `(${messageModalUser.phone})` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMessageModalUser(null)}
+                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white border border-slate-700 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendAdminMessage} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Titre du Message</label>
+                <input
+                  type="text"
+                  value={messageTitle}
+                  onChange={(e) => setMessageTitle(e.target.value)}
+                  placeholder="ex: 💬 Information importante de l'Administration"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">Contenu du Message</label>
+                <textarea
+                  rows={4}
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                  placeholder="Écrivez le message destiné à l'utilisateur..."
+                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none focus:ring-2 focus:ring-cyan-500 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMessageModalUser(null)}
+                  className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendMessageLoading || !messageContent.trim()}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{sendMessageLoading ? 'Envoi en cours...' : 'Envoyer le Message'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
