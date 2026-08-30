@@ -14,15 +14,26 @@ export async function GET(req: Request) {
     const userId = session.userId;
     const role = (session.role || 'client').toLowerCase();
 
+    // Trouve le DriverProfile s'il existe pour ce userId
+    const driverProfile = await db.driverProfile.findUnique({ where: { userId } });
+    const driverProfileId = driverProfile?.id;
+
     const conversations = await db.conversation.findMany({
       where: {
         OR: [
           { clientId: userId },
+          ...(driverProfileId ? [{ driverId: driverProfileId }] : []),
           { driverId: userId },
         ],
       },
       include: {
         delivery: true,
+        driver: {
+          include: {
+            profile: true,
+          },
+        },
+        client: true,
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 1,
@@ -31,11 +42,12 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Fetch participant profiles manually
+    // Récupération des profils des participants
     const participantIds = new Set<string>();
     conversations.forEach(c => {
       if (c.clientId) participantIds.add(c.clientId);
       if (c.driverId) participantIds.add(c.driverId);
+      if (c.driver?.userId) participantIds.add(c.driver.userId);
     });
 
     const profiles = await db.profile.findMany({
@@ -44,8 +56,17 @@ export async function GET(req: Request) {
     const profileMap = new Map(profiles.map(p => [p.id, p]));
 
     const result = conversations.map(c => {
-      const otherId = c.clientId === userId ? c.driverId : c.clientId;
-      const otherProfile = profileMap.get(otherId);
+      const isDriverUser = c.driverId === driverProfileId || c.driverId === userId || c.driver?.userId === userId;
+      let otherProfile = null;
+
+      if (isDriverUser) {
+        // Pour le livreur, l'autre participant est le client
+        otherProfile = c.client || profileMap.get(c.clientId);
+      } else {
+        // Pour le client, l'autre participant est le livreur
+        otherProfile = c.driver?.profile || profileMap.get(c.driverId) || (c.driver?.userId ? profileMap.get(c.driver.userId) : null);
+      }
+
       return {
         ...c,
         otherParticipant: otherProfile || { fullName: 'Interlocuteur', phone: '' },
@@ -88,18 +109,20 @@ export async function POST(req: Request) {
 
       clientId = delivery.clientId;
       if (delivery.assignments.length > 0) {
-        // Obtenir le userId correspondant au driverProfile
-        const dId = delivery.assignments[0].driverId;
-        const driverProfile = await db.driverProfile.findUnique({ where: { id: dId } });
-        driverId = driverProfile ? driverProfile.userId : dId;
+        // Enregistre l'ID du driverProfile (conforme à la foreign key DriverProfile.id)
+        driverId = delivery.assignments[0].driverId;
       }
     } else if (targetUserId) {
       if (session.role === 'driver') {
-        driverId = session.userId;
+        const dp = await db.driverProfile.findUnique({ where: { userId: session.userId } });
+        driverId = dp ? dp.id : session.userId;
         clientId = targetUserId;
       } else {
         clientId = session.userId;
-        driverId = targetUserId;
+        const dp = await db.driverProfile.findFirst({
+          where: { OR: [{ id: targetUserId }, { userId: targetUserId }] },
+        });
+        driverId = dp ? dp.id : targetUserId;
       }
     }
 

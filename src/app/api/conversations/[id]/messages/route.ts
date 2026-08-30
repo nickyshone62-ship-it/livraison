@@ -12,6 +12,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const conversation = await db.conversation.findUnique({
       where: { id: params.id },
       include: {
+        driver: true,
         messages: {
           orderBy: { createdAt: 'asc' },
         },
@@ -22,8 +23,16 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Discussion introuvable' }, { status: 404 });
     }
 
+    const driverProfile = await db.driverProfile.findUnique({ where: { userId: session.userId } });
+    const driverProfileId = driverProfile?.id;
+    const driverUserId = conversation.driver?.userId;
+
+    const isClient = conversation.clientId === session.userId;
+    const isDriver = conversation.driverId === session.userId || (driverProfileId && conversation.driverId === driverProfileId) || (driverUserId && driverUserId === session.userId);
+    const isAdmin = session.role === 'admin';
+
     // Security check
-    if (conversation.clientId !== session.userId && conversation.driverId !== session.userId && session.role !== 'admin') {
+    if (!isClient && !isDriver && !isAdmin) {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
@@ -61,12 +70,23 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: 'Le contenu du message ne peut pas être vide.' }, { status: 400 });
     }
 
-    const conversation = await db.conversation.findUnique({ where: { id: params.id } });
+    const conversation = await db.conversation.findUnique({
+      where: { id: params.id },
+      include: { driver: true },
+    });
     if (!conversation) {
       return NextResponse.json({ error: 'Discussion introuvable' }, { status: 404 });
     }
 
-    if (conversation.clientId !== session.userId && conversation.driverId !== session.userId && session.role !== 'admin') {
+    const driverProfile = await db.driverProfile.findUnique({ where: { userId: session.userId } });
+    const driverProfileId = driverProfile?.id;
+    const driverUserId = conversation.driver?.userId;
+
+    const isClient = conversation.clientId === session.userId;
+    const isDriver = conversation.driverId === session.userId || (driverProfileId && conversation.driverId === driverProfileId) || (driverUserId && driverUserId === session.userId);
+    const isAdmin = session.role === 'admin';
+
+    if (!isClient && !isDriver && !isAdmin) {
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
@@ -80,7 +100,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     // Notify recipient
-    const recipientId = session.userId === conversation.clientId ? conversation.driverId : conversation.clientId;
+    let recipientId = conversation.clientId;
+    if (session.userId === conversation.clientId) {
+      recipientId = driverUserId || conversation.driverId;
+    }
+
     await db.notification.create({
       data: {
         userId: recipientId,
