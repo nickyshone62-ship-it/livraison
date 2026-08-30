@@ -36,14 +36,9 @@ export async function GET(req: Request) {
             documents: true,
           },
         },
-        subscriptions: {
-          orderBy: { createdAt: 'desc' },
-        },
-        payments: {
-          orderBy: { createdAt: 'desc' },
-        },
       },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
 
     const enhancedUsers = users.map((u: any) => {

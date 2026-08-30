@@ -41,7 +41,7 @@ export default function AdminDashboardPage() {
       if (!document.hidden) {
         fetchData();
       }
-    }, 10000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

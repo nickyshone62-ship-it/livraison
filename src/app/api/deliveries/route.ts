@@ -25,6 +25,7 @@ export async function GET(req: Request) {
 
     if (role === 'admin') {
       const requests = await db.deliveryRequest.findMany({
+        take: 200,
         include: {
           client: true,
           offers: { include: { driver: { include: { profile: true, vehicles: true } } } },
