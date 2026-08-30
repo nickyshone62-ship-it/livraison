@@ -104,6 +104,9 @@ export async function POST(req: Request) {
     }
 
     if (role === 'client') {
+      if (!profilePhoto && !targetProfileId) {
+        return NextResponse.json({ error: 'La photo de profil est obligatoire pour le client.' }, { status: 400 });
+      }
       if ((!rectoPhoto || !versoPhoto) && !targetProfileId) {
         return NextResponse.json({ error: 'La pièce d\'identité (Recto ET Verso) est obligatoire pour le client.' }, { status: 400 });
       }

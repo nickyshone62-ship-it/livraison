@@ -303,6 +303,9 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
       }
 
       if (role === 'CLIENT') {
+        if (!photoUrl) {
+          throw new Error('La photo de profil est obligatoire pour le client.');
+        }
         const recto = idCardRectoUrl || idCardFileUrl;
         const verso = idCardVersoUrl || idCardFileUrl;
         if (!recto || !verso) {
@@ -774,6 +777,43 @@ export function OnboardingAuth({ onSuccess, redirectUrl }: OnboardingAuthProps) 
                               className="hidden"
                             />
                           </label>
+                        </div>
+                      </div>
+
+                      {/* Photo de profil Client */}
+                      <div className="pt-2 border-t border-teal-200">
+                        <label className="block text-xs font-black uppercase text-[#004D40] mb-2">
+                          Photo de Profil Client * :
+                        </label>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-2xl border border-teal-200">
+                          {photoUrl ? (
+                            <div className="relative shrink-0">
+                              <img src={photoUrl} alt="Aperçu Profil Client" className="w-16 h-16 rounded-full object-cover border-4 border-[#009688] shadow-md" />
+                              <button
+                                type="button"
+                                onClick={() => setPhotoUrl('')}
+                                className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full w-5 h-5 text-xs font-bold flex items-center justify-center shadow-md"
+                                title="Supprimer la photo"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-teal-50 border-2 border-dashed border-[#009688] flex items-center justify-center text-[#00796B] font-bold text-xs shrink-0">
+                              Profil
+                            </div>
+                          )}
+                          <div className="w-full">
+                            <label className="w-full py-3 px-4 bg-[#009688] hover:bg-[#00796B] text-white font-black text-xs rounded-xl cursor-pointer flex items-center justify-center gap-2 shadow-sm transition-all border border-white">
+                              <span>📷 Choisir la photo de profil *</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handleFileRead(e, setPhotoUrl)}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>

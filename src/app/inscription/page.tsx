@@ -145,6 +145,10 @@ export default function InscriptionPage() {
     }
 
     if (role === 'client') {
+      if (!photoUrl) {
+        setError('Une photo de profil est obligatoire pour le client.');
+        return;
+      }
       if (!idCardRectoUrl || !idCardVersoUrl) {
         setError('La pièce d\'identité (Recto ET Verso) est obligatoire pour le client.');
         return;
@@ -401,12 +405,48 @@ export default function InscriptionPage() {
             </div>
           </div>
 
-          {/* Client Specific ID Card Section */}
+          {/* Client Specific ID Card & Photo Section */}
           {role === 'client' && (
             <>
               <div className="border-b border-slate-800 pb-4 pt-6">
-                <h2 className="text-xl font-bold text-amber-400">Pièce d'identité Client (Obligatoire)</h2>
-                <p className="text-xs text-slate-400 mt-1">Veuillez fournir la photo RECTO et VERSO de votre pièce d'identité (CNIB, Passeport ou Permis).</p>
+                <h2 className="text-xl font-bold text-amber-400">Photo de Profil & Pièce d'identité Client (Obligatoires)</h2>
+                <p className="text-xs text-slate-400 mt-1">Veuillez fournir votre photo de profil ainsi que la photo RECTO et VERSO de votre pièce d'identité (CNIB, Passeport ou Permis).</p>
+              </div>
+
+              {/* Photo de profil Client */}
+              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-white flex items-center space-x-2">
+                    <Camera className="w-4 h-4 text-amber-400" />
+                    <span>Photo de Profil Client *</span>
+                  </label>
+                  {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                </div>
+
+                {photoUrl ? (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-800 group max-w-xs">
+                    <img src={photoUrl} alt="Photo de Profil Client" className="w-full h-40 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPhotoUrl('')}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center max-w-xs">
+                    <Upload className="w-8 h-8 text-amber-400 mb-2" />
+                    <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo de Profil</span>
+                    <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, setPhotoUrl)}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
