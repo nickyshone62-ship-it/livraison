@@ -18,6 +18,8 @@ function ClientMessagesContent() {
   const [sendLoading, setSendLoading] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesBoxRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
 
   useEffect(() => {
     initConversations();
@@ -36,11 +38,22 @@ function ClientMessagesContent() {
   }, [selectedConv?.id]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (!isUserScrolledUp) {
+      scrollToBottom();
+    }
   }, [messages]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (force = false) => {
+    if (force || !isUserScrolledUp) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleScroll = () => {
+    if (!messagesBoxRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = messagesBoxRef.current;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    setIsUserScrolledUp(distanceFromBottom > 100);
   };
 
   const initConversations = async () => {
@@ -57,6 +70,7 @@ function ClientMessagesContent() {
           const createData = await createRes.json();
           if (createData.conversation) {
             setSelectedConv(createData.conversation);
+            setIsUserScrolledUp(false);
           }
         }
       }
@@ -69,9 +83,13 @@ function ClientMessagesContent() {
 
         if (targetConvId) {
           const found = convs.find((c: any) => c.id === targetConvId);
-          if (found) setSelectedConv(found);
+          if (found) {
+            setSelectedConv(found);
+            setIsUserScrolledUp(false);
+          }
         } else if (!selectedConv && convs.length > 0 && !targetDeliveryId) {
           setSelectedConv(convs[0]);
+          setIsUserScrolledUp(false);
         }
       }
     } catch (err) {
@@ -86,7 +104,16 @@ function ClientMessagesContent() {
       const res = await fetch(`/api/conversations/${convId}/messages`);
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const newMsgs = data.messages || [];
+        setMessages((prevMsgs) => {
+          if (
+            prevMsgs.length === newMsgs.length &&
+            (prevMsgs.length === 0 || prevMsgs[prevMsgs.length - 1]?.id === newMsgs[newMsgs.length - 1]?.id)
+          ) {
+            return prevMsgs;
+          }
+          return newMsgs;
+        });
       }
     } catch (err) {
       if (!silent) console.error(err);
@@ -95,7 +122,11 @@ function ClientMessagesContent() {
 
   const handleSelectConv = (conv: any) => {
     setSelectedConv(conv);
+    setIsUserScrolledUp(false);
     fetchMessages(conv.id);
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, 150);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -233,7 +264,11 @@ function ClientMessagesContent() {
                 </div>
 
                 {/* Messages Box */}
-                <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[380px] min-h-[300px] pr-2 scrollbar-thin">
+                <div
+                  ref={messagesBoxRef}
+                  onScroll={handleScroll}
+                  className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[380px] min-h-[300px] pr-2 scrollbar-thin"
+                >
                   {messages.length === 0 ? (
                     <div className="text-center py-16 text-slate-500 text-xs">
                       Aucun message échangé. Écrivez ci-dessous pour démarrer la discussion !
