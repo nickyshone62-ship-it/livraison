@@ -31,16 +31,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // 2. Traçabilité dans le journal d'actions administrateur
-    await db.adminAction.create({
-      data: {
-        adminId: session.userId,
-        action: 'send_message',
-        targetUserId: userId,
-        details: `Message envoyé à ${recipient.fullName || recipient.phone || recipient.email || userId}: ${message.trim().slice(0, 100)}`,
-      },
-    }).catch(console.error);
-
     return NextResponse.json({
       success: true,
       message: `Message envoyé avec succès à ${recipient.fullName || 'l\'utilisateur'}.`,
