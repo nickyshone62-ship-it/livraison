@@ -15,6 +15,7 @@ import {
   Clock,
   ExternalLink,
   Send,
+  MessageSquare,
   AlertCircle,
   KeyRound,
   X,
@@ -304,6 +305,33 @@ export default function ExecutionLivraisonDriverPage() {
             </a>
           </div>
 
+        </div>
+
+        {/* CONTACT & MESSAGERIE EN DIRECT AVEC LE CLIENT */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-xs text-slate-500 font-medium">Client de la livraison :</div>
+            <div className="text-sm font-bold text-slate-900">{delivery.client?.fullName || 'Client'}</div>
+            {delivery.client?.phone && <div className="text-xs font-mono text-slate-500">{delivery.client.phone}</div>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={`/driver/messages?deliveryId=${delivery.id}`}
+              className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>💬 Discuter avec le client</span>
+            </Link>
+            {delivery.client?.phone && (
+              <a
+                href={`tel:${delivery.client.phone}`}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm"
+              >
+                <Phone className="w-4 h-4" />
+                <span>Appeler</span>
+              </a>
+            )}
+          </div>
         </div>
 
         {/* ÉMETTEUR DE POSITION GPS */}

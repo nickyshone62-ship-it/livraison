@@ -220,14 +220,21 @@ export default function DetailLivraisonClientPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-2.5">
+                <Link
+                  href={`/client/messages?deliveryId=${delivery.id}`}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-all"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>💬 Discuter en direct</span>
+                </Link>
                 {delivery.driverPhone && (
                   <a
                     href={`tel:${delivery.driverPhone}`}
-                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-2 shadow-sm"
+                    className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm"
                   >
                     <Phone className="w-4 h-4" />
-                    <span>Contacter le livreur ({delivery.driverPhone})</span>
+                    <span>Appeler ({delivery.driverPhone})</span>
                   </a>
                 )}
               </div>
