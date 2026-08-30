@@ -158,7 +158,7 @@ function ClientMessagesContent() {
       <main className="max-w-5xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden min-h-[550px] shadow-2xl">
           {/* Conversation List */}
-          <div className="border-r border-slate-800 p-4 space-y-3 bg-slate-950/40">
+          <div className={`border-r border-slate-800 p-4 space-y-3 bg-slate-950/40 ${selectedConv ? 'hidden md:block' : 'block'}`}>
             <h2 className="font-bold text-slate-300 text-xs uppercase tracking-wider mb-3 px-1">Vos Discussions</h2>
 
             {loading ? (
@@ -200,13 +200,20 @@ function ClientMessagesContent() {
           </div>
 
           {/* Chat Window */}
-          <div className="md:col-span-2 p-6 flex flex-col justify-between bg-slate-900/60">
+          <div className={`md:col-span-2 p-4 md:p-6 flex flex-col justify-between bg-slate-900/60 ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
             {selectedConv ? (
               <>
                 {/* Header Chat */}
-                <div className="border-b border-slate-800 pb-4 mb-4 flex items-center justify-between">
+                <div className="border-b border-slate-800 pb-4 mb-4 flex items-center justify-between gap-2">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-400 text-base">
+                    <button
+                      onClick={() => setSelectedConv(null)}
+                      className="md:hidden p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-white flex items-center gap-1 text-xs shrink-0"
+                      title="Retour aux discussions"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-400 text-base shrink-0">
                       {otherParticipant.fullName ? otherParticipant.fullName[0].toUpperCase() : 'L'}
                     </div>
                     <div>
