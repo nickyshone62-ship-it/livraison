@@ -272,78 +272,19 @@ export function Navbar() {
               {/* LOGGED IN USER ACTIONS */}
               {currentUser && (
                 <div className="flex items-center gap-3 border-l border-slate-800 pl-4 relative">
-                  {/* Notification Bell Dropdown Button */}
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setShowNotifDropdown(!showNotifDropdown);
-                        if (unreadCount > 0) markAllNotifsRead();
-                      }}
-                      className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors relative cursor-pointer flex items-center justify-center"
-                      title="Notifications"
-                    >
-                      <Bell className="w-4.5 h-4.5 text-amber-400" />
-                      {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[10px] min-w-[18px] text-center animate-pulse shadow-md">
-                          {unreadCount}
-                        </span>
-                      )}
-                    </button>
-
-                    {/* Notification Dropdown Box */}
-                    {showNotifDropdown && (
-                      <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 z-50 animate-fadeIn space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                          <h4 className="font-extrabold text-xs text-white flex items-center gap-2">
-                            <Bell className="w-4 h-4 text-amber-400" />
-                            <span>Notifications & Messages</span>
-                          </h4>
-                          {notifications.length > 0 && (
-                            <button
-                              onClick={markAllNotifsRead}
-                              className="text-[11px] text-amber-400 hover:underline font-bold"
-                            >
-                              Tout marquer comme lu
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="max-h-72 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                          {notifications.length === 0 ? (
-                            <div className="text-center py-8 text-slate-500 text-xs">
-                              Aucune notification pour le moment.
-                            </div>
-                          ) : (
-                            notifications.map((n) => {
-                              const isAdminMsg = n.type === 'admin_message';
-                              return (
-                                <div
-                                  key={n.id}
-                                  className={`p-3 rounded-xl border text-xs space-y-1 transition-all ${
-                                    isAdminMsg
-                                      ? 'bg-cyan-500/10 border-cyan-500/40 text-cyan-200'
-                                      : !n.isRead
-                                      ? 'bg-slate-800/90 border-slate-700 text-white'
-                                      : 'bg-slate-950/60 border-slate-800 text-slate-400'
-                                  }`}
-                                >
-                                  <div className="font-bold flex items-center justify-between text-xs">
-                                    <span className={isAdminMsg ? 'text-cyan-300 font-black' : 'text-slate-200'}>
-                                      {n.title}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 font-mono">
-                                      {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
-                                  </div>
-                                  <p className="leading-relaxed whitespace-pre-wrap">{n.message}</p>
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
+                  {/* Direct Link to Messagerie */}
+                  <Link
+                    href={isDriver ? '/driver/messages' : '/client/messages'}
+                    className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors relative flex items-center justify-center cursor-pointer"
+                    title="Accéder à vos messages et notifications"
+                  >
+                    <MessageSquare className="w-4.5 h-4.5 text-amber-400" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-rose-500 text-white font-extrabold text-[10px] min-w-[18px] text-center animate-pulse shadow-md">
+                        {unreadCount}
+                      </span>
                     )}
-                  </div>
+                  </Link>
 
                   <div className="text-right hidden xl:block">
                     <div className="text-xs font-semibold text-slate-200">{currentUser.fullName || currentUser.phone}</div>
