@@ -353,8 +353,12 @@ function ClientMessagesContent() {
                           <div className={`w-12 h-12 rounded-full p-0.5 shadow-sm transition-transform group-hover:scale-105 ${
                             isSelected ? 'bg-gradient-to-tr from-blue-600 to-indigo-600 ring-2 ring-blue-500 ring-offset-2' : 'bg-gradient-to-tr from-blue-500 to-indigo-400'
                           }`}>
-                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-extrabold text-blue-600 text-sm">
-                              {initial}
+                            <div className="w-full h-full rounded-full bg-white flex items-center justify-center font-extrabold text-blue-600 text-sm overflow-hidden">
+                              {p.avatarUrl ? (
+                                <img src={p.avatarUrl} alt={p.fullName || 'Profil'} className="w-full h-full object-cover" />
+                              ) : (
+                                initial
+                              )}
                             </div>
                           </div>
                           <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white"></span>
@@ -399,10 +403,12 @@ function ClientMessagesContent() {
                       }`}
                     >
                       <div className="relative shrink-0">
-                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm ${
+                        <div className={`w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center font-black text-sm ${
                           isSelected ? 'bg-white/20 text-white' : isDbAdmin ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-600'
                         }`}>
-                          {isDbAdmin ? '👑' : initial}
+                          {partner.avatarUrl ? (
+                            <img src={partner.avatarUrl} alt={partner.fullName || 'Profil'} className="w-full h-full object-cover" />
+                          ) : isDbAdmin ? '👑' : initial}
                         </div>
                         <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
                       </div>
@@ -443,8 +449,12 @@ function ClientMessagesContent() {
                     </button>
 
                     <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-sm shadow-sm">
-                        {otherParticipant.fullName ? otherParticipant.fullName[0].toUpperCase() : 'L'}
+                      <div className="w-10 h-10 rounded-2xl overflow-hidden bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-sm shadow-sm">
+                        {otherParticipant.avatarUrl ? (
+                          <img src={otherParticipant.avatarUrl} alt={otherParticipant.fullName || 'Profil'} className="w-full h-full object-cover" />
+                        ) : (
+                          otherParticipant.fullName ? otherParticipant.fullName[0].toUpperCase() : 'L'
+                        )}
                       </div>
                       <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
                     </div>
