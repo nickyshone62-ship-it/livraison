@@ -53,11 +53,10 @@ export default function AdminClientsPage() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
+      const res = await fetch('/api/admin/users?role=client');
       if (res.ok) {
         const data = await res.json();
-        const filtered = (data.users || []).filter((u: any) => u.role === 'client');
-        setClients(filtered);
+        setClients(data.users || []);
       }
     } catch (err) {
       console.error('Erreur chargement clients:', err);

@@ -144,9 +144,13 @@ model Profile {
   address       String?
   cniRectoUrl   String?       @map("cni_recto_url")
   cniVersoUrl   String?       @map("cni_verso_url")
-  accountStatus AccountStatus @default(pending) @map("account_status")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @default(now()) @map("updated_at")
+  accountStatus           AccountStatus @default(pending) @map("account_status")
+  isResubmitted           Boolean?      @default(false) @map("is_resubmitted")
+  documentUpdatedAt       DateTime?     @map("document_updated_at")
+  previousRejectionReason  String?       @map("previous_rejection_reason")
+  rejectionReason         String?       @map("rejection_reason")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @default(now()) @map("updated_at")
 
   driverProfile        DriverProfile?
   payments             Payment[]
