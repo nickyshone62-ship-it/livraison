@@ -56,6 +56,8 @@ function ClientMessagesContent() {
     setIsUserScrolledUp(distanceFromBottom > 100);
   };
 
+  const ADMIN_CONV_ID = 'admin-support-channel';
+
   const initConversations = async () => {
     setLoading(true);
     try {
@@ -75,10 +77,39 @@ function ClientMessagesContent() {
         }
       }
 
-      const res = await fetch('/api/conversations');
+      const [res, resNotif] = await Promise.all([
+        fetch('/api/conversations'),
+        fetch('/api/notifications')
+      ]);
+
+      let adminNotifs: any[] = [];
+      if (resNotif.ok) {
+        const notifData = await resNotif.json();
+        adminNotifs = (notifData.notifications || []).filter((n: any) => n.type === 'admin_message');
+      }
+
       if (res.ok) {
         const data = await res.json();
-        const convs = data.conversations || [];
+        let convs = data.conversations || [];
+
+        if (adminNotifs.length > 0) {
+          const adminConv = {
+            id: ADMIN_CONV_ID,
+            isAdminChannel: true,
+            otherParticipant: {
+              fullName: "👑 Administration Central",
+              phone: "Canal Officiel Admin",
+            },
+            messages: adminNotifs.map((n) => ({
+              id: n.id,
+              content: `${n.title}\n${n.message}`,
+              createdAt: n.createdAt,
+              senderId: 'admin',
+            })),
+          };
+          convs = [adminConv, ...convs];
+        }
+
         setConversations(convs);
 
         if (targetConvId) {
@@ -86,10 +117,12 @@ function ClientMessagesContent() {
           if (found) {
             setSelectedConv(found);
             setIsUserScrolledUp(false);
+            if (found.isAdminChannel) setMessages(found.messages || []);
           }
         } else if (!selectedConv && convs.length > 0 && !targetDeliveryId) {
           setSelectedConv(convs[0]);
           setIsUserScrolledUp(false);
+          if (convs[0].isAdminChannel) setMessages(convs[0].messages || []);
         }
       }
     } catch (err) {
@@ -100,6 +133,7 @@ function ClientMessagesContent() {
   };
 
   const fetchMessages = async (convId: string, silent = false) => {
+    if (convId === ADMIN_CONV_ID) return;
     try {
       const res = await fetch(`/api/conversations/${convId}/messages`);
       if (res.ok) {
@@ -123,7 +157,11 @@ function ClientMessagesContent() {
   const handleSelectConv = (conv: any) => {
     setSelectedConv(conv);
     setIsUserScrolledUp(false);
-    fetchMessages(conv.id);
+    if (conv.isAdminChannel) {
+      setMessages(conv.messages || []);
+    } else {
+      fetchMessages(conv.id);
+    }
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }, 150);
@@ -275,8 +313,26 @@ function ClientMessagesContent() {
                     </div>
                   ) : (
                     messages.map((m) => {
+                      const isAdminMsg = m.senderId === 'admin';
                       const isMe = m.senderId === selectedConv.clientId;
                       const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                      if (isAdminMsg) {
+                        return (
+                          <div key={m.id} className="flex flex-col items-start w-full">
+                            <div className="p-4 rounded-2xl w-full text-xs shadow-lg space-y-1.5 bg-cyan-950/80 border border-cyan-500/40 text-cyan-100">
+                              <div className="font-extrabold text-cyan-300 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5">
+                                  <span>👑</span>
+                                  <span>ADMINISTRATION CENTRAL</span>
+                                </span>
+                                <span className="text-[10px] text-cyan-400/80 font-mono">{timeStr}</span>
+                              </div>
+                              <p className="leading-relaxed whitespace-pre-wrap">{m.content}</p>
+                            </div>
+                          </div>
+                        );
+                      }
 
                       return (
                         <div
@@ -306,23 +362,29 @@ function ClientMessagesContent() {
                 </div>
 
                 {/* Formulaire Envoi */}
-                <form onSubmit={handleSendMessage} className="flex items-center space-x-3 pt-3 border-t border-slate-800">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Écrivez votre message au livreur..."
-                    className="flex-1 px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sendLoading || !newMessage.trim()}
-                    className="px-5 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg disabled:opacity-50 transition-all cursor-pointer"
-                  >
-                    <span>Envoyer</span>
-                    <Send className="w-4 h-4" />
-                  </button>
-                </form>
+                {selectedConv?.isAdminChannel ? (
+                  <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs text-center font-bold">
+                    📢 Canal officiel d'information de l'administration (Lecture seule).
+                  </div>
+                ) : (
+                  <form onSubmit={handleSendMessage} className="flex items-center space-x-3 pt-3 border-t border-slate-800">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Écrivez votre message au livreur..."
+                      className="flex-1 px-4 py-3.5 bg-slate-950 border border-slate-800 rounded-2xl text-white text-xs outline-none focus:ring-2 focus:ring-amber-500 placeholder-slate-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendLoading || !newMessage.trim()}
+                      className="px-5 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-lg disabled:opacity-50 transition-all cursor-pointer"
+                    >
+                      <span>Envoyer</span>
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </form>
+                )}
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-slate-500 text-xs py-12">

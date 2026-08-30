@@ -13,6 +13,7 @@ export default function ClientDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
+  const [adminMessages, setAdminMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +22,10 @@ export default function ClientDashboard() {
 
   const fetchData = async () => {
     try {
-      const [currentUser, resDeliv] = await Promise.all([
+      const [currentUser, resDeliv, resNotif] = await Promise.all([
         fetchAuthMe(),
-        fetch('/api/deliveries')
+        fetch('/api/deliveries'),
+        fetch('/api/notifications')
       ]);
 
       if (!currentUser) {
@@ -40,6 +42,12 @@ export default function ClientDashboard() {
       if (resDeliv.ok) {
         const dataDeliv = await resDeliv.json();
         setRequests(dataDeliv.requests || []);
+      }
+
+      if (resNotif.ok) {
+        const dataNotif = await resNotif.json();
+        const notifs = dataNotif.notifications || [];
+        setAdminMessages(notifs.filter((n: any) => n.type === 'admin_message'));
       }
     } catch (err) {
       console.error(err);
@@ -77,6 +85,33 @@ export default function ClientDashboard() {
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 sm:pb-12">
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        
+        {/* MESSAGES URGENTS DE L'ADMINISTRATION */}
+        {adminMessages.length > 0 && (
+          <div className="space-y-3">
+            {adminMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className="p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 border border-cyan-500/40 shadow-xl text-white flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fadeIn"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-lg shrink-0 mt-0.5">
+                    💬
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-sm text-cyan-300">{msg.title || "Message de l'Administration"}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono">
+                        Reçu le {new Date(msg.createdAt).toLocaleDateString('fr-FR')} à {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">{msg.message}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         
         {/* EN-TÊTE DASHBOARD CLIENT */}
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
