@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, MessageSquare, Send, Phone, User, CheckCheck, RefreshCw } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, Phone, User, CheckCheck, RefreshCw, Volume2, VolumeX } from 'lucide-react';
+import { playNotificationSound } from '@/lib/soundNotification';
 
 function DriverMessagesContent() {
   const searchParams = useSearchParams();
@@ -16,9 +17,11 @@ function DriverMessagesContent() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesBoxRef = useRef<HTMLDivElement>(null);
+  const prevMsgsCountRef = useRef<number>(0);
   const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
 
   useEffect(() => {
@@ -138,6 +141,16 @@ function DriverMessagesContent() {
       if (res.ok) {
         const data = await res.json();
         const newMsgs = data.messages || [];
+
+        // Déclencher le son si un nouveau message arrive de l'autre participant
+        if (prevMsgsCountRef.current > 0 && newMsgs.length > prevMsgsCountRef.current) {
+          const lastMsg = newMsgs[newMsgs.length - 1];
+          if (lastMsg && lastMsg.senderId === selectedConv?.clientId && soundEnabled) {
+            playNotificationSound();
+          }
+        }
+        prevMsgsCountRef.current = newMsgs.length;
+
         setMessages((prevMsgs) => {
           if (
             prevMsgs.length === newMsgs.length &&
@@ -213,13 +226,32 @@ function DriverMessagesContent() {
               <p className="text-xs text-slate-400">Échangez des messages en direct avec les clients</p>
             </div>
           </div>
-          <button
-            onClick={initConversations}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-orange-400 transition-colors"
-            title="Rafraîchir les conversations"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const next = !soundEnabled;
+                setSoundEnabled(next);
+                if (next) playNotificationSound();
+              }}
+              className={`p-2 px-3 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                soundEnabled
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-slate-900 border-slate-800 text-slate-500'
+              }`}
+              title={soundEnabled ? 'Son actif (cliquez pour muter)' : 'Mode silencieux (cliquez pour activer le son)'}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
+              <span className="hidden sm:inline">{soundEnabled ? 'Son' : 'Mute'}</span>
+            </button>
+
+            <button
+              onClick={initConversations}
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-orange-400 transition-colors cursor-pointer"
+              title="Rafraîchir les conversations"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </header>
 
