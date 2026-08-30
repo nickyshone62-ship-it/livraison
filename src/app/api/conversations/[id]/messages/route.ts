@@ -13,9 +13,6 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       where: { id: params.id },
       include: {
         driver: true,
-        messages: {
-          orderBy: { createdAt: 'asc' },
-        },
       },
     });
 
@@ -36,17 +33,34 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'Accès non autorisé' }, { status: 403 });
     }
 
+    // Récupérer toutes les conversations associées au même couple (clientId, driverId)
+    const relatedConvs = await db.conversation.findMany({
+      where: {
+        clientId: conversation.clientId,
+        driverId: conversation.driverId,
+      },
+      select: { id: true },
+    });
+    const convIds = Array.from(new Set([params.id, ...relatedConvs.map((c) => c.id)]));
+
+    const messages = await db.message.findMany({
+      where: {
+        conversationId: { in: convIds },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
     // Mark unread messages as read
     await db.message.updateMany({
       where: {
-        conversationId: params.id,
+        conversationId: { in: convIds },
         senderId: { not: session.userId },
         isRead: false,
       },
       data: { isRead: true },
     });
 
-    return NextResponse.json({ messages: conversation.messages });
+    return NextResponse.json({ messages });
   } catch (error: any) {
     console.error('Erreur messages:', error);
     return NextResponse.json({ error: 'Erreur lors de la récupération des messages' }, { status: 500 });

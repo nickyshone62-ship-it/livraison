@@ -55,23 +55,41 @@ export async function GET(req: Request) {
     });
     const profileMap = new Map(profiles.map(p => [p.id, p]));
 
-    const result = conversations.map(c => {
+    // Regroupement par interlocuteur unique (pour regrouper tous les messages sous un seul fil)
+    const groupedMap = new Map<string, any>();
+
+    for (const c of conversations) {
       const isDriverUser = c.driverId === driverProfileId || c.driverId === userId || c.driver?.userId === userId;
       let otherProfile = null;
 
       if (isDriverUser) {
-        // Pour le livreur, l'autre participant est le client
         otherProfile = c.client || profileMap.get(c.clientId);
       } else {
-        // Pour le client, l'autre participant est le livreur
         otherProfile = c.driver?.profile || profileMap.get(c.driverId) || (c.driver?.userId ? profileMap.get(c.driver.userId) : null);
       }
 
-      return {
-        ...c,
-        otherParticipant: otherProfile || { fullName: 'Interlocuteur', phone: '' },
-      };
-    });
+      const participantKey = otherProfile?.id || (isDriverUser ? c.clientId : c.driverId);
+      if (!participantKey) continue;
+
+      if (!groupedMap.has(participantKey)) {
+        groupedMap.set(participantKey, {
+          ...c,
+          otherParticipant: otherProfile || { fullName: 'Interlocuteur', phone: '' },
+        });
+      } else {
+        const existing = groupedMap.get(participantKey);
+        const existingMsgDate = existing.messages[0]?.createdAt ? new Date(existing.messages[0].createdAt).getTime() : 0;
+        const currentMsgDate = c.messages[0]?.createdAt ? new Date(c.messages[0].createdAt).getTime() : 0;
+        if (currentMsgDate > existingMsgDate) {
+          groupedMap.set(participantKey, {
+            ...c,
+            otherParticipant: otherProfile || { fullName: 'Interlocuteur', phone: '' },
+          });
+        }
+      }
+    }
+
+    const result = Array.from(groupedMap.values());
 
     return NextResponse.json({ conversations: result });
   } catch (error: any) {
@@ -109,7 +127,6 @@ export async function POST(req: Request) {
 
       clientId = delivery.clientId;
       if (delivery.assignments.length > 0) {
-        // Enregistre l'ID du driverProfile (conforme à la foreign key DriverProfile.id)
         driverId = delivery.assignments[0].driverId;
       }
     } else if (targetUserId) {
@@ -130,11 +147,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Impossible de déterminer les deux participants de la discussion.' }, { status: 400 });
     }
 
+    // Récupérer tous les identifiants possibles du livreur
+    const driverProfile = await db.driverProfile.findFirst({
+      where: { OR: [{ id: driverId }, { userId: driverId }] },
+    });
+    const possibleDriverIds = [driverId];
+    if (driverProfile) {
+      if (driverProfile.id) possibleDriverIds.push(driverProfile.id);
+      if (driverProfile.userId) possibleDriverIds.push(driverProfile.userId);
+    }
+
     // Rechercher si la conversation existe déjà
     let conversation = await db.conversation.findFirst({
       where: {
         clientId,
-        driverId,
+        driverId: { in: possibleDriverIds },
       },
     });
 
