@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  CreditCard
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { AdminModeBanner } from '@/components/AdminModeBanner';
@@ -30,6 +31,7 @@ export default function DriverDashboard() {
   const [myOffers, setMyOffers] = useState<any[]>([]);
   const [activeDelivery, setActiveDelivery] = useState<any>(null);
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
+  const [subData, setSubData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,10 +46,11 @@ export default function DriverDashboard() {
 
   const fetchData = async () => {
     try {
-      const [currentUser, resReq, resOffers] = await Promise.all([
+      const [currentUser, resReq, resOffers, resSub] = await Promise.all([
         fetchAuthMe(),
         fetch('/api/deliveries'),
-        fetch('/api/deliveries?filter=my_offers')
+        fetch('/api/deliveries?filter=my_offers'),
+        fetch('/api/subscriptions/me')
       ]);
 
       if (!currentUser) {
@@ -78,6 +81,11 @@ export default function DriverDashboard() {
       if (resOffers.ok) {
         const dataOffers = await resOffers.json();
         setMyOffers(dataOffers.offers || []);
+      }
+
+      if (resSub.ok) {
+        const dataSub = await resSub.json();
+        setSubData(dataSub);
       }
     } catch (err) {
       console.error(err);
@@ -110,6 +118,17 @@ export default function DriverDashboard() {
   }
 
   const driverProfile = user?.driverProfile;
+
+  const currentSub = subData?.currentSubscription;
+  let isSubActive = false;
+  let subDaysLeft = 0;
+  if (currentSub && currentSub.status === 'active' && currentSub.expiresAt) {
+    const exp = new Date(currentSub.expiresAt);
+    if (exp > new Date()) {
+      isSubActive = true;
+      subDaysLeft = Math.max(1, Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 sm:pb-12">
@@ -156,15 +175,43 @@ export default function DriverDashboard() {
 
           <button
             onClick={toggleAvailability}
-            className={`px-5 py-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+            className={`px-6 py-3.5 rounded-xl font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer ${
               isAvailable
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-800 hover:bg-emerald-100'
-                : 'bg-rose-50 border-rose-300 text-rose-800 hover:bg-rose-100'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-rose-600 hover:bg-rose-700 text-white'
             }`}
           >
-            <span className={`w-2.5 h-2.5 rounded-full ${isAvailable ? 'bg-emerald-600 animate-pulse' : 'bg-rose-600'}`}></span>
-            <span>STATUT : {isAvailable ? '🟢 DISPONIBLE' : '🔴 OCCUPÉ'}</span>
+            <span className={`w-2.5 h-2.5 rounded-full ${isAvailable ? 'bg-white animate-pulse' : 'bg-white'}`}></span>
+            <span>{isAvailable ? '🟢 Vous êtes Disponible' : '🔴 Vous êtes Occupé'}</span>
           </button>
+        </div>
+
+        {/* SUIVI ABONNEMENT LIVREUR WIDGET */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold shrink-0 ${isSubActive ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-orange-50 text-orange-600 border border-orange-200'}`}>
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-sm">Abonnement Mensuel Livreur</h3>
+                {isSubActive ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">Actif ({subDaysLeft}j restants)</span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-[11px] font-bold">En attente / À renouveler</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">0% de commission sur vos revenus de livraison à Ouagadougou.</p>
+            </div>
+          </div>
+
+          <Link
+            href="/driver/abonnement"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <span>Suivre mon abonnement</span>
+            <ChevronRight className="w-4 h-4 text-orange-400" />
+          </Link>
         </div>
 
         {/* SYNTHÈSE STATISTIQUES */}

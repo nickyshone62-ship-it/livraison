@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Truck, Plus, Package, Clock, CheckCircle2, MapPin, ChevronRight, Navigation, ArrowRight, User } from 'lucide-react';
+import { Truck, Plus, Package, Clock, CheckCircle2, MapPin, ChevronRight, Navigation, ArrowRight, User, CreditCard, ShieldCheck } from 'lucide-react';
 
 import { AdminModeBanner } from '@/components/AdminModeBanner';
 import { Navbar } from '@/components/Navbar';
@@ -13,6 +13,7 @@ export default function ClientDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
+  const [subData, setSubData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +22,10 @@ export default function ClientDashboard() {
 
   const fetchData = async () => {
     try {
-      const [currentUser, resDeliv] = await Promise.all([
+      const [currentUser, resDeliv, resSub] = await Promise.all([
         fetchAuthMe(),
-        fetch('/api/deliveries')
+        fetch('/api/deliveries'),
+        fetch('/api/subscriptions/me')
       ]);
 
       if (!currentUser) {
@@ -40,6 +42,11 @@ export default function ClientDashboard() {
       if (resDeliv.ok) {
         const dataDeliv = await resDeliv.json();
         setRequests(dataDeliv.requests || []);
+      }
+
+      if (resSub.ok) {
+        const dataSub = await resSub.json();
+        setSubData(dataSub);
       }
     } catch (err) {
       console.error(err);
@@ -63,6 +70,17 @@ export default function ClientDashboard() {
   const pendingDeliveries = requests.filter(r => r.status === 'searching_driver' || r.status === 'pending');
   const completedDeliveries = requests.filter(r => r.status === 'completed');
 
+  const currentSub = subData?.currentSubscription;
+  let isSubActive = false;
+  let subDaysLeft = 0;
+  if (currentSub && currentSub.status === 'active' && currentSub.expiresAt) {
+    const exp = new Date(currentSub.expiresAt);
+    if (exp > new Date()) {
+      isSubActive = true;
+      subDaysLeft = Math.max(1, Math.ceil((exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    }
+  }
+
   const getElapsedTime = (createdAt: string) => {
     const start = new Date(createdAt).getTime();
     const now = new Date().getTime();
@@ -77,8 +95,6 @@ export default function ClientDashboard() {
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 sm:pb-12">
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        
-        {/* EN-TÊTE DASHBOARD CLIENT */}
         
         {/* EN-TÊTE DASHBOARD CLIENT */}
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -97,6 +113,34 @@ export default function ClientDashboard() {
           >
             <Plus className="w-5 h-5" />
             <span>Nouvelle livraison</span>
+          </Link>
+        </div>
+
+        {/* SUIVI ABONNEMENT WIDGET */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold shrink-0 ${isSubActive ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 text-sm">Abonnement Mensuel Client</h3>
+                {isSubActive ? (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold">Actif ({subDaysLeft}j restants)</span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">En attente / À renouveler</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">Accès illimité à la publication de demandes de livraison géolocalisées à Ouagadougou.</p>
+            </div>
+          </div>
+
+          <Link
+            href="/client/abonnement"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <span>Suivre mon abonnement</span>
+            <ChevronRight className="w-4 h-4 text-amber-400" />
           </Link>
         </div>
 
