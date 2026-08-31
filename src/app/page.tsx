@@ -62,9 +62,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500 selection:text-white flex flex-col">
       
-      {/* GLOBAL NAVBAR */}
-      <Navbar />
-
       {/* BANNER RECOGNITION OUAGADOUGOU */}
       <div className="bg-slate-900 border-b border-slate-800 py-2.5 px-4 text-center text-xs font-semibold text-slate-300 flex items-center justify-center gap-2">
         <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded text-[11px] font-bold">

@@ -16,8 +16,6 @@ export default function MotDePasseOubliePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500 selection:text-white flex flex-col justify-between">
-      <Navbar />
-
       <main className="flex-1 flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
