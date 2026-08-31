@@ -81,9 +81,17 @@ export async function PATCH(req: Request) {
           });
         }
 
-        // Grant 30-day initial active subscription on registration approval
-        const startsAt = new Date();
-        const expiresAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+        // Grant 30-day initial active subscription on registration approval (cumulative)
+        const now = new Date();
+        const existingSub = await db.subscription.findFirst({
+          where: { userId: payment.userId, status: 'active', expiresAt: { gt: now } },
+          orderBy: { expiresAt: 'desc' },
+        });
+        const baseDate = (existingSub && existingSub.expiresAt && new Date(existingSub.expiresAt) > now)
+          ? new Date(existingSub.expiresAt)
+          : now;
+        const expiresAt = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
         await db.subscription.create({
           data: {
             userId: payment.userId,
@@ -91,18 +99,25 @@ export async function PATCH(req: Request) {
             amount: payment.amount || 1000,
             currency: payment.currency || 'XOF',
             status: 'active',
-            startsAt,
+            startsAt: now,
             expiresAt,
             approvedBy: session.userId,
-            approvedAt: startsAt,
+            approvedAt: now,
           },
         }).catch(console.error);
       }
 
-      // 3. If approved monthly subscription payment -> create or renew subscription active for 30 days
+      // 3. If approved monthly subscription payment -> create or extend subscription cumulatively
       if (payment.paymentType === 'subscription') {
-        const startsAt = new Date();
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const existingSub = await db.subscription.findFirst({
+          where: { userId: payment.userId, status: 'active', expiresAt: { gt: now } },
+          orderBy: { expiresAt: 'desc' },
+        });
+        const baseDate = (existingSub && existingSub.expiresAt && new Date(existingSub.expiresAt) > now)
+          ? new Date(existingSub.expiresAt)
+          : now;
+        const expiresAt = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000);
 
         await db.subscription.create({
           data: {
@@ -111,10 +126,10 @@ export async function PATCH(req: Request) {
             amount: payment.amount,
             currency: payment.currency || 'XOF',
             status: 'active',
-            startsAt,
+            startsAt: now,
             expiresAt,
             approvedBy: session.userId,
-            approvedAt: startsAt,
+            approvedAt: now,
           },
         });
       }

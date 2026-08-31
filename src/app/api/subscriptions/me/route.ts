@@ -30,10 +30,49 @@ export async function GET() {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
 
-    const activeSubscription = profile.subscriptions.find((s) => s.status === 'active') || profile.subscriptions[0] || null;
+    const now = new Date();
+
+    // Find all active subscriptions with expiresAt in the future
+    const activeSubs = profile.subscriptions.filter(
+      (s) => s.status === 'active' && s.expiresAt && new Date(s.expiresAt) > now
+    );
+
+    // Sort by expiresAt descending to find furthest future expiration date
+    activeSubs.sort((a, b) => new Date(b.expiresAt!).getTime() - new Date(a.expiresAt!).getTime());
+
+    const activeSubscription = activeSubs[0] || profile.subscriptions[0] || null;
+
+    let daysLeft = 0;
+    let hoursLeft = 0;
+    let isSubActive = false;
+    let expiresAtFormatted = '';
+
+    if (activeSubscription && activeSubscription.expiresAt) {
+      const expDate = new Date(activeSubscription.expiresAt);
+      if (expDate > now) {
+        isSubActive = true;
+        const diffMs = expDate.getTime() - now.getTime();
+        daysLeft = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+        expiresAtFormatted = expDate.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+    }
 
     return NextResponse.json({
       currentSubscription: activeSubscription,
+      activeSubscriptions: activeSubs,
+      isSubActive,
+      daysLeft,
+      hoursLeft,
+      expiresAtFormatted,
+      subscriptions: profile.subscriptions,
       payments: profile.payments,
     });
   } catch (error: any) {

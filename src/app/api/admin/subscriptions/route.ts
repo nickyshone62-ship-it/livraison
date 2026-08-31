@@ -35,14 +35,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Identifiant utilisateur requis' }, { status: 400 });
     }
 
-    const startsAt = new Date();
-    const expiresAt = new Date(Date.now() + (months * 30 * 24 * 60 * 60 * 1000));
-
-    // Deactivate old active subscriptions for user
-    await db.subscription.updateMany({
-      where: { userId, status: 'active' },
-      data: { status: 'expired' },
+    const now = new Date();
+    const existingSub = await db.subscription.findFirst({
+      where: { userId, status: 'active', expiresAt: { gt: now } },
+      orderBy: { expiresAt: 'desc' },
     });
+    const baseDate = (existingSub && existingSub.expiresAt && new Date(existingSub.expiresAt) > now)
+      ? new Date(existingSub.expiresAt)
+      : now;
+    const expiresAt = new Date(baseDate.getTime() + (months * 30 * 24 * 60 * 60 * 1000));
 
     const subscription = await db.subscription.create({
       data: {
@@ -50,10 +51,10 @@ export async function POST(req: Request) {
         amount: 1000 * months,
         currency: 'XOF',
         status: 'active',
-        startsAt,
+        startsAt: now,
         expiresAt,
         approvedBy: session.userId,
-        approvedAt: startsAt,
+        approvedAt: now,
       },
     });
 

@@ -67,23 +67,10 @@ export default function ClientAbonnementPage() {
   const paymentsList = subData?.payments || [];
   const pendingPayment = paymentsList.find((p: any) => p.status === 'pending');
 
-  let daysLeft = 0;
-  let isSubActive = false;
-  let expiresFormatted = '';
-
-  if (currentSub && currentSub.status === 'active' && currentSub.expiresAt) {
-    const expDate = new Date(currentSub.expiresAt);
-    const now = new Date();
-    if (expDate > now) {
-      isSubActive = true;
-      daysLeft = Math.max(1, Math.ceil((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      expiresFormatted = expDate.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      });
-    }
-  }
+  const daysLeft = subData?.daysLeft ?? 0;
+  const hoursLeft = subData?.hoursLeft ?? 0;
+  const isSubActive = subData?.isSubActive ?? false;
+  const expiresFormatted = subData?.expiresAtFormatted || '';
 
   const progressPercentage = Math.min(100, Math.max(0, Math.round((daysLeft / 30) * 100)));
 
@@ -153,21 +140,24 @@ export default function ClientAbonnementPage() {
                     </p>
                   </div>
 
-                  {/* BARRE DE PROGRESSION DE VALIDITÉ */}
+                  {/* BARRE DE PROGRESSION & DÉCOMPTE PRÉCIS */}
                   <div className="space-y-2 pt-2">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-700">
                       <span>Accès illimité actif</span>
-                      <span className="text-amber-600">{daysLeft} jours restants</span>
+                      <span className="text-amber-600 font-extrabold text-sm">{daysLeft} jour(s) et {hoursLeft} heure(s) restants</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                    <div className="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden border border-slate-200">
                       <div
-                        className="bg-gradient-to-r from-amber-500 to-orange-600 h-full rounded-full transition-all duration-500"
+                        className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 h-full rounded-full transition-all duration-500"
                         style={{ width: `${progressPercentage}%` }}
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500">
-                      Un mois complet d'accès continu pour toutes vos courses à Ouagadougou.
-                    </p>
+                    
+                    {/* ACCUMULATION GUARANTEE BANNER */}
+                    <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900 flex items-center gap-2 mt-3">
+                      <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span><strong>Cumul garanti :</strong> Chaque réabonnement s'ajoute automatiquement à la suite de vos jours restants. Aucun jour n'est perdu !</span>
+                    </div>
                   </div>
                 </div>
               ) : pendingPayment ? (
