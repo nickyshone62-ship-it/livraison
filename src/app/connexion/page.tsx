@@ -117,14 +117,14 @@ function ConnexionForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+          className="w-full py-4 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold shadow-xl shadow-slate-900/20 hover:shadow-slate-900/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer group"
         >
           {loading ? (
-            <div className="w-6 h-6 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <span>Se connecter</span>
-              <ArrowRight className="w-5 h-5" />
+              <span className="text-base">Se connecter</span>
+              <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
             </>
           )}
         </button>

@@ -138,7 +138,7 @@ export default function AttenteValidationPage() {
               <div className="space-y-3 pt-2">
                 <Link
                   href="/inscription"
-                  className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 text-slate-950 font-black transition-all flex items-center justify-center space-x-2 text-sm shadow-lg shadow-amber-500/20 block text-center"
+                  className="w-full py-3.5 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition-all flex items-center justify-center space-x-2 text-sm shadow-xl shadow-slate-900/20 block text-center"
                 >
                   <span>S'inscrire à nouveau / Corriger mon dossier</span>
                 </Link>

@@ -249,32 +249,32 @@ export default function InscriptionPage() {
             <button
               type="button"
               onClick={() => setRole('client')}
-              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
+              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 cursor-pointer ${
                 role === 'client'
-                  ? 'bg-amber-50 border-2 border-amber-500 text-amber-700 shadow-md shadow-amber-500/10'
+                  ? 'bg-slate-900 border-2 border-slate-900 text-white shadow-xl shadow-slate-900/10'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <User className="w-8 h-8 text-amber-600" />
+              <User className={`w-8 h-8 ${role === 'client' ? 'text-amber-400' : 'text-amber-600'}`} />
               <div className="text-center">
-                <div className="font-bold text-lg text-slate-900">Je suis Client</div>
-                <div className="text-xs text-slate-500 mt-1">Je souhaite faire livrer des colis</div>
+                <div className={`font-bold text-lg ${role === 'client' ? 'text-white' : 'text-slate-900'}`}>Je suis Client</div>
+                <div className={`text-xs mt-1 ${role === 'client' ? 'text-slate-300' : 'text-slate-500'}`}>Je souhaite faire livrer des colis</div>
               </div>
             </button>
 
             <button
               type="button"
               onClick={() => setRole('driver')}
-              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
+              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 cursor-pointer ${
                 role === 'driver'
-                  ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 shadow-md shadow-orange-500/10'
+                  ? 'bg-slate-900 border-2 border-slate-900 text-white shadow-xl shadow-slate-900/10'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <Bike className="w-8 h-8 text-orange-600" />
+              <Bike className={`w-8 h-8 ${role === 'driver' ? 'text-orange-400' : 'text-orange-600'}`} />
               <div className="text-center">
-                <div className="font-bold text-lg text-slate-900">Je suis Livreur</div>
-                <div className="text-xs text-slate-500 mt-1">Je souhaite effectuer des livraisons</div>
+                <div className={`font-bold text-lg ${role === 'driver' ? 'text-white' : 'text-slate-900'}`}>Je suis Livreur</div>
+                <div className={`text-xs mt-1 ${role === 'driver' ? 'text-slate-300' : 'text-slate-500'}`}>Je souhaite effectuer des livraisons</div>
               </div>
             </button>
           </div>
@@ -730,7 +730,7 @@ export default function InscriptionPage() {
                 type="button"
                 onClick={() => setPaymentMethod('orange_money')}
                 className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
-                  paymentMethod === 'orange_money' ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  paymentMethod === 'orange_money' ? 'bg-orange-500 border-2 border-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 Orange Money
@@ -740,7 +740,7 @@ export default function InscriptionPage() {
                 type="button"
                 onClick={() => setPaymentMethod('moov_money')}
                 className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
-                  paymentMethod === 'moov_money' ? 'bg-blue-50 border-2 border-blue-500 text-blue-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  paymentMethod === 'moov_money' ? 'bg-blue-600 border-2 border-blue-600 text-white shadow-md shadow-blue-600/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 Moov Money
@@ -750,7 +750,7 @@ export default function InscriptionPage() {
                 type="button"
                 onClick={() => setPaymentMethod('wave')}
                 className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
-                  paymentMethod === 'wave' ? 'bg-cyan-50 border-2 border-cyan-500 text-cyan-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                  paymentMethod === 'wave' ? 'bg-cyan-500 border-2 border-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 Wave
@@ -812,14 +812,14 @@ export default function InscriptionPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+              className="w-full py-4 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 active:scale-[0.99] text-white font-bold shadow-xl shadow-slate-900/20 hover:shadow-slate-900/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer group"
             >
               {loading ? (
-                <div className="w-6 h-6 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{isRejectedFixMode ? 'Soumettre à nouveau mon dossier corrigé' : 'Créer mon compte'}</span>
-                  <ArrowRight className="w-5 h-5" />
+                  <span className="text-base">{isRejectedFixMode ? 'Soumettre à nouveau mon dossier corrigé' : 'Créer mon compte'}</span>
+                  <ArrowRight className="w-5 h-5 text-amber-400 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
