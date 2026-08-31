@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Truck, User, Bike, ArrowRight, Upload, CheckCircle2, Image as ImageIcon, Trash2, Camera, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Navbar } from '@/components/Navbar';
 import { AdminSecretModal } from '@/components/AdminSecretModal';
 
 export default function InscriptionPage() {
@@ -218,366 +219,220 @@ export default function InscriptionPage() {
   const fee = role === 'driver' ? 1500 : 2000;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-      <div className="max-w-3xl mx-auto z-10 relative">
-        <div className="text-center mb-8">
-          <div
-            onClick={() => setShowAdminModal(true)}
-            className="inline-flex items-center space-x-3 mb-4 group cursor-pointer"
-            title="👑 Cliquer pour saisir le Code Secret Administrateur"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-              <Truck className="w-7 h-7 text-white" />
-            </div>
-            <span className="text-2xl font-black bg-gradient-to-r from-amber-400 to-white bg-clip-text text-transparent">
-              LIVRAISON OUAGA
-            </span>
-          </div>
-          <h1 className="text-3xl font-black">Créer votre compte</h1>
-          <p className="text-slate-400 mt-2">Choisissez votre profil pour commencer</p>
-        </div>
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-amber-500 selection:text-white flex flex-col justify-between">
+      <Navbar />
 
-        {/* Role Selector */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <button
-            type="button"
-            onClick={() => setRole('client')}
-            className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
-              role === 'client'
-                ? 'bg-amber-500/10 border-amber-500 text-amber-400 shadow-lg shadow-amber-500/10'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-            }`}
-          >
-            <User className="w-8 h-8" />
-            <div className="text-center">
-              <div className="font-bold text-lg text-white">Je suis Client</div>
-              <div className="text-xs text-slate-400 mt-1">Je souhaite faire livrer des colis</div>
-            </div>
-          </button>
+      <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
 
-          <button
-            type="button"
-            onClick={() => setRole('driver')}
-            className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
-              role === 'driver'
-                ? 'bg-orange-500/10 border-orange-500 text-orange-400 shadow-lg shadow-orange-500/10'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-            }`}
-          >
-            <Bike className="w-8 h-8" />
-            <div className="text-center">
-              <div className="font-bold text-lg text-white">Je suis Livreur</div>
-              <div className="text-xs text-slate-400 mt-1">Je souhaite effectuer des livraisons</div>
-            </div>
-          </button>
-        </div>
-
-        {/* Form Container */}
-        <form onSubmit={handleSubmit} className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
-          {isRejectedFixMode && (
-            <div className="p-5 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 space-y-2.5 animate-fadeIn">
-              <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <span>Correction de votre dossier rejeté</span>
+        <div className="max-w-3xl mx-auto z-10 relative">
+          <div className="text-center mb-8">
+            <div
+              onClick={() => setShowAdminModal(true)}
+              className="inline-flex items-center space-x-3 mb-4 group cursor-pointer"
+              title="👑 Cliquer pour saisir le Code Secret Administrateur"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                <Truck className="w-7 h-7 text-white" />
               </div>
-              <div className="text-xs space-y-1">
-                <strong className="text-amber-300">Motif du refus précédent :</strong>
-                <div className="p-3 rounded-xl bg-slate-950 border border-amber-900/50 text-white font-bold text-xs">
-                  "{rejectionReason || 'Document non conforme ou informations incomplètes.'}"
+              <span className="text-2xl font-black text-slate-950">
+                LIVRAISON <span className="text-amber-600">OUAGA</span>
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-950 tracking-tight">Créer votre compte</h1>
+            <p className="text-slate-600 mt-2 font-medium">Choisissez votre profil pour commencer</p>
+          </div>
+
+          {/* Role Selector */}
+          <div className="grid grid-cols-2 gap-4 mb-8">
+            <button
+              type="button"
+              onClick={() => setRole('client')}
+              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
+                role === 'client'
+                  ? 'bg-amber-50 border-2 border-amber-500 text-amber-700 shadow-md shadow-amber-500/10'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <User className="w-8 h-8 text-amber-600" />
+              <div className="text-center">
+                <div className="font-bold text-lg text-slate-900">Je suis Client</div>
+                <div className="text-xs text-slate-500 mt-1">Je souhaite faire livrer des colis</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRole('driver')}
+              className={`p-6 rounded-3xl border text-left transition-all flex flex-col items-center justify-center space-y-3 ${
+                role === 'driver'
+                  ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 shadow-md shadow-orange-500/10'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+              }`}
+            >
+              <Bike className="w-8 h-8 text-orange-600" />
+              <div className="text-center">
+                <div className="font-bold text-lg text-slate-900">Je suis Livreur</div>
+                <div className="text-xs text-slate-500 mt-1">Je souhaite effectuer des livraisons</div>
+              </div>
+            </button>
+          </div>
+
+          {/* Form Container */}
+          <form onSubmit={handleSubmit} className="bg-white border border-slate-200/80 p-6 sm:p-10 rounded-3xl shadow-xl space-y-6">
+            {isRejectedFixMode && (
+              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 space-y-2.5 animate-fadeIn">
+                <div className="flex items-center gap-2 text-amber-700 font-extrabold text-sm">
+                  <AlertTriangle className="w-5 h-5 shrink-0" />
+                  <span>Correction de votre dossier rejeté</span>
                 </div>
+                <div className="text-xs space-y-1">
+                  <strong className="text-amber-800">Motif du refus précédent :</strong>
+                  <div className="p-3 rounded-xl bg-white border border-amber-200 text-slate-900 font-bold text-xs">
+                    "{rejectionReason || 'Document non conforme ou informations incomplètes.'}"
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-800 leading-relaxed">
+                  💡 <strong>Toutes vos informations enregistrées ont été conservées.</strong> Corrigez simplement les pièces ou informations erronées ci-dessous, puis validez.
+                </p>
               </div>
-              <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                💡 <strong>Toutes vos informations enregistrées ont été conservées.</strong> Corrigez simplement les pièces ou informations erronées ci-dessous, puis validez.
-              </p>
-            </div>
-          )}
+            )}
 
-          {error && (
-            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                {error}
+              </div>
+            )}
 
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-xl font-bold text-amber-400">Informations Personnelles</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Nom complet *</label>
-              <input
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="ex: Ouedraogo Moussa"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-              />
+            <div className="border-b border-slate-200 pb-4">
+              <h2 className="text-xl font-bold text-amber-600">Informations Personnelles</h2>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Téléphone *</label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                onBlur={handlePhoneBlur}
-                placeholder="ex: 70000000"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@exemple.bf"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Ville</label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Adresse / Quartier</label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="ex: Ouaga 2000, Secteur 15"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Mot de passe *</label>
-              <div className="relative">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Nom complet *</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="text"
                   required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-4 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="ex: Ouedraogo Moussa"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">Confirmation mot de passe *</label>
-              <div className="relative">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Téléphone *</label>
                 <input
-                  type={showConfirmPassword ? 'text' : 'password'}
+                  type="text"
                   required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-4 pr-12 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  onBlur={handlePhoneBlur}
+                  placeholder="ex: 70000000"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Client Specific ID Card & Photo Section */}
-          {role === 'client' && (
-            <>
-              <div className="border-b border-slate-800 pb-4 pt-6">
-                <h2 className="text-xl font-bold text-amber-400">Photo de Profil & Pièce d'identité Client (Obligatoires)</h2>
-                <p className="text-xs text-slate-400 mt-1">Veuillez fournir votre photo de profil ainsi que la photo RECTO et VERSO de votre pièce d'identité (CNIB, Passeport ou Permis).</p>
               </div>
 
-              {/* Photo de profil Client */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-white flex items-center space-x-2">
-                    <Camera className="w-4 h-4 text-amber-400" />
-                    <span>Photo de Profil Client *</span>
-                  </label>
-                  {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                </div>
-
-                {photoUrl ? (
-                  <div className="relative rounded-xl overflow-hidden border border-slate-800 group max-w-xs">
-                    <img src={photoUrl} alt="Photo de Profil Client" className="w-full h-40 object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setPhotoUrl('')}
-                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center max-w-xs">
-                    <Upload className="w-8 h-8 text-amber-400 mb-2" />
-                    <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo de Profil</span>
-                    <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, setPhotoUrl)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@exemple.bf"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 1. CNI Recto */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <ImageIcon className="w-4 h-4 text-cyan-400" />
-                      <span>1. Pièce d'identité - Face RECTO *</span>
-                    </label>
-                    {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                  </div>
-
-                  {idCardRectoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={idCardRectoUrl} alt="CNI Recto Client" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setIdCardRectoUrl('')}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (RECTO)</span>
-                      <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-
-                {/* 2. CNI Verso */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <ImageIcon className="w-4 h-4 text-cyan-400" />
-                      <span>2. Pièce d'identité - Face VERSO *</span>
-                    </label>
-                    {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                  </div>
-
-                  {idCardVersoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={idCardVersoUrl} alt="CNI Verso Client" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setIdCardVersoUrl('')}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (VERSO)</span>
-                      <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Driver Specific Section */}
-          {role === 'driver' && (
-            <>
-              <div className="border-b border-slate-800 pb-4 pt-6">
-                <h2 className="text-xl font-bold text-orange-400">Informations Véhicule</h2>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Ville</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Type Véhicule *</label>
-                  <select
-                    value={vehicleType}
-                    onChange={(e) => setVehicleType(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
-                  >
-                    <option value="motorcycle">Moto</option>
-                    <option value="car">Tricycle / Voiture</option>
-                    <option value="van">Camionnette / Camion</option>
-                  </select>
-                </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Adresse / Quartier</label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="ex: Ouaga 2000, Secteur 15"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-slate-300 mb-2">Marque / Modèle</label>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Mot de passe *</label>
+                <div className="relative">
                   <input
-                    type="text"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                    placeholder="Yamaha, Honda, Rato..."
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    title={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 
-              {/* Photos & Documents KYC pour Livreur */}
-              <div className="border-b border-slate-800 pb-4 pt-6">
-                <h2 className="text-xl font-bold text-orange-400">Photos & Pièces d'identité (Obligatoires)</h2>
-                <p className="text-xs text-slate-400 mt-1">Prenez en photo ou téléversez des images claires depuis votre téléphone.</p>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Confirmation mot de passe *</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                    title={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 1. Photo de profil */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
+            {/* Client Specific ID Card & Photo Section */}
+            {role === 'client' && (
+              <>
+                <div className="border-b border-slate-200 pb-4 pt-6">
+                  <h2 className="text-xl font-bold text-amber-600">Photo de Profil & Pièce d'identité Client (Obligatoires)</h2>
+                  <p className="text-xs text-slate-500 mt-1">Veuillez fournir votre photo de profil ainsi que la photo RECTO et VERSO de votre pièce d'identité (CNIB, Passeport ou Permis).</p>
+                </div>
+
+                {/* Photo de profil Client */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <Camera className="w-4 h-4 text-amber-400" />
-                      <span>1. Photo de Profil *</span>
+                    <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                      <Camera className="w-4 h-4 text-amber-600" />
+                      <span>Photo de Profil Client *</span>
                     </label>
-                    {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                    {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
                   </div>
 
                   {photoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={photoUrl} alt="Photo de Profil" className="w-full h-40 object-cover" />
+                    <div className="relative rounded-xl overflow-hidden border border-slate-200 group max-w-xs">
+                      <img src={photoUrl} alt="Photo de Profil Client" className="w-full h-40 object-cover" />
                       <button
                         type="button"
                         onClick={() => setPhotoUrl('')}
@@ -587,9 +442,9 @@ export default function InscriptionPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-amber-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo</span>
+                    <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center max-w-xs">
+                      <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                      <span className="text-xs font-bold text-slate-700">Prendre / Choisir Photo de Profil</span>
                       <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
                       <input
                         type="file"
@@ -601,232 +456,385 @@ export default function InscriptionPage() {
                   )}
                 </div>
 
-                {/* 2. Photo de l'engin */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <Bike className="w-4 h-4 text-orange-400" />
-                      <span>2. Photo de l'Engin (Véhicule) *</span>
-                    </label>
-                    {vehiclePhotoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 1. CNI Recto */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>1. Pièce d'identité - Face RECTO *</span>
+                      </label>
+                      {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                    </div>
+
+                    {idCardRectoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={idCardRectoUrl} alt="CNI Recto Client" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIdCardRectoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Scanner / Photo CNI (RECTO)</span>
+                        <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
 
-                  {vehiclePhotoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={vehiclePhotoUrl} alt="Photo Engin" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setVehiclePhotoUrl('')}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  {/* 2. CNI Verso */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>2. Pièce d'identité - Face VERSO *</span>
+                      </label>
+                      {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
                     </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-orange-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-orange-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Prendre / Choisir Photo Engin</span>
-                      <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, setVehiclePhotoUrl)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
 
-                {/* 3. CNI Recto */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <ImageIcon className="w-4 h-4 text-cyan-400" />
-                      <span>3. Pièce d'identité - Face RECTO *</span>
-                    </label>
-                    {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                    {idCardVersoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={idCardVersoUrl} alt="CNI Verso Client" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIdCardVersoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Scanner / Photo CNI (VERSO)</span>
+                        <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
-
-                  {idCardRectoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={idCardRectoUrl} alt="CNI Recto" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setIdCardRectoUrl('')}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (RECTO)</span>
-                      <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
                 </div>
-
-                {/* 4. CNI Verso */}
-                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-bold text-white flex items-center space-x-2">
-                      <ImageIcon className="w-4 h-4 text-cyan-400" />
-                      <span>4. Pièce d'identité - Face VERSO *</span>
-                    </label>
-                    {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-                  </div>
-
-                  {idCardVersoUrl ? (
-                    <div className="relative rounded-xl overflow-hidden border border-slate-800 group">
-                      <img src={idCardVersoUrl} alt="CNI Verso" className="w-full h-40 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setIdCardVersoUrl('')}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="border-2 border-dashed border-slate-800 hover:border-cyan-500/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-slate-900/40 hover:bg-slate-900 transition-all text-center">
-                      <Upload className="w-8 h-8 text-cyan-400 mb-2" />
-                      <span className="text-xs font-bold text-slate-300">Scanner / Photo CNI (VERSO)</span>
-                      <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Payment Section */}
-          <div className="border-b border-slate-800 pb-4 pt-6">
-            <h2 className="text-xl font-bold text-amber-400">Paiement Frais d'Inscription ({fee} FCFA)</h2>
-            <p className="text-xs text-slate-400 mt-1">Le paiement est vérifié et approuvé par l'administration avant l'activation du compte.</p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('orange_money')}
-              className={`p-4 rounded-2xl border text-center font-bold transition-all ${
-                paymentMethod === 'orange_money' ? 'bg-orange-500/20 border-orange-500 text-orange-400' : 'bg-slate-950 border-slate-800 text-slate-400'
-              }`}
-            >
-              Orange Money
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('moov_money')}
-              className={`p-4 rounded-2xl border text-center font-bold transition-all ${
-                paymentMethod === 'moov_money' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-slate-950 border-slate-800 text-slate-400'
-              }`}
-            >
-              Moov Money
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('wave')}
-              className={`p-4 rounded-2xl border text-center font-bold transition-all ${
-                paymentMethod === 'wave' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'bg-slate-950 border-slate-800 text-slate-400'
-              }`}
-            >
-              Wave
-            </button>
-          </div>
-
-          {/* Payment Instructions Box */}
-          <div className="p-6 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 text-sm">
-            <div className="font-bold text-amber-400 flex items-center justify-between">
-              <span>Instructions de paiement Mobile Money :</span>
-              <span className="text-white text-base">{fee} FCFA</span>
-            </div>
-
-            {paymentMethod === 'orange_money' && (
-              <div>
-                <p className="text-slate-300">Numéro Orange Money : <span className="font-bold text-white">06887330</span></p>
-                <p className="text-xs text-slate-400 mt-1">Code USSD : <code className="bg-slate-900 px-2 py-1 rounded text-amber-300">*144*2*1*06887330*{fee}#</code></p>
-              </div>
-            )}
-
-            {paymentMethod === 'moov_money' && (
-              <div>
-                <p className="text-slate-300">Numéro Moov Money : <span className="font-bold text-white">62017878</span></p>
-                <p className="text-xs text-slate-400 mt-1">Code USSD : <code className="bg-slate-900 px-2 py-1 rounded text-blue-300">*555*2*1*62017878*{fee}#</code></p>
-              </div>
-            )}
-
-            {paymentMethod === 'wave' && (
-              <div>
-                <p className="text-slate-300">Numéro Wave : <span className="font-bold text-white">06887330</span></p>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Référence de Transaction (Facultatif)</label>
-              <input
-                type="text"
-                value={transactionReference}
-                onChange={(e) => setTransactionReference(e.target.value)}
-                placeholder="ex: OM-98765432"
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3 pt-2">
-            <input
-              type="checkbox"
-              id="hasPaid"
-              checked={hasPaid}
-              onChange={(e) => setHasPaid(e.target.checked)}
-              className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
-            />
-            <label htmlFor="hasPaid" className="text-sm font-semibold text-white cursor-pointer">
-              J'ai effectué le paiement de {fee} FCFA sur le numéro indiqué
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>{isRejectedFixMode ? 'Soumettre à nouveau mon dossier corrigé' : 'Créer mon compte'}</span>
-                <ArrowRight className="w-5 h-5" />
               </>
             )}
-          </button>
 
-          <div className="text-center pt-4">
-            <p className="text-sm text-slate-400">
-              Déjà un compte ?{' '}
-              <Link href="/connexion" className="font-bold text-amber-400 hover:text-amber-300">
-                Se connecter
-              </Link>
-            </p>
-          </div>
-        </form>
-      </div>
+            {/* Driver Specific Section */}
+            {role === 'driver' && (
+              <>
+                <div className="border-b border-slate-200 pb-4 pt-6">
+                  <h2 className="text-xl font-bold text-orange-600">Informations Véhicule</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Type Véhicule *</label>
+                    <select
+                      value={vehicleType}
+                      onChange={(e) => setVehicleType(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                    >
+                      <option value="motorcycle">Moto</option>
+                      <option value="car">Tricycle / Voiture</option>
+                      <option value="van">Camionnette / Camion</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">Marque / Modèle</label>
+                    <input
+                      type="text"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      placeholder="Yamaha, Honda, Rato..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Photos & Documents KYC pour Livreur */}
+                <div className="border-b border-slate-200 pb-4 pt-6">
+                  <h2 className="text-xl font-bold text-orange-600">Photos & Pièces d'identité (Obligatoires)</h2>
+                  <p className="text-xs text-slate-500 mt-1">Prenez en photo ou téléversez des images claires depuis votre téléphone.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 1. Photo de profil */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <Camera className="w-4 h-4 text-amber-600" />
+                        <span>1. Photo de Profil *</span>
+                      </label>
+                      {photoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                    </div>
+
+                    {photoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={photoUrl} alt="Photo de Profil" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setPhotoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Prendre / Choisir Photo</span>
+                        <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setPhotoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 2. Photo de l'engin */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <Bike className="w-4 h-4 text-orange-600" />
+                        <span>2. Photo de l'Engin (Véhicule) *</span>
+                      </label>
+                      {vehiclePhotoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                    </div>
+
+                    {vehiclePhotoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={vehiclePhotoUrl} alt="Photo Engin" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setVehiclePhotoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-orange-500 hover:bg-orange-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-orange-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Prendre / Choisir Photo Engin</span>
+                        <span className="text-[10px] text-slate-500 mt-1">Format JPG, PNG (Max 8 Mo)</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setVehiclePhotoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 3. CNI Recto */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>3. Pièce d'identité - Face RECTO *</span>
+                      </label>
+                      {idCardRectoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                    </div>
+
+                    {idCardRectoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={idCardRectoUrl} alt="CNI Recto" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIdCardRectoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Scanner / Photo CNI (RECTO)</span>
+                        <span className="text-[10px] text-slate-500 mt-1">CNIB, Passeport ou Permis</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setIdCardRectoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* 4. CNI Verso */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                        <ImageIcon className="w-4 h-4 text-amber-600" />
+                        <span>4. Pièce d'identité - Face VERSO *</span>
+                      </label>
+                      {idCardVersoUrl && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                    </div>
+
+                    {idCardVersoUrl ? (
+                      <div className="relative rounded-xl overflow-hidden border border-slate-200 group">
+                        <img src={idCardVersoUrl} alt="CNI Verso" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setIdCardVersoUrl('')}
+                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-600/80 text-white hover:bg-red-600 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="border-2 border-dashed border-slate-300 hover:border-amber-500 hover:bg-amber-50/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer bg-white transition-all text-center">
+                        <Upload className="w-8 h-8 text-amber-600 mb-2" />
+                        <span className="text-xs font-bold text-slate-700">Scanner / Photo CNI (VERSO)</span>
+                        <span className="text-[10px] text-slate-500 mt-1">CNIB ou Pièce d'identité</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleFileChange(e, setIdCardVersoUrl)}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Payment Section */}
+            <div className="border-b border-slate-200 pb-4 pt-6">
+              <h2 className="text-xl font-bold text-amber-600">Paiement Frais d'Inscription ({fee} FCFA)</h2>
+              <p className="text-xs text-slate-500 mt-1">Le paiement est vérifié et approuvé par l'administration avant l'activation du compte.</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('orange_money')}
+                className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
+                  paymentMethod === 'orange_money' ? 'bg-orange-50 border-2 border-orange-500 text-orange-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Orange Money
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('moov_money')}
+                className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
+                  paymentMethod === 'moov_money' ? 'bg-blue-50 border-2 border-blue-500 text-blue-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Moov Money
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('wave')}
+                className={`p-4 rounded-2xl border text-center font-bold transition-all cursor-pointer ${
+                  paymentMethod === 'wave' ? 'bg-cyan-50 border-2 border-cyan-500 text-cyan-700 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                Wave
+              </button>
+            </div>
+
+            {/* Payment Instructions Box */}
+            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-sm text-slate-800">
+              <div className="font-bold text-slate-900 flex items-center justify-between">
+                <span>Instructions de paiement Mobile Money :</span>
+                <span className="text-amber-600 text-base font-extrabold">{fee} FCFA</span>
+              </div>
+
+              {paymentMethod === 'orange_money' && (
+                <div>
+                  <p className="text-slate-700">Numéro Orange Money : <span className="font-bold text-slate-900">06887330</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Code USSD : <code className="bg-slate-200 px-2 py-1 rounded text-amber-700 font-mono font-bold">*144*2*1*06887330*{fee}#</code></p>
+                </div>
+              )}
+
+              {paymentMethod === 'moov_money' && (
+                <div>
+                  <p className="text-slate-700">Numéro Moov Money : <span className="font-bold text-slate-900">62017878</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Code USSD : <code className="bg-slate-200 px-2 py-1 rounded text-blue-700 font-mono font-bold">*555*2*1*62017878*{fee}#</code></p>
+                </div>
+              )}
+
+              {paymentMethod === 'wave' && (
+                <div>
+                  <p className="text-slate-700">Numéro Wave : <span className="font-bold text-slate-900">06887330</span></p>
+                </div>
+              )}
+
+              <div className="pt-2">
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Référence de Transaction (Facultatif)</label>
+                <input
+                  type="text"
+                  value={transactionReference}
+                  onChange={(e) => setTransactionReference(e.target.value)}
+                  placeholder="ex: OM-98765432"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3 pt-2">
+              <input
+                type="checkbox"
+                id="hasPaid"
+                checked={hasPaid}
+                onChange={(e) => setHasPaid(e.target.checked)}
+                className="w-5 h-5 accent-amber-500 rounded cursor-pointer"
+              />
+              <label htmlFor="hasPaid" className="text-sm font-semibold text-slate-800 cursor-pointer">
+                J'ai effectué le paiement de {fee} FCFA sur le numéro indiqué
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-slate-950 font-bold shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
+            >
+              {loading ? (
+                <div className="w-6 h-6 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{isRejectedFixMode ? 'Soumettre à nouveau mon dossier corrigé' : 'Créer mon compte'}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
+
+            <div className="text-center pt-4">
+              <p className="text-sm text-slate-600">
+                Déjà un compte ?{' '}
+                <Link href="/connexion" className="font-bold text-amber-600 hover:text-amber-700">
+                  Se connecter
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
+      </main>
 
       <AdminSecretModal
         isOpen={showAdminModal}
@@ -835,3 +843,4 @@ export default function InscriptionPage() {
     </div>
   );
 }
+
