@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  ArrowRight,
   MapPin,
   User,
   Package,
@@ -20,7 +21,8 @@ import {
   KeyRound,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 import { buildNavigationUrl } from '@/lib/mapUtils';
 import { Navbar } from '@/components/Navbar';
@@ -177,6 +179,76 @@ export default function ExecutionLivraisonDriverPage() {
   }
 
   const assignment = delivery.assignments?.[0];
+  const isCompleted = delivery.status === 'completed' || delivery.status === 'delivered' || assignment?.deliveryOtpVerified;
+
+  if (isCompleted) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-16 flex flex-col justify-between">
+        <main className="max-w-2xl mx-auto px-4 py-12 w-full space-y-6">
+          
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-10 shadow-xl text-center space-y-6">
+            <div className="w-20 h-20 rounded-3xl bg-emerald-50 border-2 border-emerald-500/30 text-emerald-600 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider">
+                ✓ TÂCHE TERMINÉE
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-950">
+                Livraison Effectuée & Clôturée
+              </h1>
+              <p className="text-sm text-slate-600 font-medium">
+                Cette course est clôturée et archivée. Vous ne pouvez plus modifier son déroulement.
+              </p>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs space-y-3">
+              <div className="flex justify-between items-center border-b border-slate-200 pb-2.5 font-bold">
+                <span className="text-slate-500 uppercase tracking-wider">Référence Course</span>
+                <span className="font-mono text-slate-900 text-sm">#{delivery.id.slice(0, 8).toUpperCase()}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                <span className="text-slate-500 font-semibold">Description Colis</span>
+                <span className="font-bold text-slate-900">{delivery.packageDescription}</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                <span className="text-slate-500 font-semibold">Destinataire</span>
+                <span className="font-bold text-slate-900">{delivery.recipientName} ({delivery.recipientPhone})</span>
+              </div>
+              <div className="flex justify-between items-center border-b border-slate-200 pb-2.5">
+                <span className="text-slate-500 font-semibold">Adresse d'arrivée</span>
+                <span className="font-bold text-slate-900">{delivery.destinationAddress}</span>
+              </div>
+              <div className="flex justify-between items-center text-emerald-700 font-bold pt-1">
+                <span>Codes de Sécurité OTP 1 & OTP 2</span>
+                <span className="bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px]">Validés ✓</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-3">
+              <Link
+                href="/driver"
+                className="flex-1 py-4 px-6 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-lg transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Retour au tableau de bord</span>
+              </Link>
+              <Link
+                href="/driver/demandes"
+                className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 text-slate-950 font-bold text-xs shadow-lg transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Voir les nouvelles courses</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    );
+  }
+
   const pickupNavUrl = buildNavigationUrl(delivery.pickupLatitude, delivery.pickupLongitude, delivery.pickupAddress);
   const destinationNavUrl = buildNavigationUrl(delivery.destinationLatitude, delivery.destinationLongitude, delivery.destinationAddress);
 

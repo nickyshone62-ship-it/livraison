@@ -112,6 +112,13 @@ export async function POST(req: Request) {
       }
     }
 
+    if (!transactionReference || typeof transactionReference !== 'string' || !transactionReference.trim()) {
+      return NextResponse.json(
+        { error: 'La référence de transaction Mobile Money (ID de transaction) est obligatoire pour valider votre inscription.' },
+        { status: 400 }
+      );
+    }
+
     const passwordHash = await hashPassword(password);
     const settings = await getPlatformSettings();
     const registrationFee = role === 'driver' 

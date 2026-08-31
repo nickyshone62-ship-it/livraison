@@ -171,6 +171,11 @@ export default function InscriptionPage() {
       }
     }
 
+    if (!transactionReference || !transactionReference.trim()) {
+      setError('La référence de transaction Mobile Money (ID de transaction) est obligatoire.');
+      return;
+    }
+
     if (!hasPaid) {
       setError('Veuillez effectuer le paiement et cocher "J\'ai effectué le paiement"');
       return;
@@ -783,13 +788,16 @@ export default function InscriptionPage() {
               )}
 
               <div className="pt-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Référence de Transaction (Facultatif)</label>
+                <label className="block text-xs font-bold text-slate-900 mb-1">
+                  Référence / ID de Transaction Mobile Money * <span className="text-amber-600 font-extrabold">(Obligatoire)</span>
+                </label>
                 <input
                   type="text"
+                  required
                   value={transactionReference}
                   onChange={(e) => setTransactionReference(e.target.value)}
-                  placeholder="ex: OM-98765432"
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs outline-none focus:ring-2 focus:ring-amber-500 transition-all"
+                  placeholder="ex: OM-98765432 ou MP-12345678"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 text-xs outline-none focus:ring-2 focus:ring-amber-500 font-mono transition-all placeholder-slate-400"
                 />
               </div>
             </div>
