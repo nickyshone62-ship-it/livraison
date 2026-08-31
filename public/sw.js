@@ -1,18 +1,10 @@
-const CACHE_NAME = 'livraison-ouaga-v1';
+const CACHE_NAME = 'livraison-ouaga-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',
-  '/globals.css',
-  '/auth/login',
-  '/auth/register',
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -32,15 +24,17 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first, fallback to cache
+  // Network first for all HTML pages and API requests
   if (event.request.method === 'GET' && !event.request.url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
           return response;
         })
         .catch(() => caches.match(event.request))
